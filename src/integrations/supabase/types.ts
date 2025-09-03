@@ -14,6 +14,222 @@ export type Database = {
   }
   public: {
     Tables: {
+      bookings: {
+        Row: {
+          created_at: string
+          end_time: string
+          id: string
+          renter_id: string
+          space_id: string
+          special_requests: string | null
+          start_time: string
+          status: string
+          stripe_payment_intent_id: string | null
+          total_price: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          end_time: string
+          id?: string
+          renter_id: string
+          space_id: string
+          special_requests?: string | null
+          start_time: string
+          status?: string
+          stripe_payment_intent_id?: string | null
+          total_price: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          end_time?: string
+          id?: string
+          renter_id?: string
+          space_id?: string
+          special_requests?: string | null
+          start_time?: string
+          status?: string
+          stripe_payment_intent_id?: string | null
+          total_price?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bookings_space_id_fkey"
+            columns: ["space_id"]
+            isOneToOne: false
+            referencedRelation: "spaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      negotiations: {
+        Row: {
+          ai_generated: boolean
+          booking_id: string
+          created_at: string
+          from_user_id: string
+          id: string
+          message: string | null
+          offer_price: number
+          status: string
+          to_user_id: string
+        }
+        Insert: {
+          ai_generated?: boolean
+          booking_id: string
+          created_at?: string
+          from_user_id: string
+          id?: string
+          message?: string | null
+          offer_price: number
+          status?: string
+          to_user_id: string
+        }
+        Update: {
+          ai_generated?: boolean
+          booking_id?: string
+          created_at?: string
+          from_user_id?: string
+          id?: string
+          message?: string | null
+          offer_price?: number
+          status?: string
+          to_user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "negotiations_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          full_name: string | null
+          id: string
+          phone: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          full_name?: string | null
+          id?: string
+          phone?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          full_name?: string | null
+          id?: string
+          phone?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      space_photos: {
+        Row: {
+          created_at: string
+          display_order: number
+          id: string
+          photo_url: string
+          space_id: string
+        }
+        Insert: {
+          created_at?: string
+          display_order?: number
+          id?: string
+          photo_url: string
+          space_id: string
+        }
+        Update: {
+          created_at?: string
+          display_order?: number
+          id?: string
+          photo_url?: string
+          space_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "space_photos_space_id_fkey"
+            columns: ["space_id"]
+            isOneToOne: false
+            referencedRelation: "spaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      spaces: {
+        Row: {
+          address: string
+          available_from: string | null
+          available_until: string | null
+          created_at: string
+          description: string | null
+          dimensions: string | null
+          id: string
+          is_active: boolean
+          latitude: number | null
+          longitude: number | null
+          owner_id: string
+          price_per_day: number | null
+          price_per_hour: number
+          space_type: string
+          stripe_connect_account_id: string | null
+          title: string
+          updated_at: string
+          zip_code: string
+        }
+        Insert: {
+          address: string
+          available_from?: string | null
+          available_until?: string | null
+          created_at?: string
+          description?: string | null
+          dimensions?: string | null
+          id?: string
+          is_active?: boolean
+          latitude?: number | null
+          longitude?: number | null
+          owner_id: string
+          price_per_day?: number | null
+          price_per_hour: number
+          space_type: string
+          stripe_connect_account_id?: string | null
+          title: string
+          updated_at?: string
+          zip_code?: string
+        }
+        Update: {
+          address?: string
+          available_from?: string | null
+          available_until?: string | null
+          created_at?: string
+          description?: string | null
+          dimensions?: string | null
+          id?: string
+          is_active?: boolean
+          latitude?: number | null
+          longitude?: number | null
+          owner_id?: string
+          price_per_day?: number | null
+          price_per_hour?: number
+          space_type?: string
+          stripe_connect_account_id?: string | null
+          title?: string
+          updated_at?: string
+          zip_code?: string
+        }
+        Relationships: []
+      }
       "Super Space Users": {
         Row: {
           created_at: string
