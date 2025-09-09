@@ -19,6 +19,7 @@ This guide will help you enable Google OAuth authentication in your Supabase pro
 - Choose "Web application" as the application type
 - Add authorized redirect URIs:
   - `https://uwbkdjmmwmpnxjeuzogo.supabase.co/auth/v1/callback`
+  - `https://bagsy.space/auth/callback` (for production)
   - `http://localhost:8080/auth/callback` (for development)
 - Note down your **Client ID** and **Client Secret**
 
@@ -76,7 +77,7 @@ Once Google OAuth is configured in Supabase, uncomment the Google sign-in button
 ### Development vs Production:
 
 - **Development**: Use `http://localhost:8080/auth/callback`
-- **Production**: Use `https://yourdomain.com/auth/callback`
+- **Production**: Use `https://bagsy.space/auth/callback`
 
 ## Security Notes
 

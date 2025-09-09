@@ -101,6 +101,7 @@ Google OAuth is now enabled in the authentication modal. To make it fully functi
 2. **Set up Google Cloud Console**:
    - Create OAuth 2.0 credentials
    - Add redirect URIs: `https://uwbkdjmmwmpnxjeuzogo.supabase.co/auth/v1/callback`
+   - For production: `https://bagsy.space/auth/callback`
    - For development: `http://localhost:8080/auth/callback`
 
 3. **Test the integration**:

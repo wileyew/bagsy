@@ -37,12 +37,13 @@ VITE_APP_NAME=Bagsy
 VITE_APP_DESCRIPTION=AI-Powered Space Booking
 ```
 
-### 4. Custom Domain (Optional)
+### 4. Custom Domain Setup
 
 1. In Amplify console, go to "Domain management"
 2. Click "Add domain"
-3. Enter your custom domain
+3. Enter `bagsy.space` as your custom domain
 4. Follow the DNS configuration instructions
+5. Update your domain registrar to point to the Amplify hosting
 
 ### 5. Redirects Configuration
 
@@ -74,8 +75,9 @@ The updated `vite.config.ts` includes:
 In your Supabase dashboard:
 
 1. Go to Authentication → URL Configuration
-2. Add your Amplify domain to "Site URL"
-3. Add `https://your-domain.amplifyapp.com/auth/callback` to "Redirect URLs"
+2. Add `https://bagsy.space` to "Site URL"
+3. Add `https://bagsy.space/auth/callback` to "Redirect URLs"
+4. Add `https://bagsy.space/auth/reset-password` to "Redirect URLs"
 
 ### 2. Test Authentication
 
