@@ -2,13 +2,20 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { MapPin, Clock, DollarSign, Users, Star, ArrowRight, Search, Car, Warehouse, Home } from "lucide-react";
+import { MapPin, Clock, DollarSign, Users, Star, ArrowRight, Search, Car, Warehouse, Home, Sparkles } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { LoadingDots } from "@/components/ui/loading-dots";
+import { AuthModal } from "@/components/auth/auth-modal";
+import { UserMenu } from "@/components/auth/user-menu";
+import { ListSpaceModal } from "@/components/spaces/list-space-modal";
+import { useAuthContext } from "@/contexts/auth-context";
 import { useToast } from "@/hooks/use-toast";
 
 const Index = () => {
   const [currentStep, setCurrentStep] = useState(0);
+  const [authModalOpen, setAuthModalOpen] = useState(false);
+  const [listSpaceModalOpen, setListSpaceModalOpen] = useState(false);
   const [formData, setFormData] = useState({
     spaceType: "",
     location: "",
@@ -16,6 +23,7 @@ const Index = () => {
     timeframe: "",
     description: ""
   });
+  const { user } = useAuthContext();
   const { toast } = useToast();
 
   const spaceTypes = [
@@ -66,7 +74,10 @@ const Index = () => {
         title: "Looking for spaces...",
         description: "Our AI is finding the perfect match for you!"
       });
-      setCurrentStep(5); // Show results
+      // Simulate AI processing time
+      setTimeout(() => {
+        setCurrentStep(5); // Show results
+      }, 2000);
     }
   };
 
@@ -75,17 +86,23 @@ const Index = () => {
       {
         title: "What type of space do you need?",
         content: (
-          <div className="grid grid-cols-1 gap-3">
+          <div className="grid grid-cols-1 gap-4">
             {spaceTypes.map((type) => (
               <Button
                 key={type.id}
                 variant={formData.spaceType === type.id ? "default" : "outline"}
                 onClick={() => setFormData({...formData, spaceType: type.id})}
-                className="flex items-center justify-start gap-3 p-4 h-auto"
+                className={`flex items-center justify-start gap-4 p-6 h-auto text-left ${
+                  formData.spaceType === type.id 
+                    ? "apple-button-primary" 
+                    : "apple-button-secondary"
+                }`}
               >
-                <type.icon className="h-5 w-5" />
-                <div className="text-left">
-                  <div className="font-medium">{type.name}</div>
+                <div className="p-3 rounded-2xl bg-primary/10">
+                  <type.icon className="h-6 w-6 text-primary" />
+                </div>
+                <div>
+                  <div className="font-semibold text-lg">{type.name}</div>
                   <div className="text-sm opacity-70">{type.description}</div>
                 </div>
               </Button>
@@ -96,40 +113,44 @@ const Index = () => {
       {
         title: "Where do you need the space?",
         content: (
-          <div className="space-y-3">
+          <div className="space-y-4">
             <Input
               placeholder="Enter address or ZIP code"
               value={formData.location}
               onChange={(e) => setFormData({...formData, location: e.target.value})}
-              className="text-base"
+              className="apple-input text-lg h-14"
             />
-            <p className="text-sm text-muted-foreground">We currently serve ZIP code 94110 (Mission District)</p>
+            <p className="text-sm text-muted-foreground text-center">
+              We currently serve ZIP code 94110 (Mission District)
+            </p>
           </div>
         )
       },
       {
         title: "What's your budget?",
         content: (
-          <div className="space-y-3">
+          <div className="space-y-4">
             <Input
               placeholder="e.g., $5-10 per hour"
               value={formData.budget}
               onChange={(e) => setFormData({...formData, budget: e.target.value})}
-              className="text-base"
+              className="apple-input text-lg h-14"
             />
-            <p className="text-sm text-muted-foreground">Our AI will suggest fair market prices</p>
+            <p className="text-sm text-muted-foreground text-center">
+              Our AI will suggest fair market prices
+            </p>
           </div>
         )
       },
       {
         title: "When do you need it?",
         content: (
-          <div className="space-y-3">
+          <div className="space-y-4">
             <Input
               placeholder="e.g., Tomorrow 9am-5pm, or Next week"
               value={formData.timeframe}
               onChange={(e) => setFormData({...formData, timeframe: e.target.value})}
-              className="text-base"
+              className="apple-input text-lg h-14"
             />
           </div>
         )
@@ -137,19 +158,43 @@ const Index = () => {
       {
         title: "Any special requirements?",
         content: (
-          <div className="space-y-3">
+          <div className="space-y-4">
             <Textarea
               placeholder="Tell us about what you'll store, access needs, etc."
               value={formData.description}
               onChange={(e) => setFormData({...formData, description: e.target.value})}
-              className="text-base min-h-[100px]"
+              className="apple-input text-lg min-h-[120px] resize-none"
             />
           </div>
         )
       }
     ];
 
-    if (currentStep >= questions.length) return null;
+    if (currentStep >= questions.length) {
+      // Show loading state
+      return (
+        <div className="w-full max-w-2xl mx-auto">
+          <Card className="apple-card border-0 shadow-xl">
+            <CardHeader className="text-center pb-8">
+              <CardTitle className="text-3xl font-bold tracking-tight mb-4">
+                Finding your perfect space
+              </CardTitle>
+              <p className="text-muted-foreground text-lg">
+                Our AI is analyzing your requirements...
+              </p>
+            </CardHeader>
+            <CardContent className="text-center pb-8">
+              <LoadingDots size="lg" className="text-primary mx-auto mb-6" />
+              <div className="space-y-2 text-sm text-muted-foreground">
+                <p>• Matching your location preferences</p>
+                <p>• Calculating fair market prices</p>
+                <p>• Checking availability</p>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      );
+    }
 
     const question = questions[currentStep];
     const canProceed = currentStep === 0 ? formData.spaceType : 
@@ -158,72 +203,81 @@ const Index = () => {
                       currentStep === 3 ? formData.timeframe : true;
 
     return (
-      <Card className="w-full max-w-lg mx-auto">
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <Badge variant="secondary">{currentStep + 1} of {questions.length}</Badge>
-            <div className="text-sm text-muted-foreground">
-              {Math.round(((currentStep + 1) / questions.length) * 100)}% complete
+      <div className="w-full max-w-2xl mx-auto animate-fade-in">
+        <Card className="apple-card border-0 shadow-xl">
+          <CardHeader className="text-center pb-8">
+            <div className="flex items-center justify-center gap-2 mb-4">
+              <Badge variant="secondary" className="rounded-full px-4 py-1">
+                {currentStep + 1} of {questions.length}
+              </Badge>
             </div>
-          </div>
-          <CardTitle className="text-xl">{question.title}</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          {question.content}
-          <Button 
-            onClick={handleStepSubmit} 
-            disabled={!canProceed}
-            className="w-full"
-          >
-            {currentStep === questions.length - 1 ? "Find My Space" : "Continue"}
-            <ArrowRight className="ml-2 h-4 w-4" />
-          </Button>
-        </CardContent>
-      </Card>
+            <CardTitle className="text-3xl font-bold tracking-tight">
+              {question.title}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-8 pb-8">
+            {question.content}
+            <Button 
+              onClick={handleStepSubmit} 
+              disabled={!canProceed}
+              className={`w-full h-14 text-lg font-semibold ${
+                canProceed ? "apple-button-primary" : "opacity-50"
+              }`}
+            >
+              {currentStep === questions.length - 1 ? "Find My Space" : "Continue"}
+              <ArrowRight className="ml-2 h-5 w-5" />
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
     );
   };
 
   const renderResults = () => (
-    <div className="w-full max-w-4xl mx-auto space-y-6">
-      <div className="text-center">
-        <h2 className="text-2xl font-bold mb-2">Perfect matches found!</h2>
-        <p className="text-muted-foreground">Our AI found {mockListings.length} spaces matching your needs</p>
+          <div className="w-full max-w-6xl mx-auto space-y-12 animate-scale-in">
+      <div className="text-center space-y-4">
+        <h2 className="text-4xl font-bold tracking-tight mb-4">
+          Perfect matches found!
+        </h2>
+        <p className="text-xl text-muted-foreground">
+          Our AI found {mockListings.length} spaces matching your needs
+        </p>
       </div>
       
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
         {mockListings.map((listing) => (
-          <Card key={listing.id} className="overflow-hidden hover:shadow-lg transition-shadow">
-            <div className="aspect-video bg-muted relative">
-              <img src={listing.image} alt={listing.title} className="w-full h-full object-cover" />
-              <Badge className="absolute top-2 right-2 bg-success text-success-foreground">
+          <Card key={listing.id} className="apple-card overflow-hidden hover:shadow-xl transition-all duration-300 group">
+            <div className="aspect-[4/3] bg-muted relative overflow-hidden">
+              <img src={listing.image} alt={listing.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+              <Badge className="absolute top-4 right-4 bg-success text-success-foreground rounded-full">
                 Available
               </Badge>
             </div>
-            <CardContent className="p-4">
-              <div className="flex items-start justify-between mb-2">
-                <h3 className="font-semibold line-clamp-2">{listing.title}</h3>
+            <CardContent className="p-6">
+              <div className="flex items-start justify-between mb-4">
+                <h3 className="font-semibold text-lg line-clamp-2">{listing.title}</h3>
                 <div className="flex items-center gap-1 text-sm text-muted-foreground">
                   <Star className="h-4 w-4 fill-current text-warning" />
                   {listing.rating}
                 </div>
               </div>
               
-              <div className="space-y-2 text-sm text-muted-foreground">
-                <div className="flex items-center gap-2">
+              <div className="space-y-3 text-sm text-muted-foreground mb-6">
+                <div className="flex items-center gap-3">
                   <MapPin className="h-4 w-4" />
                   {listing.address}
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-3">
                   <DollarSign className="h-4 w-4" />
                   ${listing.price}/hour
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-3">
                   <Search className="h-4 w-4" />
                   {listing.dimensions}
                 </div>
               </div>
               
-              <Button className="w-full mt-4">
+              <Button className="w-full apple-button-primary h-12">
                 Book Now
               </Button>
             </CardContent>
@@ -232,7 +286,11 @@ const Index = () => {
       </div>
       
       <div className="text-center">
-        <Button variant="outline" onClick={() => setCurrentStep(0)}>
+        <Button 
+          variant="outline" 
+          onClick={() => setCurrentStep(0)}
+          className="apple-button-secondary h-12 px-8"
+        >
           <Search className="mr-2 h-4 w-4" />
           Search Again
         </Button>
@@ -243,49 +301,86 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="border-b bg-card/50 backdrop-blur-sm sticky top-0 z-50">
-        <div className="container mx-auto px-4 py-4">
+      <header className="bg-background/80 backdrop-blur-xl border-b border-border/50 sticky top-0 z-50">
+        <div className="container mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <div className="h-8 w-8 bg-primary rounded-lg flex items-center justify-center">
-                <MapPin className="h-5 w-5 text-primary-foreground" />
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 bg-primary rounded-2xl flex items-center justify-center">
+                <MapPin className="h-6 w-6 text-primary-foreground" />
               </div>
-              <span className="text-xl font-bold">PocketSpot</span>
+              <span className="text-2xl font-bold">PocketSpot</span>
             </div>
-            <div className="flex items-center gap-2">
-              <Button variant="ghost" size="sm">Sign In</Button>
-              <Button size="sm">List Your Space</Button>
+            <div className="flex items-center gap-4">
+              {user ? (
+                <>
+                  <Button 
+                    size="lg" 
+                    className="apple-button-primary"
+                    onClick={() => setListSpaceModalOpen(true)}
+                  >
+                    List Your Space
+                  </Button>
+                  <UserMenu />
+                </>
+              ) : (
+                <>
+                  <Button 
+                    variant="ghost" 
+                    size="lg" 
+                    className="text-base"
+                    onClick={() => setAuthModalOpen(true)}
+                  >
+                    Sign In
+                  </Button>
+                  <Button 
+                    size="lg" 
+                    className="apple-button-primary"
+                    onClick={() => setAuthModalOpen(true)}
+                  >
+                    List Your Space
+                  </Button>
+                </>
+              )}
             </div>
           </div>
         </div>
       </header>
 
       {/* Main Content */}
-      <main className="container mx-auto px-4 py-8">
+      <main className="container mx-auto px-6 py-12">
         {currentStep < 5 ? (
-          <div className="space-y-8">
+          <div className="space-y-16">
             {/* Hero Section */}
             {currentStep === 0 && (
-              <div className="text-center space-y-4 mb-12">
-                <h1 className="text-4xl md:text-5xl font-bold tracking-tight">
-                  Find the perfect space in
-                  <span className="text-primary"> seconds</span>
-                </h1>
-                <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-                  AI-powered space matching in San Francisco's Mission District. 
-                  Get fair prices and instant bookings.
-                </p>
-                <div className="flex items-center justify-center gap-6 text-sm text-muted-foreground">
-                  <div className="flex items-center gap-2">
-                    <Clock className="h-4 w-4" />
+              <div className="text-center space-y-8 mb-20 animate-fade-in">
+                <div className="space-y-6">
+                  <h1 className="text-6xl md:text-7xl font-bold tracking-tight leading-tight">
+                    Find the perfect space in
+                    <span className="apple-text-gradient"> seconds</span>
+                  </h1>
+                  <p className="text-2xl text-muted-foreground max-w-3xl mx-auto leading-relaxed">
+                    AI-powered space matching in San Francisco's Mission District. 
+                    Get fair prices and instant bookings.
+                  </p>
+                </div>
+                
+                <div className="flex items-center justify-center gap-8 text-base text-muted-foreground">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-full bg-primary/10">
+                      <Clock className="h-5 w-5 text-primary" />
+                    </div>
                     Instant matching
                   </div>
-                  <div className="flex items-center gap-2">
-                    <DollarSign className="h-4 w-4" />
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-full bg-primary/10">
+                      <DollarSign className="h-5 w-5 text-primary" />
+                    </div>
                     Fair AI pricing
                   </div>
-                  <div className="flex items-center gap-2">
-                    <Users className="h-4 w-4" />
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-full bg-primary/10">
+                      <Sparkles className="h-5 w-5 text-primary" />
+                    </div>
                     Auto negotiation
                   </div>
                 </div>
@@ -301,11 +396,25 @@ const Index = () => {
       </main>
 
       {/* Footer */}
-      <footer className="border-t mt-16 py-8">
-        <div className="container mx-auto px-4 text-center text-sm text-muted-foreground">
-          <p>&copy; 2024 PocketSpot. Revolutionizing space booking in SF.</p>
+      <footer className="border-t border-border/50 mt-20 py-12">
+        <div className="container mx-auto px-6 text-center">
+          <p className="text-muted-foreground">
+            &copy; 2024 PocketSpot. Revolutionizing space booking in SF.
+          </p>
         </div>
       </footer>
+
+      {/* Auth Modal */}
+      <AuthModal 
+        open={authModalOpen} 
+        onOpenChange={setAuthModalOpen} 
+      />
+
+      {/* List Space Modal */}
+      <ListSpaceModal 
+        open={listSpaceModalOpen} 
+        onOpenChange={setListSpaceModalOpen} 
+      />
     </div>
   );
 };

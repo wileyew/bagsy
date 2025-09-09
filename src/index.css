@@ -2,121 +2,126 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
-All colors MUST be HSL.
-*/
+/* Apple-inspired design system. Clean, minimal, with subtle gradients and shadows */
 
 @layer base {
   :root {
+    /* Apple-inspired color palette */
     --background: 0 0% 100%;
-    --foreground: 224 71% 4%;
+    --foreground: 0 0% 9%;
 
     --card: 0 0% 100%;
-    --card-foreground: 224 71% 4%;
+    --card-foreground: 0 0% 9%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 224 71% 4%;
+    --popover-foreground: 0 0% 9%;
 
-    --primary: 220 14% 11%;
-    --primary-foreground: 210 20% 98%;
+    /* Apple's signature blue */
+    --primary: 210 100% 50%;
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 220 14% 96%;
-    --secondary-foreground: 220 9% 46%;
+    /* Subtle gray for secondary elements */
+    --secondary: 0 0% 96%;
+    --secondary-foreground: 0 0% 45%;
 
-    --muted: 220 14% 96%;
-    --muted-foreground: 220 9% 46%;
+    --muted: 0 0% 96%;
+    --muted-foreground: 0 0% 45%;
 
-    --accent: 220 14% 95%;
-    --accent-foreground: 220 9% 15%;
+    --accent: 0 0% 96%;
+    --accent-foreground: 0 0% 9%;
 
     --destructive: 0 84% 60%;
-    --destructive-foreground: 210 20% 98%;
+    --destructive-foreground: 0 0% 100%;
 
-    --border: 220 13% 91%;
-    --input: 220 13% 91%;
-    --ring: 224 71% 4%;
+    --border: 0 0% 90%;
+    --input: 0 0% 96%;
+    --ring: 210 100% 50%;
 
-    --radius: 0.75rem;
+    /* Apple's signature radius */
+    --radius: 1rem;
 
     /* Space booking app specific colors */
     --success: 142 76% 36%;
-    --success-foreground: 355 20% 98%;
+    --success-foreground: 0 0% 100%;
     
     --warning: 38 92% 50%;
-    --warning-foreground: 48 96% 89%;
+    --warning-foreground: 0 0% 100%;
     
-    --info: 221 83% 53%;
-    --info-foreground: 210 20% 98%;
+    --info: 210 100% 50%;
+    --info-foreground: 0 0% 100%;
 
-    /* Gradients for modern UI */
-    --gradient-primary: linear-gradient(135deg, hsl(220 14% 11%), hsl(220 14% 20%));
-    --gradient-hero: linear-gradient(135deg, hsl(220 14% 11%), hsl(220 14% 15%));
+    /* Apple-style gradients */
+    --gradient-primary: linear-gradient(135deg, hsl(210 100% 50%), hsl(210 100% 45%));
+    --gradient-hero: linear-gradient(135deg, hsl(0 0% 100%), hsl(0 0% 98%));
+    --gradient-card: linear-gradient(135deg, hsl(0 0% 100%), hsl(0 0% 99%));
     
-    /* Shadows */
-    --shadow-card: 0 1px 3px 0 hsl(0 0% 0% / 0.1), 0 1px 2px -1px hsl(0 0% 0% / 0.1);
-    --shadow-lg: 0 10px 15px -3px hsl(0 0% 0% / 0.1), 0 4px 6px -4px hsl(0 0% 0% / 0.1);
+    /* Apple-style shadows */
+    --shadow-card: 0 2px 8px hsl(0 0% 0% / 0.04), 0 1px 3px hsl(0 0% 0% / 0.06);
+    --shadow-lg: 0 20px 25px -5px hsl(0 0% 0% / 0.1), 0 10px 10px -5px hsl(0 0% 0% / 0.04);
+    --shadow-xl: 0 25px 50px -12px hsl(0 0% 0% / 0.25);
 
     --sidebar-background: 0 0% 98%;
-    --sidebar-foreground: 240 5.3% 26.1%;
-    --sidebar-primary: 240 5.9% 10%;
-    --sidebar-primary-foreground: 0 0% 98%;
-    --sidebar-accent: 240 4.8% 95.9%;
-    --sidebar-accent-foreground: 240 5.9% 10%;
-    --sidebar-border: 220 13% 91%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --sidebar-foreground: 0 0% 45%;
+    --sidebar-primary: 210 100% 50%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 0 0% 96%;
+    --sidebar-accent-foreground: 0 0% 9%;
+    --sidebar-border: 0 0% 90%;
+    --sidebar-ring: 210 100% 50%;
   }
 
   .dark {
-    --background: 224 71% 4%;
-    --foreground: 210 20% 98%;
+    --background: 0 0% 9%;
+    --foreground: 0 0% 98%;
 
-    --card: 224 71% 4%;
-    --card-foreground: 210 20% 98%;
+    --card: 0 0% 12%;
+    --card-foreground: 0 0% 98%;
 
-    --popover: 224 71% 4%;
-    --popover-foreground: 210 20% 98%;
+    --popover: 0 0% 12%;
+    --popover-foreground: 0 0% 98%;
 
-    --primary: 210 20% 98%;
-    --primary-foreground: 220 14% 11%;
+    --primary: 210 100% 50%;
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 215 27% 17%;
-    --secondary-foreground: 210 20% 98%;
+    --secondary: 0 0% 15%;
+    --secondary-foreground: 0 0% 65%;
 
-    --muted: 215 27% 17%;
-    --muted-foreground: 217 10% 65%;
+    --muted: 0 0% 15%;
+    --muted-foreground: 0 0% 65%;
 
-    --accent: 215 27% 17%;
-    --accent-foreground: 210 20% 98%;
+    --accent: 0 0% 15%;
+    --accent-foreground: 0 0% 98%;
 
     --destructive: 0 63% 31%;
-    --destructive-foreground: 210 20% 98%;
+    --destructive-foreground: 0 0% 98%;
 
-    --border: 215 27% 17%;
-    --input: 215 27% 17%;
-    --ring: 216 12% 84%;
+    --border: 0 0% 20%;
+    --input: 0 0% 15%;
+    --ring: 210 100% 50%;
 
     /* Dark mode specific colors */
     --success: 142 71% 45%;
-    --success-foreground: 137 72% 94%;
+    --success-foreground: 0 0% 100%;
     
     --warning: 38 92% 50%;
-    --warning-foreground: 48 96% 89%;
+    --warning-foreground: 0 0% 100%;
     
-    --info: 221 83% 53%;
-    --info-foreground: 210 20% 98%;
+    --info: 210 100% 50%;
+    --info-foreground: 0 0% 100%;
 
     /* Dark gradients */
-    --gradient-primary: linear-gradient(135deg, hsl(224 71% 4%), hsl(220 14% 11%));
-    --gradient-hero: linear-gradient(135deg, hsl(224 71% 4%), hsl(220 14% 8%));
+    --gradient-primary: linear-gradient(135deg, hsl(0 0% 9%), hsl(0 0% 12%));
+    --gradient-hero: linear-gradient(135deg, hsl(0 0% 9%), hsl(0 0% 11%));
+    --gradient-card: linear-gradient(135deg, hsl(0 0% 12%), hsl(0 0% 14%));
     
-    --sidebar-background: 240 5.9% 10%;
-    --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 224.3 76.3% 48%;
+    --sidebar-background: 0 0% 12%;
+    --sidebar-foreground: 0 0% 65%;
+    --sidebar-primary: 210 100% 50%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --sidebar-accent: 0 0% 15%;
+    --sidebar-accent-foreground: 0 0% 98%;
+    --sidebar-border: 0 0% 20%;
+    --sidebar-ring: 210 100% 50%;
   }
 }
 
@@ -127,5 +132,40 @@ All colors MUST be HSL.
 
   body {
     @apply bg-background text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+}
+
+/* Apple-style custom components */
+@layer components {
+  .apple-card {
+    @apply bg-card rounded-2xl border border-border/50 shadow-card backdrop-blur-sm;
+  }
+  
+  .apple-button {
+    @apply rounded-2xl font-medium transition-all duration-200 ease-out;
+  }
+  
+  .apple-button-primary {
+    @apply bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg hover:shadow-xl transform hover:scale-[1.02];
+  }
+  
+  .apple-button-secondary {
+    @apply bg-secondary text-secondary-foreground hover:bg-secondary/80 border border-border/50;
+  }
+  
+  .apple-input {
+    @apply rounded-2xl border-border/50 bg-input/50 backdrop-blur-sm focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all duration-200;
+  }
+  
+  .apple-gradient {
+    background: var(--gradient-hero);
+  }
+  
+  .apple-text-gradient {
+    background: linear-gradient(135deg, hsl(210 100% 50%), hsl(210 100% 45%));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
   }
 }
