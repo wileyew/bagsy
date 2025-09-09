@@ -8,14 +8,14 @@ import { Textarea } from "@/components/ui/textarea";
 import { LoadingDots } from "@/components/ui/loading-dots";
 import { AuthModal } from "@/components/auth/auth-modal";
 import { UserMenu } from "@/components/auth/user-menu";
-import { ListSpaceModal } from "@/components/spaces/list-space-modal";
+import { AISpaceListingModal } from "@/components/spaces/ai-space-listing-modal";
 import { useAuthContext } from "@/contexts/auth-context";
 import { useToast } from "@/hooks/use-toast";
 
 const Index = () => {
   const [currentStep, setCurrentStep] = useState(0);
   const [authModalOpen, setAuthModalOpen] = useState(false);
-  const [listSpaceModalOpen, setListSpaceModalOpen] = useState(false);
+  const [aiSpaceListingModalOpen, setAiSpaceListingModalOpen] = useState(false);
   const [formData, setFormData] = useState({
     spaceType: "",
     location: "",
@@ -316,9 +316,10 @@ const Index = () => {
                   <Button 
                     size="lg" 
                     className="apple-button-primary"
-                    onClick={() => setListSpaceModalOpen(true)}
+                    onClick={() => setAiSpaceListingModalOpen(true)}
                   >
-                    List Your Space
+                    <Sparkles className="h-4 w-4 mr-2" />
+                    List Your Space with AI
                   </Button>
                   <UserMenu />
                 </>
@@ -411,9 +412,9 @@ const Index = () => {
       />
 
       {/* List Space Modal */}
-      <ListSpaceModal 
-        open={listSpaceModalOpen} 
-        onOpenChange={setListSpaceModalOpen} 
+      <AISpaceListingModal 
+        open={aiSpaceListingModalOpen}
+        onOpenChange={setAiSpaceListingModalOpen}
       />
     </div>
   );
