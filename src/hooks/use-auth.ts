@@ -58,8 +58,6 @@ export function useAuth() {
   }, []);
 
   const signUp = async (email: string, password: string, fullName?: string) => {
-    setAuthState(prev => ({ ...prev, loading: true, error: null }));
-    
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
@@ -70,39 +68,21 @@ export function useAuth() {
       },
     });
 
-    setAuthState(prev => ({
-      ...prev,
-      user: data.user,
-      session: data.session,
-      loading: false,
-      error,
-    }));
-
+    // Don't update global loading state here - let the auth state change listener handle it
     return { data, error };
   };
 
   const signIn = async (email: string, password: string) => {
-    setAuthState(prev => ({ ...prev, loading: true, error: null }));
-    
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
 
-    setAuthState(prev => ({
-      ...prev,
-      user: data.user,
-      session: data.session,
-      loading: false,
-      error,
-    }));
-
+    // Don't update global loading state here - let the auth state change listener handle it
     return { data, error };
   };
 
   const signInWithGoogle = async () => {
-    setAuthState(prev => ({ ...prev, loading: true, error: null }));
-    
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
@@ -110,12 +90,7 @@ export function useAuth() {
       },
     });
 
-    setAuthState(prev => ({
-      ...prev,
-      loading: false,
-      error,
-    }));
-
+    // Don't update global loading state here - let the auth state change listener handle it
     return { data, error };
   };
 
@@ -135,18 +110,11 @@ export function useAuth() {
   };
 
   const resetPassword = async (email: string) => {
-    setAuthState(prev => ({ ...prev, loading: true, error: null }));
-    
     const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
       redirectTo: `${window.location.origin}/auth/reset-password`,
     });
 
-    setAuthState(prev => ({
-      ...prev,
-      loading: false,
-      error,
-    }));
-
+    // Don't update global loading state here - this is a one-time operation
     return { data, error };
   };
 

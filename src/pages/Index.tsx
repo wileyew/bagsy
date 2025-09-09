@@ -121,7 +121,7 @@ const Index = () => {
               className="apple-input text-lg h-14"
             />
             <p className="text-sm text-muted-foreground text-center">
-              We currently serve ZIP code 94110 (Mission District)
+              Enter your location to find nearby spaces
             </p>
           </div>
         )
@@ -308,7 +308,7 @@ const Index = () => {
               <div className="h-10 w-10 bg-primary rounded-2xl flex items-center justify-center">
                 <MapPin className="h-6 w-6 text-primary-foreground" />
               </div>
-              <span className="text-2xl font-bold">PocketSpot</span>
+              <span className="text-2xl font-bold">Bagsy</span>
             </div>
             <div className="flex items-center gap-4">
               {user ? (
@@ -359,7 +359,7 @@ const Index = () => {
                     <span className="apple-text-gradient"> seconds</span>
                   </h1>
                   <p className="text-2xl text-muted-foreground max-w-3xl mx-auto leading-relaxed">
-                    AI-powered space matching in San Francisco's Mission District. 
+                    AI-powered space booking from posting to lease confirmation. 
                     Get fair prices and instant bookings.
                   </p>
                 </div>
@@ -399,7 +399,7 @@ const Index = () => {
       <footer className="border-t border-border/50 mt-20 py-12">
         <div className="container mx-auto px-6 text-center">
           <p className="text-muted-foreground">
-            &copy; 2024 PocketSpot. Revolutionizing space booking in SF.
+            &copy; 2024 Bagsy. Revolutionizing space booking.
           </p>
         </div>
       </footer>

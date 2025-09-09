@@ -1,6 +1,6 @@
 # AWS Amplify Deployment Guide
 
-This guide will help you deploy your PocketSpot application to AWS Amplify.
+This guide will help you deploy your Bagsy application to AWS Amplify.
 
 ## Prerequisites
 
@@ -33,7 +33,7 @@ In the Amplify console, go to "Environment variables" and add:
 ```
 VITE_SUPABASE_URL=https://uwbkdjmmwmpnxjeuzogo.supabase.co
 VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV3Ymtkam1td21wbnhqZXV6b2dvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTY5MTA3NDUsImV4cCI6MjA3MjQ4Njc0NX0.BUGFv4V7xSnkSEoioa39w4rANH2pl4UACkCvBWpNk3I
-VITE_APP_NAME=PocketSpot
+VITE_APP_NAME=Bagsy
 VITE_APP_DESCRIPTION=AI-Powered Space Booking
 ```
 

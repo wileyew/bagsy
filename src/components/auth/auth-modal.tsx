@@ -18,17 +18,19 @@ type AuthMode = "signin" | "signup" | "forgot";
 export function AuthModal({ open, onOpenChange }: AuthModalProps) {
   const [mode, setMode] = useState<AuthMode>("signin");
   const [showPassword, setShowPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
     email: "",
     password: "",
     fullName: "",
   });
 
-  const { signIn, signUp, signInWithGoogle, resetPassword, loading, error } = useAuth();
+  const { signIn, signUp, signInWithGoogle, resetPassword, error } = useAuth();
   const { toast } = useToast();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsLoading(true);
     
     try {
       if (mode === "signin") {
@@ -63,10 +65,13 @@ export function AuthModal({ open, onOpenChange }: AuthModalProps) {
         description: errorMessage,
         variant: "destructive",
       });
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const handleGoogleSignIn = async () => {
+    setIsLoading(true);
     try {
       const { error } = await signInWithGoogle();
       if (error) throw error;
@@ -77,12 +82,15 @@ export function AuthModal({ open, onOpenChange }: AuthModalProps) {
         description: errorMessage,
         variant: "destructive",
       });
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const resetForm = () => {
     setFormData({ email: "", password: "", fullName: "" });
     setShowPassword(false);
+    setIsLoading(false);
   };
 
   const getTitle = () => {
@@ -101,13 +109,13 @@ export function AuthModal({ open, onOpenChange }: AuthModalProps) {
   const getDescription = () => {
     switch (mode) {
       case "signin":
-        return "Welcome back to PocketSpot";
+        return "Welcome back to Bagsy";
       case "signup":
-        return "Join PocketSpot to start booking spaces";
+        return "Join Bagsy to start booking spaces";
       case "forgot":
         return "Enter your email to reset your password";
       default:
-        return "Welcome back to PocketSpot";
+        return "Welcome back to Bagsy";
     }
   };
 
@@ -129,10 +137,10 @@ export function AuthModal({ open, onOpenChange }: AuthModalProps) {
             type="button"
             variant="outline"
             onClick={handleGoogleSignIn}
-            disabled={loading}
+            disabled={isLoading}
             className="w-full apple-button-secondary h-12"
           >
-            {loading ? (
+            {isLoading ? (
               <Loader2 className="h-4 w-4 animate-spin" />
             ) : (
               <svg className="h-4 w-4 mr-2" viewBox="0 0 24 24">
@@ -245,10 +253,10 @@ export function AuthModal({ open, onOpenChange }: AuthModalProps) {
           {/* Submit Button */}
           <Button
             type="submit"
-            disabled={loading}
+            disabled={isLoading}
             className="w-full apple-button-primary h-12"
           >
-            {loading ? (
+            {isLoading ? (
               <Loader2 className="h-4 w-4 animate-spin" />
             ) : mode === "signin" ? (
               "Sign In"

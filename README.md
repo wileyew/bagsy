@@ -1,4 +1,4 @@
-# Welcome to your Lovable project
+# Bagsy - AI-Powered Space Booking
 
 ## Project info
 
