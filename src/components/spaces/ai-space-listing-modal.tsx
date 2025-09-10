@@ -147,15 +147,35 @@ export function AISpaceListingModal({ open, onOpenChange }: AISpaceListingModalP
   };
 
   const analyzePhotosWithAI = async () => {
-    if (!formData.photoUrls.length) return;
+    console.log('analyzePhotosWithAI called');
+    console.log('Photo URLs:', formData.photoUrls);
+    console.log('Address:', formData.address);
+    console.log('ZipCode:', formData.zipCode);
+    
+    if (!formData.photoUrls.length) {
+      console.log('No photo URLs, returning early');
+      return;
+    }
 
+    console.log('Setting analyzing state to true');
     setAnalyzing(true);
+    
     try {
-      // Use AI service for analysis
-      const analysisResult = await aiService.analyzeSpacePhotos(formData.photoUrls, {
+      console.log('Calling aiService.analyzeSpacePhotos...');
+      
+      // Add timeout to prevent hanging
+      const analysisPromise = aiService.analyzeSpacePhotos(formData.photoUrls, {
         address: formData.address,
         zipCode: formData.zipCode,
       });
+      
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('AI analysis timed out after 30 seconds')), 30000)
+      );
+      
+      const analysisResult = await Promise.race([analysisPromise, timeoutPromise]);
+      
+      console.log('AI analysis result:', analysisResult);
       
       // Convert to the expected format
       const aiData: AIGeneratedData = {
@@ -167,21 +187,27 @@ export function AISpaceListingModal({ open, onOpenChange }: AISpaceListingModalP
         pricePerDay: analysisResult.pricePerHour * 8, // Calculate daily rate
       };
       
+      console.log('Converted AI data:', aiData);
+      
       setAiGeneratedData(aiData);
       setEditableData(aiData);
       setStep('review');
+      
+      console.log('Analysis completed successfully, moving to review step');
       
       toast({
         title: "AI Analysis Complete!",
         description: "Your space has been analyzed. Review the suggestions below.",
       });
     } catch (error: any) {
+      console.error('AI analysis error:', error);
       toast({
         title: "Analysis failed",
         description: error.message || "Failed to analyze photos. Please try again.",
         variant: "destructive",
       });
     } finally {
+      console.log('Setting analyzing state to false');
       setAnalyzing(false);
     }
   };
@@ -444,6 +470,10 @@ export function AISpaceListingModal({ open, onOpenChange }: AISpaceListingModalP
                 <p className="text-muted-foreground">
                   Our AI is examining your space to generate the perfect listing
                 </p>
+                <div className="text-xs text-muted-foreground mt-4 p-3 bg-gray-50 rounded-lg">
+                  <p>This may take 10-30 seconds depending on your connection and API response time.</p>
+                  <p>Check the browser console for detailed progress logs.</p>
+                </div>
               </div>
             </div>
           )}
