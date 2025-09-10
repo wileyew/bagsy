@@ -67,6 +67,15 @@ export function AISpaceListingModal({ open, onOpenChange }: AISpaceListingModalP
   const handleFileUpload = async (files: FileList) => {
     if (!files.length) return;
 
+    if (!user) {
+      toast({
+        title: "Authentication required",
+        description: "Please sign in to upload photos.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setUploading(true);
     try {
       const uploadedUrls: string[] = [];
@@ -76,18 +85,29 @@ export function AISpaceListingModal({ open, onOpenChange }: AISpaceListingModalP
         const fileExt = file.name.split('.').pop()?.toLowerCase();
         const fileName = `${user?.id}-${Date.now()}-${i}.${fileExt}`;
 
+        console.log('Uploading file:', fileName);
+        console.log('File size:', file.size);
+        console.log('File type:', file.type);
+        console.log('User ID:', user?.id);
+
         // Upload to Supabase Storage
         const { data, error } = await supabase.storage
           .from('space-photos')
           .upload(fileName, file);
 
-        if (error) throw error;
+        if (error) {
+          console.error('Upload error:', error);
+          throw error;
+        }
+
+        console.log('Upload successful:', data);
 
         // Get public URL
         const { data: { publicUrl } } = supabase.storage
           .from('space-photos')
           .getPublicUrl(fileName);
 
+        console.log('Public URL:', publicUrl);
         uploadedUrls.push(publicUrl);
       }
 
