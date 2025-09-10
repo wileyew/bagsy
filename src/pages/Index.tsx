@@ -9,6 +9,7 @@ import { LoadingDots } from "@/components/ui/loading-dots";
 import { AuthModal } from "@/components/auth/auth-modal";
 import { UserMenu } from "@/components/auth/user-menu";
 import { AISpaceListingModal } from "@/components/spaces/ai-space-listing-modal";
+import { BagsyLogo } from "@/components/ui/bagsy-logo";
 import { useAuthContext } from "@/contexts/auth-context";
 import { useToast } from "@/hooks/use-toast";
 
@@ -304,12 +305,7 @@ const Index = () => {
       <header className="bg-background/80 backdrop-blur-xl border-b border-border/50 sticky top-0 z-50">
         <div className="container mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 bg-primary rounded-2xl flex items-center justify-center">
-                <MapPin className="h-6 w-6 text-primary-foreground" />
-              </div>
-              <span className="text-2xl font-bold">Bagsy</span>
-            </div>
+            <BagsyLogo size="lg" />
             <div className="flex items-center gap-4">
               {user ? (
                 <>
@@ -355,6 +351,9 @@ const Index = () => {
             {currentStep === 0 && (
               <div className="text-center space-y-8 mb-20 animate-fade-in">
                 <div className="space-y-6">
+                  <div className="flex justify-center mb-8">
+                    <BagsyLogo size="lg" />
+                  </div>
                   <h1 className="text-6xl md:text-7xl font-bold tracking-tight leading-tight">
                     Find the perfect space in
                     <span className="apple-text-gradient"> seconds</span>
@@ -398,7 +397,8 @@ const Index = () => {
 
       {/* Footer */}
       <footer className="border-t border-border/50 mt-20 py-12">
-        <div className="container mx-auto px-6 text-center">
+        <div className="container mx-auto px-6 text-center space-y-4">
+          <BagsyLogo size="md" />
           <p className="text-muted-foreground">
             &copy; 2024 Bagsy. Revolutionizing space booking.
           </p>
