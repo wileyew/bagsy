@@ -133,7 +133,7 @@ export function AISpaceListingModal({ open, onOpenChange }: AISpaceListingModalP
       // Automatically start AI analysis after upload
       console.log('Auto-starting AI analysis...');
       setTimeout(() => {
-        analyzePhotosWithAI();
+        analyzePhotosWithAI(uploadedUrls);
       }, 500); // Small delay to let the UI update
     } catch (error: any) {
       toast({
@@ -146,13 +146,14 @@ export function AISpaceListingModal({ open, onOpenChange }: AISpaceListingModalP
     }
   };
 
-  const analyzePhotosWithAI = async () => {
+  const analyzePhotosWithAI = async (photoUrls?: string[]) => {
     console.log('analyzePhotosWithAI called');
-    console.log('Photo URLs:', formData.photoUrls);
+    const urlsToUse = photoUrls || formData.photoUrls;
+    console.log('Photo URLs:', urlsToUse);
     console.log('Address:', formData.address);
     console.log('ZipCode:', formData.zipCode);
     
-    if (!formData.photoUrls.length) {
+    if (!urlsToUse.length) {
       console.log('No photo URLs, returning early');
       return;
     }
@@ -164,7 +165,7 @@ export function AISpaceListingModal({ open, onOpenChange }: AISpaceListingModalP
       console.log('Calling aiService.analyzeSpacePhotos...');
       
       // Add timeout to prevent hanging
-      const analysisPromise = aiService.analyzeSpacePhotos(formData.photoUrls, {
+      const analysisPromise = aiService.analyzeSpacePhotos(urlsToUse, {
         address: formData.address,
         zipCode: formData.zipCode,
       });
