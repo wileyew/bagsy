@@ -119,10 +119,17 @@ export function AISpaceListingModal({ open, onOpenChange }: AISpaceListingModalP
       
       toast({
         title: "Photos uploaded successfully!",
-        description: `${files.length} photo(s) uploaded. Ready for AI analysis.`,
+        description: `${files.length} photo(s) uploaded. Starting AI analysis...`,
       });
       
       setStep('analyze');
+      
+      // Automatically start AI analysis after upload if location is provided
+      if (formData.address && formData.zipCode) {
+        setTimeout(() => {
+          analyzePhotosWithAI();
+        }, 500); // Small delay to let the UI update
+      }
     } catch (error: any) {
       toast({
         title: "Upload failed",
@@ -380,15 +387,22 @@ export function AISpaceListingModal({ open, onOpenChange }: AISpaceListingModalP
                 </div>
               </div>
 
-              <Button
-                type="button"
-                onClick={analyzePhotosWithAI}
-                disabled={!formData.photoUrls.length || !formData.address || !formData.zipCode}
-                className="w-full apple-button-primary h-12"
-              >
-                <Sparkles className="h-4 w-4 mr-2" />
-                Analyze with AI
-              </Button>
+              {formData.photoUrls.length > 0 && formData.address && formData.zipCode ? (
+                <Button
+                  type="button"
+                  onClick={analyzePhotosWithAI}
+                  className="w-full apple-button-primary h-12"
+                >
+                  <Sparkles className="h-4 w-4 mr-2" />
+                  Analyze with AI
+                </Button>
+              ) : (
+                <div className="text-center p-4 bg-muted/50 rounded-lg">
+                  <p className="text-sm text-muted-foreground">
+                    Upload photos and enter your location above to start AI analysis
+                  </p>
+                </div>
+              )}
             </>
           )}
 
