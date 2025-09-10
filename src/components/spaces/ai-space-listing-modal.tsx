@@ -357,7 +357,15 @@ export function AISpaceListingModal({ open, onOpenChange }: AISpaceListingModalP
               </div>
 
               <div className="space-y-4">
-                <h3 className="text-lg font-semibold">Location</h3>
+                <div className="space-y-2">
+                  <h3 className="text-lg font-semibold">Location (Optional)</h3>
+                  <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                    <p className="text-sm text-blue-800">
+                      <strong>💡 Pro tip:</strong> Adding your location helps our AI generate more accurate pricing, 
+                      better descriptions, and location-specific features for your listing.
+                    </p>
+                  </div>
+                </div>
                 <div className="space-y-4">
                   <div className="space-y-2">
                     <Label htmlFor="address" className="text-sm font-medium">
@@ -367,7 +375,7 @@ export function AISpaceListingModal({ open, onOpenChange }: AISpaceListingModalP
                       <MapPin className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                       <Input
                         id="address"
-                        placeholder="Street address"
+                        placeholder="e.g., 123 Main St, San Francisco, CA"
                         value={formData.address}
                         onChange={(e) => handleInputChange("address", e.target.value)}
                         className="apple-input pl-10 h-12"
@@ -387,18 +395,36 @@ export function AISpaceListingModal({ open, onOpenChange }: AISpaceListingModalP
                       className="apple-input h-12"
                     />
                   </div>
+                  
+                  <div className="text-xs text-muted-foreground bg-gray-50 p-3 rounded-lg">
+                    <p className="font-medium mb-1">📍 Location helps AI provide:</p>
+                    <ul className="space-y-1 list-disc list-inside ml-2">
+                      <li>Market-appropriate pricing</li>
+                      <li>Local neighborhood features</li>
+                      <li>Area-specific descriptions</li>
+                      <li>Better search visibility</li>
+                    </ul>
+                  </div>
                 </div>
               </div>
 
               {formData.photoUrls.length > 0 ? (
-                <Button
-                  type="button"
-                  onClick={analyzePhotosWithAI}
-                  className="w-full apple-button-primary h-12"
-                >
-                  <Sparkles className="h-4 w-4 mr-2" />
-                  Analyze with AI
-                </Button>
+                <div className="space-y-3">
+                  <Button
+                    type="button"
+                    onClick={analyzePhotosWithAI}
+                    className="w-full apple-button-primary h-12"
+                  >
+                    <Sparkles className="h-4 w-4 mr-2" />
+                    Analyze with AI
+                  </Button>
+                  <p className="text-xs text-center text-muted-foreground">
+                    {formData.address && formData.zipCode 
+                      ? "✅ Location provided - AI will generate location-specific pricing and features"
+                      : "ℹ️ No location provided - AI will use general market rates"
+                    }
+                  </p>
+                </div>
               ) : (
                 <div className="text-center p-4 bg-muted/50 rounded-lg">
                   <p className="text-sm text-muted-foreground">
