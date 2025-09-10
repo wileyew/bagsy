@@ -18,18 +18,25 @@ class AIService {
 
   constructor() {
     this.apiKey = import.meta.env.VITE_OPENAI_API_KEY || '';
+    console.log('AI Service initialized. API Key present:', !!this.apiKey);
+    console.log('API Key length:', this.apiKey.length);
   }
 
   async analyzeSpacePhotos(
     photoUrls: string[], 
     location: LocationContext
   ): Promise<PhotoAnalysisResult> {
+    console.log('Starting AI analysis. API Key present:', !!this.apiKey);
+    console.log('Photo URLs:', photoUrls);
+    console.log('Location:', location);
+    
     try {
       // If API key is available, use real analysis
       if (this.apiKey) {
+        console.log('Using real AI analysis');
         return await this.realAnalysis(photoUrls, location);
       } else {
-        // Fallback to mock analysis
+        console.log('Using mock analysis - no API key');
         return await this.mockAnalysis(photoUrls, location);
       }
     } catch (error) {
@@ -43,6 +50,9 @@ class AIService {
     photoUrls: string[],
     location: LocationContext
   ): Promise<PhotoAnalysisResult> {
+    console.log('Making real API call to OpenAI...');
+    console.log('API URL:', `${this.baseUrl}/chat/completions`);
+    
     const response = await fetch(`${this.baseUrl}/chat/completions`, {
       method: 'POST',
       headers: {
@@ -111,6 +121,7 @@ class AIService {
     photoUrls: string[],
     location: LocationContext
   ): Promise<PhotoAnalysisResult> {
+    console.log('Using MOCK analysis - simulating API delay...');
     // Simulate API delay
     await new Promise(resolve => setTimeout(resolve, 2000));
     
