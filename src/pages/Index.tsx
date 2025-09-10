@@ -9,7 +9,6 @@ import { LoadingDots } from "@/components/ui/loading-dots";
 import { AuthModal } from "@/components/auth/auth-modal";
 import { UserMenu } from "@/components/auth/user-menu";
 import { AISpaceListingModal } from "@/components/spaces/ai-space-listing-modal";
-import { StorageTest } from "@/components/spaces/storage-test";
 import { BagsyLogo } from "@/components/ui/bagsy-logo";
 import { useAuthContext } from "@/contexts/auth-context";
 import { useToast } from "@/hooks/use-toast";
@@ -343,13 +342,6 @@ const Index = () => {
           </div>
         </div>
       </header>
-
-      {/* Storage Test - Temporary Debug Component */}
-      {user && (
-        <div className="container mx-auto px-6 py-4">
-          <StorageTest />
-        </div>
-      )}
 
       {/* Main Content */}
       <main className="container mx-auto px-6 py-12">
