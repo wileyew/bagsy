@@ -119,7 +119,7 @@ export function AISpaceListingModal({ open, onOpenChange }: AISpaceListingModalP
       
       toast({
         title: "Photos uploaded successfully!",
-        description: `${files.length} photo(s) uploaded. Starting AI analysis...`,
+        description: `${files.length} photo(s) uploaded. AI analysis starting automatically...`,
       });
       
       setStep('analyze');
@@ -130,17 +130,11 @@ export function AISpaceListingModal({ open, onOpenChange }: AISpaceListingModalP
       console.log('ZipCode:', formData.zipCode);
       console.log('Photo URLs:', formData.photoUrls);
       
-      // Automatically start AI analysis after upload if location is provided
-      if (formData.address && formData.zipCode) {
-        console.log('Auto-starting AI analysis...');
-        setTimeout(() => {
-          analyzePhotosWithAI();
-        }, 500); // Small delay to let the UI update
-      } else {
-        console.log('Not auto-starting AI analysis - missing location data');
-        console.log('Address present:', !!formData.address);
-        console.log('ZipCode present:', !!formData.zipCode);
-      }
+      // Automatically start AI analysis after upload
+      console.log('Auto-starting AI analysis...');
+      setTimeout(() => {
+        analyzePhotosWithAI();
+      }, 500); // Small delay to let the UI update
     } catch (error: any) {
       toast({
         title: "Upload failed",
@@ -367,7 +361,7 @@ export function AISpaceListingModal({ open, onOpenChange }: AISpaceListingModalP
                 <div className="space-y-4">
                   <div className="space-y-2">
                     <Label htmlFor="address" className="text-sm font-medium">
-                      Address *
+                      Address (optional)
                     </Label>
                     <div className="relative">
                       <MapPin className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -377,14 +371,13 @@ export function AISpaceListingModal({ open, onOpenChange }: AISpaceListingModalP
                         value={formData.address}
                         onChange={(e) => handleInputChange("address", e.target.value)}
                         className="apple-input pl-10 h-12"
-                        required
                       />
                     </div>
                   </div>
 
                   <div className="space-y-2">
                     <Label htmlFor="zipCode" className="text-sm font-medium">
-                      ZIP Code *
+                      ZIP Code (optional)
                     </Label>
                     <Input
                       id="zipCode"
@@ -392,54 +385,20 @@ export function AISpaceListingModal({ open, onOpenChange }: AISpaceListingModalP
                       value={formData.zipCode}
                       onChange={(e) => handleInputChange("zipCode", e.target.value)}
                       className="apple-input h-12"
-                      required
                     />
                   </div>
                 </div>
               </div>
 
               {formData.photoUrls.length > 0 ? (
-                <div className="space-y-4">
-                  {formData.address && formData.zipCode ? (
-                    <Button
-                      type="button"
-                      onClick={analyzePhotosWithAI}
-                      className="w-full apple-button-primary h-12"
-                    >
-                      <Sparkles className="h-4 w-4 mr-2" />
-                      Analyze with AI
-                    </Button>
-                  ) : (
-                    <div className="space-y-2">
-                      <div className="text-center p-4 bg-muted/50 rounded-lg">
-                        <p className="text-sm text-muted-foreground mb-2">
-                          Photos uploaded! Enter your location above to start AI analysis.
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          Or click below to analyze with default location.
-                        </p>
-                      </div>
-                      <Button
-                        type="button"
-                        onClick={() => {
-                          // Set default location if not provided
-                          if (!formData.address) {
-                            setFormData(prev => ({ ...prev, address: 'San Francisco, CA' }));
-                          }
-                          if (!formData.zipCode) {
-                            setFormData(prev => ({ ...prev, zipCode: '94110' }));
-                          }
-                          setTimeout(() => analyzePhotosWithAI(), 100);
-                        }}
-                        variant="outline"
-                        className="w-full h-12"
-                      >
-                        <Sparkles className="h-4 w-4 mr-2" />
-                        Analyze with Default Location
-                      </Button>
-                    </div>
-                  )}
-                </div>
+                <Button
+                  type="button"
+                  onClick={analyzePhotosWithAI}
+                  className="w-full apple-button-primary h-12"
+                >
+                  <Sparkles className="h-4 w-4 mr-2" />
+                  Analyze with AI
+                </Button>
               ) : (
                 <div className="text-center p-4 bg-muted/50 rounded-lg">
                   <p className="text-sm text-muted-foreground">

@@ -1,6 +1,6 @@
 interface LocationContext {
-  address: string;
-  zipCode: string;
+  address?: string;
+  zipCode?: string;
 }
 
 interface PhotoAnalysisResult {
@@ -68,14 +68,14 @@ class AIService {
               {
                 type: 'text',
                 text: `Analyze these photos of a space for rent and generate a listing.
-                Location: ${location.address}, ${location.zipCode}
+                ${location.address && location.zipCode ? `Location: ${location.address}, ${location.zipCode}` : 'Location: Not specified'}
 
                 Please provide:
                 1. Space type (garage, driveway, warehouse, parking_spot, storage_unit, outdoor_space)
                 2. Compelling title (max 60 characters)
                 3. Detailed description (2-3 sentences)
                 4. Estimated dimensions
-                5. Suggested hourly price (considering location)
+                5. Suggested hourly price (use average market rates if location not specified)
                 6. Key features
 
                 Return as JSON with these fields: spaceType, title, description, dimensions, pricePerHour, features`
@@ -125,25 +125,32 @@ class AIService {
     // Simulate API delay
     await new Promise(resolve => setTimeout(resolve, 2000));
     
-    // Mock AI analysis based on address patterns
-    const isUrban = location.address.toLowerCase().includes('san francisco') || 
-                   location.address.toLowerCase().includes('sf') ||
-                   location.address.toLowerCase().includes('mission') ||
-                   location.address.toLowerCase().includes('valencia') ||
-                   location.address.toLowerCase().includes('downtown');
+    // Mock AI analysis based on address patterns (if location provided)
+    const hasLocation = location.address && location.zipCode;
+    const isUrban = hasLocation && (
+      location.address.toLowerCase().includes('san francisco') || 
+      location.address.toLowerCase().includes('sf') ||
+      location.address.toLowerCase().includes('mission') ||
+      location.address.toLowerCase().includes('valencia') ||
+      location.address.toLowerCase().includes('downtown')
+    );
     
-    const basePrice = isUrban ? 8 : 5;
-    const spaceType = isUrban ? 'garage' : 'driveway';
+    const basePrice = isUrban ? 8 : 6; // Default to middle price if no location
+    const spaceType = isUrban ? 'garage' : 'storage_unit';
     
     return {
       spaceType,
-      title: `${isUrban ? 'Spacious' : 'Convenient'} ${isUrban ? 'Garage' : 'Driveway'} in ${location.address.split(',')[0]}`,
-      description: `Perfect ${isUrban ? 'covered storage space' : 'parking spot'} in a ${isUrban ? 'prime urban location' : 'quiet neighborhood'}. ${isUrban ? 'Secure and easily accessible' : 'Easy access and well-maintained'}. Ideal for ${isUrban ? 'short-term storage or vehicle parking' : 'daily parking or temporary storage'}.`,
-      dimensions: isUrban ? '20x12 feet' : '10x20 feet',
+      title: hasLocation 
+        ? `${isUrban ? 'Spacious' : 'Convenient'} ${isUrban ? 'Garage' : 'Storage Unit'} in ${location.address.split(',')[0]}`
+        : 'Versatile Storage Space Available',
+      description: hasLocation
+        ? `Perfect ${isUrban ? 'covered storage space' : 'storage unit'} in a ${isUrban ? 'prime urban location' : 'convenient location'}. ${isUrban ? 'Secure and easily accessible' : 'Easy access and well-maintained'}. Ideal for ${isUrban ? 'short-term storage or vehicle parking' : 'storage needs'}.`
+        : 'Flexible storage space perfect for your needs. Secure and easily accessible with convenient loading access. Ideal for short-term or long-term storage solutions.',
+      dimensions: isUrban ? '20x12 feet' : '15x10 feet',
       pricePerHour: basePrice,
       features: isUrban 
         ? ['Secure access', 'Well-lit', 'Near public transit', 'Easy loading']
-        : ['Easy access', 'Well-maintained', 'Quiet area', 'Ample space']
+        : ['Easy access', 'Well-maintained', 'Secure', 'Ample space']
     };
   }
 }
