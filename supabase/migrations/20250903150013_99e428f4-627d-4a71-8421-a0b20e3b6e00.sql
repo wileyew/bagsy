@@ -33,7 +33,7 @@ CREATE TABLE public.spaces (
   owner_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   title TEXT NOT NULL,
   description TEXT,
-  space_type TEXT NOT NULL CHECK (space_type IN ('garage', 'driveway', 'parking_lot', 'warehouse', 'storage_unit')),
+  space_type TEXT NOT NULL CHECK (space_type IN ('garage', 'driveway', 'parking_spot', 'warehouse', 'storage_unit', 'outdoor_space')),
   price_per_hour DECIMAL(10,2) NOT NULL,
   price_per_day DECIMAL(10,2),
   address TEXT NOT NULL,

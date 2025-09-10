@@ -9,6 +9,7 @@ import { useAuthContext } from "@/contexts/auth-context";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { LoadingDots } from "@/components/ui/loading-dots";
+import { aiService } from "@/lib/ai-service";
 
 interface AISpaceListingModalProps {
   open: boolean;
@@ -118,11 +119,24 @@ export function AISpaceListingModal({ open, onOpenChange }: AISpaceListingModalP
 
     setAnalyzing(true);
     try {
-      // Simulate AI analysis - in production, this would call your AI service
-      const mockAnalysis = await simulateAIAnalysis(formData.photoUrls, formData.address);
+      // Use AI service for analysis
+      const analysisResult = await aiService.analyzeSpacePhotos(formData.photoUrls, {
+        address: formData.address,
+        zipCode: formData.zipCode,
+      });
       
-      setAiGeneratedData(mockAnalysis);
-      setEditableData(mockAnalysis);
+      // Convert to the expected format
+      const aiData: AIGeneratedData = {
+        spaceType: analysisResult.spaceType,
+        title: analysisResult.title,
+        description: analysisResult.description,
+        dimensions: analysisResult.dimensions,
+        pricePerHour: analysisResult.pricePerHour,
+        pricePerDay: analysisResult.pricePerHour * 8, // Calculate daily rate
+      };
+      
+      setAiGeneratedData(aiData);
+      setEditableData(aiData);
       setStep('review');
       
       toast({
@@ -140,27 +154,6 @@ export function AISpaceListingModal({ open, onOpenChange }: AISpaceListingModalP
     }
   };
 
-  const simulateAIAnalysis = async (photoUrls: string[], address: string): Promise<AIGeneratedData> => {
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    
-    // Mock AI analysis based on address patterns
-    const isUrban = address.toLowerCase().includes('san francisco') || 
-                   address.toLowerCase().includes('sf') ||
-                   address.toLowerCase().includes('mission') ||
-                   address.toLowerCase().includes('valencia');
-    
-    const basePrice = isUrban ? 8 : 5;
-    
-    return {
-      spaceType: isUrban ? 'garage' : 'driveway',
-      title: `${isUrban ? 'Spacious' : 'Convenient'} ${isUrban ? 'Garage' : 'Driveway'} in ${address.split(',')[0]}`,
-      description: `Perfect ${isUrban ? 'covered storage space' : 'parking spot'} in a ${isUrban ? 'prime urban location' : 'quiet neighborhood'}. ${isUrban ? 'Secure and easily accessible' : 'Easy access and well-maintained'}. Ideal for ${isUrban ? 'short-term storage or vehicle parking' : 'daily parking or temporary storage'}.`,
-      dimensions: isUrban ? '20x12 feet' : '10x20 feet',
-      pricePerHour: basePrice,
-      pricePerDay: basePrice * 8,
-    };
-  };
 
   const handleEditableChange = (field: keyof AIGeneratedData, value: string | number) => {
     if (!editableData) return;
