@@ -207,14 +207,4 @@ export const configureDebug = (config: Partial<DebugConfig>) => {
   debugLogger.setConfig(config);
 };
 
-// Debug component for React
-export const DebugPanel = ({ component, data }: { component: string; data: any }) => {
-  if (!debugLogger['shouldLog']('debug', component)) return null;
-  
-  return (
-    <div className="fixed bottom-4 right-4 bg-black bg-opacity-80 text-white p-4 rounded-lg text-xs max-w-sm max-h-64 overflow-auto z-50">
-      <div className="font-bold mb-2">Debug: {component}</div>
-      <pre className="whitespace-pre-wrap">{JSON.stringify(data, null, 2)}</pre>
-    </div>
-  );
-};
+// Debug utilities - JSX components are in separate files
