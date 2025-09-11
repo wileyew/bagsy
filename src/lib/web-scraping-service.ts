@@ -251,10 +251,29 @@ class WebScrapingService {
       warehouse: ['warehouse space', 'storage warehouse', 'industrial space', 'warehouse rental'],
       parking_spot: ['parking spot', 'parking space', 'car parking', 'vehicle storage'],
       storage_unit: ['storage unit', 'self storage', 'storage rental', 'storage space'],
-      outdoor_space: ['outdoor storage', 'yard space', 'outdoor rental', 'open space']
+      outdoor_space: ['outdoor storage', 'yard space', 'outdoor rental', 'open space'],
+      // Common custom space types
+      'boat slip': ['boat slip', 'boat storage', 'marina space', 'boat dock'],
+      'rv storage': ['RV storage', 'recreational vehicle storage', 'camper storage', 'motorhome storage'],
+      'workshop': ['workshop space', 'studio space', 'art studio', 'workshop rental'],
+      'office space': ['office space', 'co-working', 'office rental', 'business space'],
+      'event space': ['event space', 'venue rental', 'party space', 'meeting room'],
+      'farm land': ['farm land', 'agricultural space', 'farm rental', 'land lease']
     };
 
-    return baseTerms[spaceType as keyof typeof baseTerms] || ['storage space', 'rental space'];
+    // If it's a custom space type, try to find it in our extended list or use the space type directly
+    const customTerms = baseTerms[spaceType.toLowerCase() as keyof typeof baseTerms];
+    if (customTerms) {
+      return customTerms;
+    }
+
+    // For other custom space types, generate search terms based on the space type
+    return [
+      spaceType,
+      `${spaceType} rental`,
+      `${spaceType} storage`,
+      `${spaceType} space`
+    ];
   }
 
   private getCraigslistSubdomain(location: string): string {
@@ -323,11 +342,18 @@ class WebScrapingService {
       warehouse: { min: 20, max: 50 },
       parking_spot: { min: 2, max: 6 },
       storage_unit: { min: 8, max: 25 },
-      outdoor_space: { min: 4, max: 12 }
+      outdoor_space: { min: 4, max: 12 },
+      // Custom space type pricing
+      'boat slip': { min: 15, max: 40 },
+      'rv storage': { min: 10, max: 30 },
+      'workshop': { min: 12, max: 35 },
+      'office space': { min: 25, max: 60 },
+      'event space': { min: 50, max: 150 },
+      'farm land': { min: 5, max: 20 }
     };
 
     const spaceType = this.inferSpaceType(searchTerm);
-    const priceRange = basePrices[spaceType as keyof typeof basePrices] || { min: 5, max: 15 };
+    const priceRange = basePrices[spaceType as keyof typeof basePrices] || { min: 8, max: 20 };
 
     for (let i = 0; i < count; i++) {
       const price = Math.round((Math.random() * (priceRange.max - priceRange.min) + priceRange.min) * 100) / 100;
@@ -357,6 +383,12 @@ class WebScrapingService {
     if (term.includes('warehouse')) return 'warehouse';
     if (term.includes('storage')) return 'storage_unit';
     if (term.includes('outdoor')) return 'outdoor_space';
+    if (term.includes('boat') || term.includes('marina')) return 'boat slip';
+    if (term.includes('rv') || term.includes('camper') || term.includes('motorhome')) return 'rv storage';
+    if (term.includes('workshop') || term.includes('studio')) return 'workshop';
+    if (term.includes('office') || term.includes('co-working')) return 'office space';
+    if (term.includes('event') || term.includes('venue') || term.includes('party')) return 'event space';
+    if (term.includes('farm') || term.includes('land') || term.includes('agricultural')) return 'farm land';
     return 'garage';
   }
 

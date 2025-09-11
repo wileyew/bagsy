@@ -29,6 +29,7 @@ interface SpaceFormData {
   disableAI: boolean;
   allowAIAgent: boolean;
   enableWebScraping: boolean;
+  customSpaceType?: string;
 }
 
 interface AIGeneratedData {
@@ -73,6 +74,7 @@ const spaceTypes = [
   { value: "parking_spot", label: "Parking Spot", description: "Single parking space" },
   { value: "storage_unit", label: "Storage Unit", description: "Indoor storage unit" },
   { value: "outdoor_space", label: "Outdoor Space", description: "Open outdoor area" },
+  { value: "other", label: "Other", description: "Custom space type" },
 ];
 
 export function AISpaceListingModal({ open, onOpenChange }: AISpaceListingModalProps) {
@@ -86,6 +88,7 @@ export function AISpaceListingModal({ open, onOpenChange }: AISpaceListingModalP
     disableAI: false,
     allowAIAgent: false,
     enableWebScraping: false,
+    customSpaceType: "",
   });
   
   const [aiGeneratedData, setAiGeneratedData] = useState<AIGeneratedData | null>(null);
@@ -393,7 +396,10 @@ export function AISpaceListingModal({ open, onOpenChange }: AISpaceListingModalP
       debug.info('AI analysis completed', { analysisResult });
       
       // Perform web scraping if enabled
-      const marketData = await performWebScraping(analysisResult.spaceType);
+      const spaceTypeForScraping = analysisResult.spaceType === 'other' && formData.customSpaceType 
+        ? formData.customSpaceType 
+        : analysisResult.spaceType;
+      const marketData = await performWebScraping(spaceTypeForScraping);
       
       // Convert pricePerHour to pricePerDay (assuming 8 hours per day)
       let pricePerHour = analysisResult.pricePerHour;
@@ -489,7 +495,9 @@ export function AISpaceListingModal({ open, onOpenChange }: AISpaceListingModalP
       const spaceData = {
         title: editableData.title,
         description: editableData.description,
-        space_type: editableData.spaceType,
+        space_type: editableData.spaceType === 'other' && formData.customSpaceType 
+          ? formData.customSpaceType 
+          : editableData.spaceType,
         address: formData.address,
         zip_code: formData.zipCode,
         price_per_hour: editableData.pricePerHour,
@@ -559,6 +567,7 @@ export function AISpaceListingModal({ open, onOpenChange }: AISpaceListingModalP
         disableAI: false,
         allowAIAgent: false,
         enableWebScraping: false,
+        customSpaceType: "",
       });
       setAiGeneratedData(null);
       setEditableData(null);
@@ -608,6 +617,7 @@ export function AISpaceListingModal({ open, onOpenChange }: AISpaceListingModalP
       disableAI: false,
       allowAIAgent: false,
       enableWebScraping: false,
+      customSpaceType: "",
     });
     setAiGeneratedData(null);
     setEditableData(null);
@@ -898,6 +908,7 @@ export function AISpaceListingModal({ open, onOpenChange }: AISpaceListingModalP
                     <p><strong>Photo URLs:</strong> {formData.photoUrls.length}</p>
                     <p><strong>User ID:</strong> {user?.id || 'Not logged in'}</p>
                     <p><strong>Step:</strong> {step}</p>
+                    <p><strong>Custom Space Type:</strong> {formData.customSpaceType || 'None'}</p>
                     {formData.photoUrls.length > 0 && (
                       <div>
                         <p><strong>Uploaded URLs:</strong></p>
@@ -1008,32 +1019,68 @@ export function AISpaceListingModal({ open, onOpenChange }: AISpaceListingModalP
                 <div className="space-y-4">
                   <div className="space-y-2">
                     <Label className="text-sm font-medium">Space Type *</Label>
-                    <select
-                      value={editableData?.spaceType || ''}
-                      onChange={(e) => {
-                        if (!editableData) {
-                          setEditableData({
-                            spaceType: e.target.value,
-                            title: '',
-                            description: '',
-                            dimensions: '',
-                            pricePerHour: 0,
-                            pricePerDay: 0
-                          });
-                        } else {
-                          handleEditableChange("spaceType", e.target.value);
-                        }
-                      }}
-                      className="apple-input h-12 w-full"
-                      required
-                    >
-                      <option value="">Select space type</option>
-                      {spaceTypes.map((type) => (
-                        <option key={type.value} value={type.value}>
-                          {type.label} - {type.description}
-                        </option>
-                      ))}
-                    </select>
+                    {editableData?.spaceType === 'other' ? (
+                      <Input
+                        value={formData.customSpaceType || ''}
+                        onChange={(e) => handleInputChange("customSpaceType", e.target.value)}
+                        placeholder="e.g., Boat Slip, RV Storage, Workshop"
+                        className="apple-input h-12"
+                        required
+                      />
+                    ) : (
+                      <select
+                        value={editableData?.spaceType || ''}
+                        onChange={(e) => {
+                          const selectedType = e.target.value;
+                          if (!editableData) {
+                            setEditableData({
+                              spaceType: selectedType,
+                              title: '',
+                              description: '',
+                              dimensions: '',
+                              pricePerHour: 0,
+                              pricePerDay: 0
+                            });
+                          } else {
+                            handleEditableChange("spaceType", selectedType);
+                          }
+                          // Clear custom space type if not "other"
+                          if (selectedType !== 'other') {
+                            handleInputChange("customSpaceType", "");
+                          }
+                        }}
+                        className="apple-input h-12 w-full"
+                        required
+                      >
+                        <option value="">Select space type</option>
+                        {spaceTypes.map((type) => (
+                          <option key={type.value} value={type.value}>
+                            {type.label} - {type.description}
+                          </option>
+                        ))}
+                      </select>
+                    )}
+                    
+                    {/* Show "Back to dropdown" option when in custom input mode */}
+                    {editableData?.spaceType === 'other' && (
+                      <div className="mt-2">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            handleEditableChange("spaceType", "");
+                            handleInputChange("customSpaceType", "");
+                          }}
+                          className="text-xs"
+                        >
+                          ← Back to dropdown
+                        </Button>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Please specify what type of space you're offering
+                        </p>
+                      </div>
+                    )}
                   </div>
 
                   <div className="space-y-2">
@@ -1145,7 +1192,14 @@ export function AISpaceListingModal({ open, onOpenChange }: AISpaceListingModalP
               <Button
                 type="button"
                 onClick={() => setStep('confirm')}
-                disabled={!editableData?.spaceType || !editableData?.title || !editableData?.description || !editableData?.dimensions || !editableData?.pricePerHour}
+                disabled={
+                  !editableData?.spaceType || 
+                  !editableData?.title || 
+                  !editableData?.description || 
+                  !editableData?.dimensions || 
+                  !editableData?.pricePerHour ||
+                  (editableData?.spaceType === 'other' && !formData.customSpaceType?.trim())
+                }
                 className="w-full apple-button-primary h-12"
               >
                 <CheckCircle className="h-4 w-4 mr-2" />
@@ -1204,17 +1258,54 @@ export function AISpaceListingModal({ open, onOpenChange }: AISpaceListingModalP
                       <Edit3 className="h-4 w-4" />
                       Space Type
                     </Label>
-                    <select
-                      value={editableData.spaceType}
-                      onChange={(e) => handleEditableChange("spaceType", e.target.value)}
-                      className="apple-input h-12 w-full"
-                    >
-                      {spaceTypes.map((type) => (
-                        <option key={type.value} value={type.value}>
-                          {type.label} - {type.description}
-                        </option>
-                      ))}
-                    </select>
+                    {editableData.spaceType === 'other' ? (
+                      <Input
+                        value={formData.customSpaceType || ''}
+                        onChange={(e) => handleInputChange("customSpaceType", e.target.value)}
+                        placeholder="e.g., Boat Slip, RV Storage, Workshop"
+                        className="apple-input h-12"
+                      />
+                    ) : (
+                      <select
+                        value={editableData.spaceType}
+                        onChange={(e) => {
+                          const selectedType = e.target.value;
+                          handleEditableChange("spaceType", selectedType);
+                          // Clear custom space type if not "other"
+                          if (selectedType !== 'other') {
+                            handleInputChange("customSpaceType", "");
+                          }
+                        }}
+                        className="apple-input h-12 w-full"
+                      >
+                        {spaceTypes.map((type) => (
+                          <option key={type.value} value={type.value}>
+                            {type.label} - {type.description}
+                          </option>
+                        ))}
+                      </select>
+                    )}
+                    
+                    {/* Show "Back to dropdown" option when in custom input mode */}
+                    {editableData.spaceType === 'other' && (
+                      <div className="mt-2">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            handleEditableChange("spaceType", "");
+                            handleInputChange("customSpaceType", "");
+                          }}
+                          className="text-xs"
+                        >
+                          ← Back to dropdown
+                        </Button>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Please specify what type of space you're offering
+                        </p>
+                      </div>
+                    )}
                   </div>
 
                   <div className="space-y-2">
@@ -1352,7 +1443,11 @@ export function AISpaceListingModal({ open, onOpenChange }: AISpaceListingModalP
                     
                     <div className="grid grid-cols-2 gap-4 text-sm">
                       <div>
-                        <span className="font-medium">Type:</span> {spaceTypes.find(t => t.value === editableData.spaceType)?.label}
+                        <span className="font-medium">Type:</span> {
+                          editableData.spaceType === 'other' 
+                            ? formData.customSpaceType || 'Other (not specified)'
+                            : spaceTypes.find(t => t.value === editableData.spaceType)?.label
+                        }
                       </div>
                       <div>
                         <span className="font-medium">Dimensions:</span> {editableData.dimensions}
