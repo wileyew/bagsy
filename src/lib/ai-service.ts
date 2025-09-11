@@ -15,9 +15,16 @@ interface PhotoAnalysisResult {
 class AIService {
   private baseUrl = 'https://api.openai.com/v1';
   private apiKey: string;
+  
+  // Alternative API configurations (commented out for future use)
+  // private geminiApiKey: string;
+  // private claudeApiKey: string;
+  // private provider: 'openai' | 'gemini' | 'claude' = 'openai';
 
   constructor() {
     this.apiKey = import.meta.env.VITE_OPENAI_API_KEY || '';
+    // this.geminiApiKey = import.meta.env.VITE_GEMINI_API_KEY || '';
+    // this.claudeApiKey = import.meta.env.VITE_CLAUDE_API_KEY || '';
     console.log('AI Service initialized. API Key present:', !!this.apiKey);
     console.log('API Key length:', this.apiKey.length);
   }
@@ -147,6 +154,167 @@ class AIService {
         : ['Easy access', 'Well-maintained', 'Secure', 'Ample space']
     };
   }
+
+  // ============================================================================
+  // ALTERNATIVE PROVIDER IMPLEMENTATIONS (COMMENTED OUT FOR FUTURE USE)
+  // ============================================================================
+
+  /*
+  // Google Gemini 1.5 Pro Vision Implementation
+  private async geminiAnalysis(
+    photoUrls: string[],
+    location: LocationContext
+  ): Promise<PhotoAnalysisResult> {
+    console.log('Using Gemini 1.5 Pro Vision for analysis...');
+    
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent?key=${this.geminiApiKey}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        contents: [{
+          parts: [
+            {
+              text: `Analyze these photos of a space for rent and generate a listing.
+              ${location.address && location.zipCode ? `Location: ${location.address}, ${location.zipCode}` : 'Location: Not specified'}
+
+              Please provide:
+              1. Space type (garage, driveway, warehouse, parking_spot, storage_unit, outdoor_space)
+              2. Compelling title (max 60 characters)
+              3. Detailed description (2-3 sentences)
+              4. Estimated dimensions
+              5. Suggested hourly price (use average market rates if location not specified)
+              6. Key features
+
+              Return as JSON with these fields: spaceType, title, description, dimensions, pricePerHour, features`
+            },
+            ...photoUrls.map(url => ({
+              inline_data: {
+                mime_type: "image/jpeg",
+                data: url.split(',')[1] // Base64 data
+              }
+            }))
+          ]
+        }]
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Gemini API error: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    const content = data.candidates[0]?.content?.parts[0]?.text;
+    
+    if (!content) {
+      throw new Error('No analysis result from Gemini');
+    }
+
+    try {
+      const analysis = JSON.parse(content);
+      return {
+        spaceType: analysis.spaceType || 'garage',
+        title: analysis.title || 'Space Available',
+        description: analysis.description || 'A great space for your needs',
+        dimensions: analysis.dimensions || 'Standard size',
+        pricePerHour: analysis.pricePerHour || 5,
+        features: analysis.features || ['Convenient location']
+      };
+    } catch (parseError) {
+      throw new Error('Failed to parse Gemini analysis result');
+    }
+  }
+
+  // Anthropic Claude 3.5 Sonnet Implementation
+  private async claudeAnalysis(
+    photoUrls: string[],
+    location: LocationContext
+  ): Promise<PhotoAnalysisResult> {
+    console.log('Using Claude 3.5 Sonnet for analysis...');
+    
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${this.claudeApiKey}`,
+        'Content-Type': 'application/json',
+        'anthropic-version': '2023-06-01'
+      },
+      body: JSON.stringify({
+        model: 'claude-3-5-sonnet-20241022',
+        max_tokens: 500,
+        messages: [{
+          role: 'user',
+          content: [
+            {
+              type: 'text',
+              text: `Analyze these photos of a space for rent and generate a listing.
+              ${location.address && location.zipCode ? `Location: ${location.address}, ${location.zipCode}` : 'Location: Not specified'}
+
+              Please provide:
+              1. Space type (garage, driveway, warehouse, parking_spot, storage_unit, outdoor_space)
+              2. Compelling title (max 60 characters)
+              3. Detailed description (2-3 sentences)
+              4. Estimated dimensions
+              5. Suggested hourly price (use average market rates if location not specified)
+              6. Key features
+
+              Return as JSON with these fields: spaceType, title, description, dimensions, pricePerHour, features`
+            },
+            ...photoUrls.map(url => ({
+              type: 'image',
+              source: {
+                type: 'url',
+                url: url
+              }
+            }))
+          ]
+        }]
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Claude API error: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    const content = data.content[0]?.text;
+    
+    if (!content) {
+      throw new Error('No analysis result from Claude');
+    }
+
+    try {
+      const analysis = JSON.parse(content);
+      return {
+        spaceType: analysis.spaceType || 'garage',
+        title: analysis.title || 'Space Available',
+        description: analysis.description || 'A great space for your needs',
+        dimensions: analysis.dimensions || 'Standard size',
+        pricePerHour: analysis.pricePerHour || 5,
+        features: analysis.features || ['Convenient location']
+      };
+    } catch (parseError) {
+      throw new Error('Failed to parse Claude analysis result');
+    }
+  }
+
+  // Provider switching method (commented out)
+  private async analyzeWithProvider(
+    photoUrls: string[],
+    location: LocationContext
+  ): Promise<PhotoAnalysisResult> {
+    switch(this.provider) {
+      case 'gemini':
+        return await this.geminiAnalysis(photoUrls, location);
+      case 'claude':
+        return await this.claudeAnalysis(photoUrls, location);
+      case 'openai':
+      default:
+        return await this.realAnalysis(photoUrls, location);
+    }
+  }
+  */
 }
 
 export const aiService = new AIService();
