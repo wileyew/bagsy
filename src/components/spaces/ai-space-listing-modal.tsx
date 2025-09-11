@@ -14,6 +14,7 @@ import { LoadingDots } from "@/components/ui/loading-dots";
 import { aiService } from "@/lib/ai-service";
 import { webScrapingService } from "@/lib/web-scraping-service";
 import { createComponentDebugger } from "@/lib/debug-utils";
+import { runFullStorageTest } from "@/lib/storage-test";
 
 interface AISpaceListingModalProps {
   open: boolean;
@@ -152,51 +153,110 @@ export function AISpaceListingModal({ open, onOpenChange }: AISpaceListingModalP
       return;
     }
 
-    setUploading(true);
+    // Test storage bucket access first
     try {
-      const uploadedUrls: string[] = [];
+      debug.debug('Testing storage bucket access');
+      const { data: buckets, error: bucketError } = await supabase.storage.listBuckets();
+      
+      if (bucketError) {
+        debug.error('Storage bucket access failed', bucketError);
+        throw new Error(`Storage access failed: ${bucketError.message}`);
+      }
+      
+      const spacePhotosBucket = buckets?.find(bucket => bucket.name === 'space-photos');
+      if (!spacePhotosBucket) {
+        debug.error('Space photos bucket not found', { availableBuckets: buckets?.map(b => b.name) });
+        throw new Error('Storage bucket "space-photos" not found. Please contact support.');
+      }
+      
+      debug.info('Storage bucket access confirmed', { bucketName: spacePhotosBucket.name });
+    } catch (error: any) {
+      debug.logError(error, { context: 'storage_bucket_check' });
+      toast({
+        title: "Storage Error",
+        description: error.message || "Unable to access file storage. Please try again.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setUploading(true);
+    let uploadedUrls: string[] = [];
+    let uploadTimeout: NodeJS.Timeout | undefined;
+    
+    try {
+      debug.info('Starting file upload process', { 
+        fileCount: files.length,
+        userId: user.id 
+      });
+      
+      // Add timeout to prevent hanging
+      uploadTimeout = setTimeout(() => {
+        debug.error('Upload timeout', { fileCount: files.length });
+        throw new Error('Upload timed out after 30 seconds');
+      }, 30000);
       
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
         const fileExt = file.name.split('.').pop()?.toLowerCase();
-        const fileName = `${user?.id}-${Date.now()}-${i}.${fileExt}`;
+        const fileName = `${user.id}-${Date.now()}-${i}.${fileExt}`;
 
         debug.debug('Uploading file', { 
           fileName, 
           fileSize: file.size, 
           fileType: file.type, 
-          userId: user?.id,
+          userId: user.id,
           fileIndex: i
         });
 
-        // Upload to Supabase Storage
-        const { data, error } = await supabase.storage
-          .from('space-photos')
-          .upload(fileName, file);
+        try {
+          // Upload to Supabase Storage with timeout
+          const uploadPromise = supabase.storage
+            .from('space-photos')
+            .upload(fileName, file);
 
-        if (error) {
-          debug.error('Upload error', { fileName, error });
-          throw error;
+          const { data, error } = await uploadPromise;
+
+          if (error) {
+            debug.error('Upload error for individual file', { 
+              fileName, 
+              error, 
+              errorCode: error.statusCode,
+              fileIndex: i 
+            });
+            throw new Error(`Failed to upload ${file.name}: ${error.message}`);
+          }
+
+          debug.debug('Upload successful', { fileName, data });
+
+          // Get public URL
+          const { data: { publicUrl } } = supabase.storage
+            .from('space-photos')
+            .getPublicUrl(fileName);
+
+          debug.debug('Public URL generated', { fileName, publicUrl });
+          uploadedUrls.push(publicUrl);
+        } catch (fileError: any) {
+          debug.error('Individual file upload failed', { 
+            fileName, 
+            fileIndex: i, 
+            error: fileError.message 
+          });
+          throw fileError; // Re-throw to be caught by outer try-catch
         }
-
-        debug.debug('Upload successful', { fileName, data });
-
-        // Get public URL
-        const { data: { publicUrl } } = supabase.storage
-          .from('space-photos')
-          .getPublicUrl(fileName);
-
-        debug.debug('Public URL generated', { fileName, publicUrl });
-        uploadedUrls.push(publicUrl);
       }
+      
+      // Clear timeout if upload completes successfully
+      clearTimeout(uploadTimeout);
 
+      // Update form data with uploaded files and URLs
       setFormData(prev => ({ 
         ...prev, 
         photos: Array.from(files),
         photoUrls: uploadedUrls 
       }));
       
-      debug.info('File upload completed', {
+      debug.info('File upload completed successfully', {
         uploadedCount: uploadedUrls.length,
         uploadedUrls,
         disableAI: formData.disableAI,
@@ -224,13 +284,34 @@ export function AISpaceListingModal({ open, onOpenChange }: AISpaceListingModalP
         }, 500); // Small delay to let the UI update
       }
     } catch (error: any) {
-      debug.logError(error, { fileCount: files.length });
+      // Clear timeout if it exists
+      if (typeof uploadTimeout !== 'undefined') {
+        clearTimeout(uploadTimeout);
+      }
+      
+      debug.logError(error, { 
+        fileCount: files.length,
+        uploadedCount: uploadedUrls.length,
+        errorMessage: error.message
+      });
+      
+      // Reset form data if upload failed
+      setFormData(prev => ({ 
+        ...prev, 
+        photos: [],
+        photoUrls: [] 
+      }));
+      
       toast({
         title: "Upload failed",
         description: error.message || "Failed to upload photos. Please try again.",
         variant: "destructive",
       });
     } finally {
+      debug.info('File upload process completed', { 
+        success: uploadedUrls.length > 0,
+        uploadedCount: uploadedUrls.length 
+      });
       setUploading(false);
     }
   };
@@ -534,6 +615,44 @@ export function AISpaceListingModal({ open, onOpenChange }: AISpaceListingModalP
     setStep('upload');
   };
 
+  const testStorage = async () => {
+    if (!user) {
+      toast({
+        title: "Authentication required",
+        description: "Please sign in to test storage.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    debug.info('Starting storage test');
+    try {
+      const result = await runFullStorageTest(user.id);
+      
+      if (result.success) {
+        toast({
+          title: "Storage Test Passed",
+          description: result.message,
+        });
+        debug.info('Storage test completed successfully', result.details);
+      } else {
+        toast({
+          title: "Storage Test Failed",
+          description: result.message,
+          variant: "destructive",
+        });
+        debug.error('Storage test failed', result.details);
+      }
+    } catch (error: any) {
+      debug.logError(error, { context: 'storage_test' });
+      toast({
+        title: "Storage Test Error",
+        description: error.message || "Failed to test storage.",
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="apple-card max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
@@ -766,6 +885,41 @@ export function AISpaceListingModal({ open, onOpenChange }: AISpaceListingModalP
                   <p className="text-sm text-muted-foreground">
                     Upload photos above to start AI analysis
                   </p>
+                </div>
+              )}
+
+              {/* Debug Information */}
+              {import.meta.env.DEV && (
+                <div className="mt-4 p-3 bg-gray-100 rounded-lg text-xs">
+                  <h4 className="font-semibold mb-2">Debug Info:</h4>
+                  <div className="space-y-1">
+                    <p><strong>Uploading:</strong> {uploading ? 'Yes' : 'No'}</p>
+                    <p><strong>Photos:</strong> {formData.photos.length}</p>
+                    <p><strong>Photo URLs:</strong> {formData.photoUrls.length}</p>
+                    <p><strong>User ID:</strong> {user?.id || 'Not logged in'}</p>
+                    <p><strong>Step:</strong> {step}</p>
+                    {formData.photoUrls.length > 0 && (
+                      <div>
+                        <p><strong>Uploaded URLs:</strong></p>
+                        <ul className="ml-4 list-disc">
+                          {formData.photoUrls.map((url, index) => (
+                            <li key={index} className="break-all">{url}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
+                  <div className="mt-3 pt-3 border-t border-gray-300">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={testStorage}
+                      className="w-full text-xs"
+                    >
+                      Test Storage Connection
+                    </Button>
+                  </div>
                 </div>
               )}
             </>
