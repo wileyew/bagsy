@@ -54,7 +54,7 @@ export function AISpaceListingModal({ open, onOpenChange }: AISpaceListingModalP
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [analyzing, setAnalyzing] = useState(false);
-  const [step, setStep] = useState<'upload' | 'analyze' | 'review' | 'confirm'>('upload');
+  const [step, setStep] = useState<'upload' | 'analyze' | 'review' | 'manual' | 'confirm'>('upload');
   
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { user } = useAuthContext();
@@ -202,10 +202,14 @@ export function AISpaceListingModal({ open, onOpenChange }: AISpaceListingModalP
       });
     } catch (error: any) {
       console.error('AI analysis error:', error);
+      
+      // If AI analysis fails, show manual entry form
+      setStep('manual');
+      
       toast({
-        title: "Analysis failed",
-        description: error.message || "Failed to analyze photos. Please try again.",
-        variant: "destructive",
+        title: "AI Analysis Unavailable",
+        description: "Please enter your space details manually below.",
+        variant: "default",
       });
     } finally {
       console.log('Setting analyzing state to false');
@@ -324,6 +328,7 @@ export function AISpaceListingModal({ open, onOpenChange }: AISpaceListingModalP
             {step === 'upload' && "Upload photos and enter location - AI will do the rest!"}
             {step === 'analyze' && "AI is analyzing your photos..."}
             {step === 'review' && "Review AI suggestions and make any adjustments"}
+            {step === 'manual' && "Enter your space details manually"}
             {step === 'confirm' && "Confirm your space listing"}
           </p>
         </DialogHeader>
@@ -343,12 +348,12 @@ export function AISpaceListingModal({ open, onOpenChange }: AISpaceListingModalP
             </div>
             <span className="text-sm font-medium">Analyze</span>
           </div>
-          <div className={`w-8 h-0.5 ${step === 'review' || step === 'confirm' ? 'bg-primary' : 'bg-muted'}`} />
-          <div className={`flex items-center space-x-2 ${step === 'review' || step === 'confirm' ? 'text-primary' : 'text-muted-foreground'}`}>
-            <div className={`w-8 h-8 rounded-full flex items-center justify-center ${step === 'review' || step === 'confirm' ? 'bg-primary text-primary-foreground' : 'bg-muted'}`}>
+          <div className={`w-8 h-0.5 ${step === 'review' || step === 'manual' || step === 'confirm' ? 'bg-primary' : 'bg-muted'}`} />
+          <div className={`flex items-center space-x-2 ${step === 'review' || step === 'manual' || step === 'confirm' ? 'text-primary' : 'text-muted-foreground'}`}>
+            <div className={`w-8 h-8 rounded-full flex items-center justify-center ${step === 'review' || step === 'manual' || step === 'confirm' ? 'bg-primary text-primary-foreground' : 'bg-muted'}`}>
               3
             </div>
-            <span className="text-sm font-medium">Review</span>
+            <span className="text-sm font-medium">Review/Manual</span>
           </div>
         </div>
 
@@ -437,14 +442,14 @@ export function AISpaceListingModal({ open, onOpenChange }: AISpaceListingModalP
 
               {formData.photoUrls.length > 0 ? (
                 <div className="space-y-3">
-                  <Button
-                    type="button"
-                    onClick={analyzePhotosWithAI}
-                    className="w-full apple-button-primary h-12"
-                  >
-                    <Sparkles className="h-4 w-4 mr-2" />
-                    Analyze with AI
-                  </Button>
+              <Button
+                type="button"
+                onClick={analyzePhotosWithAI}
+                className="w-full apple-button-primary h-12"
+              >
+                <Sparkles className="h-4 w-4 mr-2" />
+                Analyze with AI
+              </Button>
                   <p className="text-xs text-center text-muted-foreground">
                     {formData.address && formData.zipCode 
                       ? "✅ Location provided - AI will generate location-specific pricing and features"
@@ -479,7 +484,200 @@ export function AISpaceListingModal({ open, onOpenChange }: AISpaceListingModalP
             </div>
           )}
 
-          {/* Step 3: Review AI Suggestions */}
+          {/* Step 3: Manual Entry Form */}
+          {step === 'manual' && (
+            <>
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-lg font-semibold">Enter Your Space Details</h3>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={resetToUpload}
+                    className="apple-button-secondary"
+                  >
+                    Start Over
+                  </Button>
+                </div>
+
+                {/* Photo Preview */}
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                  {formData.photoUrls.map((url, index) => (
+                    <Card key={index} className="overflow-hidden">
+                      <CardContent className="p-0">
+                        <div className="relative">
+                          <img
+                            src={url}
+                            alt={`Space photo ${index + 1}`}
+                            className="w-full h-32 object-cover"
+                          />
+                          <Button
+                            type="button"
+                            variant="destructive"
+                            size="sm"
+                            onClick={() => removePhoto(index)}
+                            className="absolute top-2 right-2 h-6 w-6 p-0"
+                          >
+                            <X className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+
+                {/* Manual Entry Fields */}
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium">Space Type *</Label>
+                    <select
+                      value={editableData?.spaceType || ''}
+                      onChange={(e) => {
+                        if (!editableData) {
+                          setEditableData({
+                            spaceType: e.target.value,
+                            title: '',
+                            description: '',
+                            dimensions: '',
+                            pricePerHour: 0,
+                            pricePerDay: 0
+                          });
+                        } else {
+                          handleEditableChange("spaceType", e.target.value);
+                        }
+                      }}
+                      className="apple-input h-12 w-full"
+                      required
+                    >
+                      <option value="">Select space type</option>
+                      {spaceTypes.map((type) => (
+                        <option key={type.value} value={type.value}>
+                          {type.label} - {type.description}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium">Title *</Label>
+                    <Input
+                      value={editableData?.title || ''}
+                      onChange={(e) => {
+                        if (!editableData) {
+                          setEditableData({
+                            spaceType: '',
+                            title: e.target.value,
+                            description: '',
+                            dimensions: '',
+                            pricePerHour: 0,
+                            pricePerDay: 0
+                          });
+                        } else {
+                          handleEditableChange("title", e.target.value);
+                        }
+                      }}
+                      placeholder="e.g., Spacious Garage in Downtown"
+                      className="apple-input h-12"
+                      required
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium">Description *</Label>
+                    <textarea
+                      value={editableData?.description || ''}
+                      onChange={(e) => {
+                        if (!editableData) {
+                          setEditableData({
+                            spaceType: '',
+                            title: '',
+                            description: e.target.value,
+                            dimensions: '',
+                            pricePerHour: 0,
+                            pricePerDay: 0
+                          });
+                        } else {
+                          handleEditableChange("description", e.target.value);
+                        }
+                      }}
+                      placeholder="Describe your space, its features, and what makes it special..."
+                      className="apple-input min-h-[100px] resize-none w-full"
+                      rows={4}
+                      required
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium">Dimensions *</Label>
+                      <Input
+                        value={editableData?.dimensions || ''}
+                        onChange={(e) => {
+                          if (!editableData) {
+                            setEditableData({
+                              spaceType: '',
+                              title: '',
+                              description: '',
+                              dimensions: e.target.value,
+                              pricePerHour: 0,
+                              pricePerDay: 0
+                            });
+                          } else {
+                            handleEditableChange("dimensions", e.target.value);
+                          }
+                        }}
+                        placeholder="e.g., 20x12 feet"
+                        className="apple-input h-12"
+                        required
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium">Price per Hour ($) *</Label>
+                      <Input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={editableData?.pricePerHour || ''}
+                        onChange={(e) => {
+                          const price = parseFloat(e.target.value) || 0;
+                          if (!editableData) {
+                            setEditableData({
+                              spaceType: '',
+                              title: '',
+                              description: '',
+                              dimensions: '',
+                              pricePerHour: price,
+                              pricePerDay: price * 8
+                            });
+                          } else {
+                            handleEditableChange("pricePerHour", price);
+                            handleEditableChange("pricePerDay", price * 8);
+                          }
+                        }}
+                        placeholder="0.00"
+                        className="apple-input h-12"
+                        required
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <Button
+                type="button"
+                onClick={() => setStep('confirm')}
+                disabled={!editableData?.spaceType || !editableData?.title || !editableData?.description || !editableData?.dimensions || !editableData?.pricePerHour}
+                className="w-full apple-button-primary h-12"
+              >
+                <CheckCircle className="h-4 w-4 mr-2" />
+                Continue to Confirmation
+              </Button>
+            </>
+          )}
+
+          {/* Step 4: Review AI Suggestions */}
           {step === 'review' && editableData && (
             <>
               <div className="space-y-4">

@@ -30,19 +30,13 @@ class AIService {
     console.log('Photo URLs:', photoUrls);
     console.log('Location:', location);
     
-    try {
-      // If API key is available, use real analysis
-      if (this.apiKey) {
-        console.log('Using real AI analysis');
-        return await this.realAnalysis(photoUrls, location);
-      } else {
-        console.log('Using mock analysis - no API key');
-        return await this.mockAnalysis(photoUrls, location);
-      }
-    } catch (error) {
-      console.error('AI analysis failed:', error);
-      // Fallback to mock analysis on error
-      return await this.mockAnalysis(photoUrls, location);
+    // If API key is available, use real analysis
+    if (this.apiKey) {
+      console.log('Using real AI analysis');
+      return await this.realAnalysis(photoUrls, location);
+    } else {
+      console.log('No API key available - throwing error for manual entry');
+      throw new Error('AI analysis unavailable - please enter your space details manually');
     }
   }
 
