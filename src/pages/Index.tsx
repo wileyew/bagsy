@@ -12,11 +12,13 @@ import { AISpaceListingModal } from "@/components/spaces/ai-space-listing-modal"
 import { BagsyLogo } from "@/components/ui/bagsy-logo";
 import { useAuthContext } from "@/contexts/auth-context";
 import { useToast } from "@/hooks/use-toast";
+import DebugPanel from "@/components/debug/DebugPanel";
 
 const Index = () => {
   const [currentStep, setCurrentStep] = useState(0);
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [aiSpaceListingModalOpen, setAiSpaceListingModalOpen] = useState(false);
+  const [debugPanelOpen, setDebugPanelOpen] = useState(false);
   const [formData, setFormData] = useState({
     spaceType: "",
     location: "",
@@ -413,6 +415,25 @@ const Index = () => {
         open={aiSpaceListingModalOpen}
         onOpenChange={setAiSpaceListingModalOpen}
       />
+
+      {/* Debug Panel */}
+      {import.meta.env.DEV && (
+        <>
+          <DebugPanel 
+            isOpen={debugPanelOpen}
+            onClose={() => setDebugPanelOpen(false)}
+          />
+          
+          {/* Debug Toggle Button */}
+          <button
+            onClick={() => setDebugPanelOpen(!debugPanelOpen)}
+            className="fixed top-4 right-4 z-50 p-2 bg-black text-white rounded-full shadow-lg hover:bg-gray-800 transition-colors"
+            title="Toggle Debug Panel"
+          >
+            🐛
+          </button>
+        </>
+      )}
     </div>
   );
 };

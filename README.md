@@ -62,6 +62,26 @@ This project is built with:
 - Supabase (Authentication & Database)
 - Google OAuth Integration
 
+## Key Features
+
+### AI-Powered Space Listing
+- **Photo Analysis**: AI automatically analyzes uploaded photos to generate listing details
+- **Market Research**: Web scraping integration to gather competitive pricing data
+- **Smart Pricing**: AI suggests optimal pricing based on market analysis
+- **Manual Override**: Users can disable AI features and enter details manually
+
+### AI Agent Negotiation
+- **Automated Negotiations**: AI agent handles price discussions with potential renters
+- **24/7 Availability**: Never miss negotiation opportunities
+- **Data-Driven Decisions**: Uses market data for intelligent counter-offers
+- **User Control**: Full control over AI agent settings and decisions
+
+### Market Research & Web Scraping
+- **Competitor Analysis**: Automatically searches other platforms for similar listings
+- **Pricing Insights**: Provides market averages and pricing recommendations
+- **Location Intelligence**: Location-specific pricing and feature suggestions
+- **Competitive Advantages**: Identifies unique selling points for your space
+
 ## Authentication Features
 
 The app now includes a complete authentication system with:
@@ -72,6 +92,88 @@ The app now includes a complete authentication system with:
 - **User Profiles**: Automatic profile creation and management
 - **Session Management**: Persistent login sessions
 - **Apple-Style UI**: Beautiful, minimal authentication modals
+
+## Environment Variables
+
+Create a `.env` file in the root directory with the following variables:
+
+```env
+# Supabase Configuration
+VITE_SUPABASE_URL=your_supabase_url_here
+VITE_SUPABASE_ANON_KEY=your_supabase_anon_key_here
+
+# OpenAI API Key for AI Analysis
+VITE_OPENAI_API_KEY=your_openai_api_key_here
+
+# Web Scraping API Key (ScrapingBee or similar)
+VITE_SCRAPINGBEE_API_KEY=your_scrapingbee_api_key_here
+
+# Optional: Alternative AI Providers
+# VITE_GEMINI_API_KEY=your_gemini_api_key_here
+# VITE_CLAUDE_API_KEY=your_claude_api_key_here
+
+# Debug Configuration
+VITE_DEBUG=true
+```
+
+## Debugging & Development
+
+### Debug Panel
+
+The application includes a comprehensive debugging system that helps developers understand what's happening behind the scenes.
+
+#### Features
+- **Real-time Logging**: See all debug messages as they happen
+- **Component Filtering**: Filter logs by specific components
+- **Level Filtering**: Filter by log level (error, warn, info, debug)
+- **Search**: Search through log messages and data
+- **Export**: Copy or download logs for analysis
+- **Performance Monitoring**: Track operation timing and performance
+
+#### How to Use
+1. **Enable Debug Mode**: Set `VITE_DEBUG=true` in your environment variables
+2. **Open Debug Panel**: Click the 🐛 button in the top-right corner (development only)
+3. **Filter Logs**: Use the filters tab to narrow down what you want to see
+4. **Export Data**: Use the Copy/Download buttons to save logs for analysis
+
+#### Debug Components
+
+**AISpaceListingModal**
+- Form data changes and validation
+- File upload progress and errors
+- AI analysis steps and results
+- Web scraping progress and market data
+- Database operations and errors
+- User interactions and state changes
+
+**WebScrapingService**
+- API calls and responses
+- Scraping progress for each source
+- Market analysis calculations
+- Error handling and fallbacks
+- Performance timing
+
+**AI Service**
+- Photo analysis requests and responses
+- API key validation
+- Error handling and timeouts
+- Analysis result processing
+
+#### Debug Levels
+
+- **Error**: Critical issues that prevent functionality
+- **Warn**: Potential issues or fallback scenarios
+- **Info**: Important state changes and user actions
+- **Debug**: Detailed technical information
+
+#### Performance Monitoring
+
+The debug system automatically tracks:
+- API call durations
+- File upload times
+- AI analysis processing time
+- Web scraping operation duration
+- Database operation performance
 
 ### Authentication Flow
 

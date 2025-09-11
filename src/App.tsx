@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/auth-context";
 import Index from "./pages/Index";
 import AuthCallback from "./pages/AuthCallback";
+import AIAgentHelp from "./pages/AIAgentHelp";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -20,6 +21,7 @@ const App = () => (
                     <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/auth/callback" element={<AuthCallback />} />
+            <Route path="/ai-agent-help" element={<AIAgentHelp />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
