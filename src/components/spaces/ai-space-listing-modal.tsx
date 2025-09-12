@@ -205,9 +205,9 @@ export function AISpaceListingModal({ open, onOpenChange }: AISpaceListingModalP
         debug.info('Direct bucket access confirmed', { fileCount: testFiles?.length || 0 });
       }
       
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('❌ Storage access error:', error);
-      debug.logError(error, { context: 'storage_access_check' });
+      debug.logError(error instanceof Error ? error : new Error(String(error)), { context: 'storage_access_check' });
       toast({
         title: "Storage Setup Required",
         description: "Please run the SQL setup script in Supabase SQL Editor to create the storage bucket. Check the manual-sql-fix.sql file for the script.",
@@ -217,7 +217,7 @@ export function AISpaceListingModal({ open, onOpenChange }: AISpaceListingModalP
     }
 
     setUploading(true);
-    let uploadedUrls: string[] = [];
+    const uploadedUrls: string[] = [];
     let uploadTimeout: NodeJS.Timeout | undefined;
     
     try {
@@ -299,11 +299,11 @@ export function AISpaceListingModal({ open, onOpenChange }: AISpaceListingModalP
 
           debug.debug('Public URL generated', { fileName, publicUrl });
           uploadedUrls.push(publicUrl);
-        } catch (fileError: any) {
+        } catch (fileError: unknown) {
           debug.error('Individual file upload failed', { 
             fileName, 
             fileIndex: i, 
-            error: fileError.message 
+            error: fileError instanceof Error ? fileError.message : String(fileError)
           });
           throw fileError; // Re-throw to be caught by outer try-catch
         }
@@ -352,17 +352,17 @@ export function AISpaceListingModal({ open, onOpenChange }: AISpaceListingModalP
           analyzePhotosWithAI(uploadedUrls);
         }, 500); // Small delay to let the UI update
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       // Clear timeout if it exists
       if (typeof uploadTimeout !== 'undefined') {
         clearTimeout(uploadTimeout);
       }
       
       console.error('💥 Upload process failed:', error);
-      debug.logError(error, { 
+      debug.logError(error instanceof Error ? error : new Error(String(error)), { 
         fileCount: files.length,
         uploadedCount: uploadedUrls.length,
-        errorMessage: error.message
+        errorMessage: error instanceof Error ? error.message : String(error)
       });
       
       // Reset form data if upload failed
@@ -372,9 +372,12 @@ export function AISpaceListingModal({ open, onOpenChange }: AISpaceListingModalP
         photoUrls: [] 
       }));
       
+      // Clear the file input element on upload failure
+      clearFileInput();
+      
       toast({
         title: "Upload failed",
-        description: error.message || "Failed to upload photos. Please try again.",
+        description: error instanceof Error ? error.message : "Failed to upload photos. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -418,8 +421,8 @@ export function AISpaceListingModal({ open, onOpenChange }: AISpaceListingModalP
       });
       
       return analysis;
-    } catch (error: any) {
-      debug.logError(error, { spaceType, location: formData.address });
+    } catch (error: unknown) {
+      debug.logError(error instanceof Error ? error : new Error(String(error)), { spaceType, location: formData.address });
       toast({
         title: "Market Analysis Unavailable",
         description: "Could not gather market data. Proceeding with AI analysis only.",
@@ -518,8 +521,8 @@ export function AISpaceListingModal({ open, onOpenChange }: AISpaceListingModalP
           ? `Your space has been analyzed with market data from ${marketData.competitorCount} competitors.`
           : "Your space has been analyzed. Review the suggestions below.",
       });
-    } catch (error: any) {
-      debug.logError(error, { photoCount: urlsToUse.length });
+    } catch (error: unknown) {
+      debug.logError(error instanceof Error ? error : new Error(String(error)), { photoCount: urlsToUse.length });
       
       // If AI analysis fails, show manual entry form
       setStep('manual');
@@ -644,9 +647,13 @@ export function AISpaceListingModal({ open, onOpenChange }: AISpaceListingModalP
       setEditableData(null);
       setMarketAnalysis(null);
       setStep('upload');
+      
+      // Clear the file input element
+      clearFileInput();
+      
       onOpenChange(false);
-    } catch (error: any) {
-      debug.logError(error, { 
+    } catch (error: unknown) {
+      debug.logError(error instanceof Error ? error : new Error(String(error)), { 
         hasUser: !!user, 
         hasEditableData: !!editableData,
         formData: {
@@ -658,7 +665,7 @@ export function AISpaceListingModal({ open, onOpenChange }: AISpaceListingModalP
       
       toast({
         title: "Failed to list space",
-        description: error.message || "Something went wrong. Please try again.",
+        description: error instanceof Error ? error.message : "Something went wrong. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -679,6 +686,12 @@ export function AISpaceListingModal({ open, onOpenChange }: AISpaceListingModalP
     setFormData(prev => ({ ...prev, photos: newPhotos, photoUrls: newUrls }));
   };
 
+  const clearFileInput = () => {
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
   const resetToUpload = () => {
     setFormData({
       address: "",
@@ -694,6 +707,9 @@ export function AISpaceListingModal({ open, onOpenChange }: AISpaceListingModalP
     setEditableData(null);
     setMarketAnalysis(null);
     setStep('upload');
+    
+    // Clear the file input element to prevent issues with subsequent uploads
+    clearFileInput();
   };
 
   const testStorage = async () => {
@@ -724,11 +740,11 @@ export function AISpaceListingModal({ open, onOpenChange }: AISpaceListingModalP
         });
         debug.error('Storage test failed', result.details);
       }
-    } catch (error: any) {
-      debug.logError(error, { context: 'storage_test' });
+    } catch (error: unknown) {
+      debug.logError(error instanceof Error ? error : new Error(String(error)), { context: 'storage_test' });
       toast({
         title: "Storage Test Error",
-        description: error.message || "Failed to test storage.",
+        description: error instanceof Error ? error.message : "Failed to test storage.",
         variant: "destructive",
       });
     }
@@ -1025,11 +1041,11 @@ export function AISpaceListingModal({ open, onOpenChange }: AISpaceListingModalP
                               variant: "destructive",
                             });
                           }
-                        } catch (error: any) {
-                          debug.logError(error, { context: 'manual_storage_check' });
+                        } catch (error: unknown) {
+                          debug.logError(error instanceof Error ? error : new Error(String(error)), { context: 'manual_storage_check' });
                           toast({
                             title: "Storage Check Error",
-                            description: error.message || "Failed to check storage access",
+                            description: error instanceof Error ? error.message : "Failed to check storage access",
                             variant: "destructive",
                           });
                         }
@@ -1059,11 +1075,11 @@ export function AISpaceListingModal({ open, onOpenChange }: AISpaceListingModalP
                               variant: "destructive",
                             });
                           }
-                        } catch (error: any) {
-                          debug.logError(error, { context: 'storage_policies_check' });
+                        } catch (error: unknown) {
+                          debug.logError(error instanceof Error ? error : new Error(String(error)), { context: 'storage_policies_check' });
                           toast({
                             title: "Storage Policies Error",
-                            description: error.message || "Failed to check storage policies",
+                            description: error instanceof Error ? error.message : "Failed to check storage policies",
                             variant: "destructive",
                           });
                         }
