@@ -170,44 +170,47 @@ export function AISpaceListingModal({ open, onOpenChange }: AISpaceListingModalP
       console.log('🔍 Checking storage access...');
       debug.debug('Checking storage access');
       
-      // Just verify the bucket exists and is accessible
-      const { data: buckets, error: bucketError } = await supabase.storage.listBuckets();
+      // Try to access the bucket directly instead of listing all buckets
+      console.log('🔍 Testing direct bucket access...');
+      debug.debug('Testing direct bucket access');
       
-      if (bucketError) {
-        console.error('❌ Storage access failed:', bucketError);
-        debug.error('Storage access failed', bucketError);
-        throw new Error(`Storage access failed: ${bucketError.message}`);
-      }
+      // Test if we can list files in the space-photos bucket (this will tell us if it exists and is accessible)
+      const { data: testFiles, error: testError } = await supabase.storage
+        .from('space-photos')
+        .list('', { limit: 1 });
       
-      const spacePhotosBucket = buckets?.find(bucket => bucket.name === 'space-photos');
-      if (!spacePhotosBucket) {
-        console.error('❌ space-photos bucket not found:', { availableBuckets: buckets?.map(b => b.name) });
-        debug.error('space-photos bucket not found', { availableBuckets: buckets?.map(b => b.name) });
+      if (testError) {
+        console.error('❌ Direct bucket access failed:', testError);
+        debug.error('Direct bucket access failed', testError);
         
-        // Only try to create bucket if it doesn't exist
-        console.log('🔧 Attempting to create missing bucket...');
-        debug.info('Attempting to create missing bucket');
-        
-        const { setupStorageBuckets } = await import('@/lib/setup-storage');
-        const setupResult = await setupStorageBuckets();
-        
-        if (!setupResult.success) {
-          throw new Error(setupResult.message || 'Failed to create storage bucket');
+        // If it's a "bucket not found" error, try to create it
+        if (testError.message.includes('not found') || testError.message.includes('does not exist')) {
+          console.log('🔧 Bucket not found, attempting to create...');
+          debug.info('Bucket not found, attempting to create');
+          
+          const { setupStorageBuckets } = await import('@/lib/setup-storage');
+          const setupResult = await setupStorageBuckets();
+          
+          if (!setupResult.success) {
+            throw new Error(`Failed to create storage bucket: ${setupResult.message}. Please run the SQL setup script in Supabase SQL Editor first.`);
+          }
+          
+          console.log('✅ Bucket created successfully:', setupResult.message);
+          debug.info('Bucket created successfully', setupResult);
+        } else {
+          throw new Error(`Storage access failed: ${testError.message}`);
         }
-        
-        console.log('✅ Bucket created successfully:', setupResult.message);
-        debug.info('Bucket created successfully', setupResult);
       } else {
-        console.log('✅ Storage access confirmed:', { bucketName: spacePhotosBucket.name, public: spacePhotosBucket.public });
-        debug.info('Storage access confirmed', { bucketName: spacePhotosBucket.name, public: spacePhotosBucket.public });
+        console.log('✅ Direct bucket access confirmed - bucket exists and is accessible');
+        debug.info('Direct bucket access confirmed', { fileCount: testFiles?.length || 0 });
       }
       
     } catch (error: any) {
       console.error('❌ Storage access error:', error);
       debug.logError(error, { context: 'storage_access_check' });
       toast({
-        title: "Storage Access Error",
-        description: error.message || "Unable to access file storage. Please ensure the bucket is set up correctly.",
+        title: "Storage Setup Required",
+        description: "Please run the SQL setup script in Supabase SQL Editor to create the storage bucket. Check the manual-sql-fix.sql file for the script.",
         variant: "destructive",
       });
       return;
