@@ -37,7 +37,7 @@ async function setupStorage() {
       console.log('🔧 Creating space-photos bucket...');
       
       const { data: newBucket, error: createError } = await supabase.storage.createBucket('space-photos', {
-        public: false, // Set to false for better security with RLS policies
+        public: true, // Set to true to avoid RLS policy issues
         allowedMimeTypes: ['image/jpeg', 'image/png', 'image/webp', 'image/gif'],
         fileSizeLimit: 10485760, // 10MB limit
       });

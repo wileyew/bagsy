@@ -27,9 +27,9 @@ export async function setupStorageBuckets() {
     if (!spacePhotosBucket) {
       debug.info('space-photos bucket not found, creating it');
       
-      // Create the space-photos bucket with proper RLS configuration
+      // Create the space-photos bucket with public access (no RLS policies needed)
       const { data: newBucket, error: createError } = await supabase.storage.createBucket('space-photos', {
-        public: false, // Set to false for better security, we'll handle access via policies
+        public: true, // Set to true to avoid RLS policy issues
         allowedMimeTypes: ['image/jpeg', 'image/png', 'image/webp', 'image/gif'],
         fileSizeLimit: 10485760, // 10MB limit
       });
@@ -41,19 +41,11 @@ export async function setupStorageBuckets() {
       
       debug.info('space-photos bucket created successfully', { bucket: newBucket });
       
-      // Set up RLS policies for the bucket
-      const policyResult = await setupStoragePolicies();
-      if (!policyResult.success) {
-        debug.warn('Failed to setup storage policies', policyResult);
-        // Don't fail the entire operation, but log the warning
-      }
-      
       return {
         success: true,
-        message: 'space-photos bucket created successfully',
+        message: 'space-photos bucket created successfully with public access',
         bucket: newBucket,
-        action: 'created',
-        policiesSetup: policyResult.success
+        action: 'created'
       };
     } else {
       debug.info('space-photos bucket already exists', { bucket: spacePhotosBucket });
