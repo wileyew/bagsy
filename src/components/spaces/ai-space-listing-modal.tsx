@@ -141,6 +141,13 @@ export function AISpaceListingModal({ open, onOpenChange }: AISpaceListingModalP
   const handleFileUpload = async (files: FileList) => {
     if (!files.length) return;
 
+    // Always log to console for debugging
+    console.log('🚀 File upload started', { 
+      fileCount: files.length,
+      fileNames: Array.from(files).map(f => f.name),
+      fileSizes: Array.from(files).map(f => f.size)
+    });
+
     debug.userAction('File upload started', { 
       fileCount: files.length,
       fileNames: Array.from(files).map(f => f.name),
@@ -148,6 +155,7 @@ export function AISpaceListingModal({ open, onOpenChange }: AISpaceListingModalP
     });
 
     if (!user) {
+      console.error('❌ File upload failed - no user', { hasUser: !!user });
       debug.warn('File upload failed - no user', { hasUser: !!user });
       toast({
         title: "Authentication required",
@@ -159,14 +167,22 @@ export function AISpaceListingModal({ open, onOpenChange }: AISpaceListingModalP
 
     // Setup storage buckets (create if needed)
     try {
+      console.log('🔧 Setting up storage buckets...');
       debug.debug('Setting up storage buckets');
       const setupResult = await setupStorageBuckets();
       
+      console.log('📦 Storage setup result:', setupResult);
+      
       if (!setupResult.success) {
+        console.error('❌ Storage setup failed:', setupResult);
         debug.error('Storage setup failed', setupResult);
         throw new Error(setupResult.message);
       }
       
+      console.log('✅ Storage setup completed:', { 
+        action: setupResult.action,
+        message: setupResult.message 
+      });
       debug.info('Storage setup completed', { 
         action: setupResult.action,
         message: setupResult.message 
@@ -179,6 +195,7 @@ export function AISpaceListingModal({ open, onOpenChange }: AISpaceListingModalP
         });
       }
     } catch (error: any) {
+      console.error('❌ Storage setup error:', error);
       debug.logError(error, { context: 'storage_setup' });
       toast({
         title: "Storage Setup Error",
@@ -193,6 +210,10 @@ export function AISpaceListingModal({ open, onOpenChange }: AISpaceListingModalP
     let uploadTimeout: NodeJS.Timeout | undefined;
     
     try {
+      console.log('📤 Starting file upload process', { 
+        fileCount: files.length,
+        userId: user.id 
+      });
       debug.info('Starting file upload process', { 
         fileCount: files.length,
         userId: user.id 
@@ -200,6 +221,7 @@ export function AISpaceListingModal({ open, onOpenChange }: AISpaceListingModalP
       
       // Add timeout to prevent hanging
       uploadTimeout = setTimeout(() => {
+        console.error('⏰ Upload timeout after 30 seconds');
         debug.error('Upload timeout', { fileCount: files.length });
         throw new Error('Upload timed out after 30 seconds');
       }, 30000);
@@ -209,6 +231,13 @@ export function AISpaceListingModal({ open, onOpenChange }: AISpaceListingModalP
         const fileExt = file.name.split('.').pop()?.toLowerCase();
         const fileName = `${user.id}-${Date.now()}-${i}.${fileExt}`;
 
+        console.log(`📁 Uploading file ${i + 1}/${files.length}:`, { 
+          fileName, 
+          fileSize: file.size, 
+          fileType: file.type, 
+          userId: user.id,
+          fileIndex: i
+        });
         debug.debug('Uploading file', { 
           fileName, 
           fileSize: file.size, 
@@ -226,6 +255,12 @@ export function AISpaceListingModal({ open, onOpenChange }: AISpaceListingModalP
           const { data, error } = await uploadPromise;
 
           if (error) {
+            console.error(`❌ Upload error for file ${i + 1}:`, { 
+              fileName, 
+              error, 
+              errorMessage: error.message,
+              fileIndex: i 
+            });
             debug.error('Upload error for individual file', { 
               fileName, 
               error, 
@@ -243,6 +278,7 @@ export function AISpaceListingModal({ open, onOpenChange }: AISpaceListingModalP
             }
           }
 
+          console.log(`✅ Upload successful for file ${i + 1}:`, { fileName, data });
           debug.debug('Upload successful', { fileName, data });
 
           // Get public URL
@@ -272,6 +308,12 @@ export function AISpaceListingModal({ open, onOpenChange }: AISpaceListingModalP
         photoUrls: uploadedUrls 
       }));
       
+      console.log('🎉 File upload completed successfully!', {
+        uploadedCount: uploadedUrls.length,
+        uploadedUrls,
+        disableAI: formData.disableAI,
+        enableWebScraping: formData.enableWebScraping
+      });
       debug.info('File upload completed successfully', {
         uploadedCount: uploadedUrls.length,
         uploadedUrls,
@@ -305,6 +347,7 @@ export function AISpaceListingModal({ open, onOpenChange }: AISpaceListingModalP
         clearTimeout(uploadTimeout);
       }
       
+      console.error('💥 Upload process failed:', error);
       debug.logError(error, { 
         fileCount: files.length,
         uploadedCount: uploadedUrls.length,
@@ -324,6 +367,10 @@ export function AISpaceListingModal({ open, onOpenChange }: AISpaceListingModalP
         variant: "destructive",
       });
     } finally {
+      console.log('🏁 File upload process completed', { 
+        success: uploadedUrls.length > 0,
+        uploadedCount: uploadedUrls.length 
+      });
       debug.info('File upload process completed', { 
         success: uploadedUrls.length > 0,
         uploadedCount: uploadedUrls.length 
@@ -914,7 +961,10 @@ export function AISpaceListingModal({ open, onOpenChange }: AISpaceListingModalP
               {/* Debug Information */}
               {import.meta.env.DEV && (
                 <div className="mt-4 p-3 bg-gray-100 rounded-lg text-xs">
-                  <h4 className="font-semibold mb-2">Debug Info:</h4>
+                  <h4 className="font-semibold mb-2">🐛 Debug Info:</h4>
+                  <div className="mb-2 text-xs text-gray-600">
+                    Check browser console for detailed upload logs
+                  </div>
                   <div className="space-y-1">
                     <p><strong>Uploading:</strong> {uploading ? 'Yes' : 'No'}</p>
                     <p><strong>Photos:</strong> {formData.photos.length}</p>
