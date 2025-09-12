@@ -14,7 +14,7 @@ VALUES (
 
 -- Option 2: If bucket already exists, just make it public
 UPDATE storage.buckets 
-SET [public] = true 
+SET [public] = true,
 WHERE id = 'space-photos';
 
 -- Option 2: Set up RLS policies (more secure but requires the policies)

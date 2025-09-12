@@ -183,11 +183,24 @@ export function AISpaceListingModal({ open, onOpenChange }: AISpaceListingModalP
       if (!spacePhotosBucket) {
         console.error('❌ space-photos bucket not found:', { availableBuckets: buckets?.map(b => b.name) });
         debug.error('space-photos bucket not found', { availableBuckets: buckets?.map(b => b.name) });
-        throw new Error('Storage bucket "space-photos" not found. Please run the SQL setup script.');
+        
+        // Only try to create bucket if it doesn't exist
+        console.log('🔧 Attempting to create missing bucket...');
+        debug.info('Attempting to create missing bucket');
+        
+        const { setupStorageBuckets } = await import('@/lib/setup-storage');
+        const setupResult = await setupStorageBuckets();
+        
+        if (!setupResult.success) {
+          throw new Error(setupResult.message || 'Failed to create storage bucket');
+        }
+        
+        console.log('✅ Bucket created successfully:', setupResult.message);
+        debug.info('Bucket created successfully', setupResult);
+      } else {
+        console.log('✅ Storage access confirmed:', { bucketName: spacePhotosBucket.name, public: spacePhotosBucket.public });
+        debug.info('Storage access confirmed', { bucketName: spacePhotosBucket.name, public: spacePhotosBucket.public });
       }
-      
-      console.log('✅ Storage access confirmed:', { bucketName: spacePhotosBucket.name, public: spacePhotosBucket.public });
-      debug.info('Storage access confirmed', { bucketName: spacePhotosBucket.name, public: spacePhotosBucket.public });
       
     } catch (error: any) {
       console.error('❌ Storage access error:', error);
