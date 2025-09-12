@@ -37,7 +37,7 @@ async function setupStorage() {
       console.log('🔧 Creating space-photos bucket...');
       
       const { data: newBucket, error: createError } = await supabase.storage.createBucket('space-photos', {
-        public: true,
+        public: false, // Set to false for better security with RLS policies
         allowedMimeTypes: ['image/jpeg', 'image/png', 'image/webp', 'image/gif'],
         fileSizeLimit: 10485760, // 10MB limit
       });
@@ -49,6 +49,8 @@ async function setupStorage() {
       
       console.log('✅ space-photos bucket created successfully!');
       console.log('📊 Bucket details:', newBucket);
+      console.log('⚠️  Note: You may need to run the storage policies migration:');
+      console.log('   supabase migration up');
     } else {
       console.log('✅ space-photos bucket already exists');
       console.log('📊 Bucket details:', spacePhotosBucket);

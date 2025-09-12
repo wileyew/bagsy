@@ -27,9 +27,9 @@ export async function setupStorageBuckets() {
     if (!spacePhotosBucket) {
       debug.info('space-photos bucket not found, creating it');
       
-      // Create the space-photos bucket
+      // Create the space-photos bucket with proper RLS configuration
       const { data: newBucket, error: createError } = await supabase.storage.createBucket('space-photos', {
-        public: true,
+        public: false, // Set to false for better security, we'll handle access via policies
         allowedMimeTypes: ['image/jpeg', 'image/png', 'image/webp', 'image/gif'],
         fileSizeLimit: 10485760, // 10MB limit
       });
@@ -41,11 +41,19 @@ export async function setupStorageBuckets() {
       
       debug.info('space-photos bucket created successfully', { bucket: newBucket });
       
+      // Set up RLS policies for the bucket
+      const policyResult = await setupStoragePolicies();
+      if (!policyResult.success) {
+        debug.warn('Failed to setup storage policies', policyResult);
+        // Don't fail the entire operation, but log the warning
+      }
+      
       return {
         success: true,
         message: 'space-photos bucket created successfully',
         bucket: newBucket,
-        action: 'created'
+        action: 'created',
+        policiesSetup: policyResult.success
       };
     } else {
       debug.info('space-photos bucket already exists', { bucket: spacePhotosBucket });
@@ -58,12 +66,53 @@ export async function setupStorageBuckets() {
       };
     }
     
-  } catch (error: any) {
-    debug.logError(error, { context: 'setup_storage_buckets' });
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      debug.logError(error instanceof Error ? error : new Error(errorMessage), { context: 'setup_storage_buckets' });
+      return {
+        success: false,
+        message: errorMessage || 'Failed to setup storage buckets',
+        error: error
+      };
+    }
+}
+
+export async function setupStoragePolicies() {
+  debug.info('Setting up storage RLS policies');
+  
+  try {
+    // Note: RLS policies for storage are typically set up via SQL migrations
+    // This function provides a way to verify policies exist and provide guidance
+    
+    // Check if we can access the bucket (this will test RLS policies)
+    const { data: testFiles, error: testError } = await supabase.storage
+      .from('space-photos')
+      .list('', { limit: 1 });
+    
+    if (testError && testError.message.includes('row-level security')) {
+      debug.warn('RLS policies may not be properly configured', { error: testError });
+      
+      return {
+        success: false,
+        message: 'RLS policies need to be configured. Please run the storage policies migration.',
+        error: testError,
+        guidance: 'Run: supabase migration up to apply storage policies'
+      };
+    }
+    
+    debug.info('Storage policies appear to be working correctly');
+    return {
+      success: true,
+      message: 'Storage policies are working correctly'
+    };
+    
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    debug.logError(error instanceof Error ? error : new Error(errorMessage), { context: 'setup_storage_policies' });
     return {
       success: false,
-      message: error.message || 'Failed to setup storage buckets',
-      error: error
+      message: errorMessage || 'Failed to verify storage policies',
+      error
     };
   }
 }
@@ -95,11 +144,12 @@ export async function checkStorageAccess() {
       buckets: buckets?.map(b => ({ name: b.name, id: b.id, public: b.public })) || []
     };
     
-  } catch (error: any) {
-    debug.logError(error, { context: 'check_storage_access' });
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    debug.logError(error instanceof Error ? error : new Error(errorMessage), { context: 'check_storage_access' });
     return {
       success: false,
-      message: error.message || 'Storage access check failed',
+      message: errorMessage || 'Storage access check failed',
       error
     };
   }

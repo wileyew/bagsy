@@ -229,10 +229,18 @@ export function AISpaceListingModal({ open, onOpenChange }: AISpaceListingModalP
             debug.error('Upload error for individual file', { 
               fileName, 
               error, 
-              errorCode: error.statusCode,
+              errorMessage: error.message,
               fileIndex: i 
             });
-            throw new Error(`Failed to upload ${file.name}: ${error.message}`);
+            
+            // Provide more helpful error messages for RLS issues
+            if (error.message.includes('row-level security')) {
+              throw new Error(`Storage security policy error. Please ensure you're logged in and storage policies are configured. Original error: ${error.message}`);
+            } else if (error.message.includes('bucket')) {
+              throw new Error(`Storage bucket error. Please try the "Setup Storage Buckets" button in debug mode. Original error: ${error.message}`);
+            } else {
+              throw new Error(`Failed to upload ${file.name}: ${error.message}`);
+            }
           }
 
           debug.debug('Upload successful', { fileName, data });
@@ -396,7 +404,7 @@ export function AISpaceListingModal({ open, onOpenChange }: AISpaceListingModalP
         setTimeout(() => reject(new Error('AI analysis timed out after 30 seconds')), 30000)
       );
       
-      const analysisResult = await Promise.race([analysisPromise, timeoutPromise]);
+      const analysisResult = await Promise.race([analysisPromise, timeoutPromise]) as AIGeneratedData;
       
       debug.info('AI analysis completed', { analysisResult });
       
@@ -879,7 +887,7 @@ export function AISpaceListingModal({ open, onOpenChange }: AISpaceListingModalP
                   ) : (
                     <Button
                       type="button"
-                      onClick={analyzePhotosWithAI}
+                      onClick={() => analyzePhotosWithAI()}
                       className="w-full apple-button-primary h-12"
                     >
                       <Sparkles className="h-4 w-4 mr-2" />
@@ -967,6 +975,40 @@ export function AISpaceListingModal({ open, onOpenChange }: AISpaceListingModalP
                       className="w-full text-xs"
                     >
                       Setup Storage Buckets
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={async () => {
+                        debug.info('Storage policies check triggered');
+                        try {
+                          const { setupStoragePolicies } = await import('@/lib/setup-storage');
+                          const result = await setupStoragePolicies();
+                          if (result.success) {
+                            toast({
+                              title: "Storage Policies OK",
+                              description: result.message,
+                            });
+                          } else {
+                            toast({
+                              title: "Storage Policies Issue",
+                              description: `${result.message}. ${result.guidance || 'Check console for details.'}`,
+                              variant: "destructive",
+                            });
+                          }
+                        } catch (error: any) {
+                          debug.logError(error, { context: 'storage_policies_check' });
+                          toast({
+                            title: "Storage Policies Error",
+                            description: error.message || "Failed to check storage policies",
+                            variant: "destructive",
+                          });
+                        }
+                      }}
+                      className="w-full text-xs"
+                    >
+                      Check Storage Policies
                     </Button>
                   </div>
                 </div>
