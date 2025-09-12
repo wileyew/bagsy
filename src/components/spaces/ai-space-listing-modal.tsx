@@ -15,6 +15,7 @@ import { aiService } from "@/lib/ai-service";
 import { webScrapingService } from "@/lib/web-scraping-service";
 import { createComponentDebugger } from "@/lib/debug-utils";
 import { runFullStorageTest } from "@/lib/storage-test";
+import { setupStorageBuckets, checkStorageAccess } from "@/lib/setup-storage";
 
 interface AISpaceListingModalProps {
   open: boolean;
@@ -156,28 +157,32 @@ export function AISpaceListingModal({ open, onOpenChange }: AISpaceListingModalP
       return;
     }
 
-    // Test storage bucket access first
+    // Setup storage buckets (create if needed)
     try {
-      debug.debug('Testing storage bucket access');
-      const { data: buckets, error: bucketError } = await supabase.storage.listBuckets();
+      debug.debug('Setting up storage buckets');
+      const setupResult = await setupStorageBuckets();
       
-      if (bucketError) {
-        debug.error('Storage bucket access failed', bucketError);
-        throw new Error(`Storage access failed: ${bucketError.message}`);
+      if (!setupResult.success) {
+        debug.error('Storage setup failed', setupResult);
+        throw new Error(setupResult.message);
       }
       
-      const spacePhotosBucket = buckets?.find(bucket => bucket.name === 'space-photos');
-      if (!spacePhotosBucket) {
-        debug.error('Space photos bucket not found', { availableBuckets: buckets?.map(b => b.name) });
-        throw new Error('Storage bucket "space-photos" not found. Please contact support.');
-      }
+      debug.info('Storage setup completed', { 
+        action: setupResult.action,
+        message: setupResult.message 
+      });
       
-      debug.info('Storage bucket access confirmed', { bucketName: spacePhotosBucket.name });
+      if (setupResult.action === 'created') {
+        toast({
+          title: "Storage Setup Complete",
+          description: "Storage bucket created successfully. You can now upload photos.",
+        });
+      }
     } catch (error: any) {
-      debug.logError(error, { context: 'storage_bucket_check' });
+      debug.logError(error, { context: 'storage_setup' });
       toast({
-        title: "Storage Error",
-        description: error.message || "Unable to access file storage. Please try again.",
+        title: "Storage Setup Error",
+        description: error.message || "Unable to setup file storage. Please try again.",
         variant: "destructive",
       });
       return;
@@ -920,7 +925,7 @@ export function AISpaceListingModal({ open, onOpenChange }: AISpaceListingModalP
                       </div>
                     )}
                   </div>
-                  <div className="mt-3 pt-3 border-t border-gray-300">
+                  <div className="mt-3 pt-3 border-t border-gray-300 space-y-2">
                     <Button
                       type="button"
                       variant="outline"
@@ -929,6 +934,39 @@ export function AISpaceListingModal({ open, onOpenChange }: AISpaceListingModalP
                       className="w-full text-xs"
                     >
                       Test Storage Connection
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={async () => {
+                        debug.info('Manual storage setup triggered');
+                        try {
+                          const result = await setupStorageBuckets();
+                          if (result.success) {
+                            toast({
+                              title: "Storage Setup Complete",
+                              description: result.message,
+                            });
+                          } else {
+                            toast({
+                              title: "Storage Setup Failed",
+                              description: result.message,
+                              variant: "destructive",
+                            });
+                          }
+                        } catch (error: any) {
+                          debug.logError(error, { context: 'manual_storage_setup' });
+                          toast({
+                            title: "Storage Setup Error",
+                            description: error.message || "Failed to setup storage",
+                            variant: "destructive",
+                          });
+                        }
+                      }}
+                      className="w-full text-xs"
+                    >
+                      Setup Storage Buckets
                     </Button>
                   </div>
                 </div>
