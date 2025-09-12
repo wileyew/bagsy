@@ -165,41 +165,36 @@ export function AISpaceListingModal({ open, onOpenChange }: AISpaceListingModalP
       return;
     }
 
-    // Setup storage buckets (create if needed)
+    // Check storage access (bucket should already exist from SQL setup)
     try {
-      console.log('🔧 Setting up storage buckets...');
-      debug.debug('Setting up storage buckets');
-      const setupResult = await setupStorageBuckets();
+      console.log('🔍 Checking storage access...');
+      debug.debug('Checking storage access');
       
-      console.log('📦 Storage setup result:', setupResult);
+      // Just verify the bucket exists and is accessible
+      const { data: buckets, error: bucketError } = await supabase.storage.listBuckets();
       
-      if (!setupResult.success) {
-        console.error('❌ Storage setup failed:', setupResult);
-        debug.error('Storage setup failed', setupResult);
-        throw new Error(setupResult.message);
+      if (bucketError) {
+        console.error('❌ Storage access failed:', bucketError);
+        debug.error('Storage access failed', bucketError);
+        throw new Error(`Storage access failed: ${bucketError.message}`);
       }
       
-      console.log('✅ Storage setup completed:', { 
-        action: setupResult.action,
-        message: setupResult.message 
-      });
-      debug.info('Storage setup completed', { 
-        action: setupResult.action,
-        message: setupResult.message 
-      });
-      
-      if (setupResult.action === 'created') {
-        toast({
-          title: "Storage Setup Complete",
-          description: "Storage bucket created successfully. You can now upload photos.",
-        });
+      const spacePhotosBucket = buckets?.find(bucket => bucket.name === 'space-photos');
+      if (!spacePhotosBucket) {
+        console.error('❌ space-photos bucket not found:', { availableBuckets: buckets?.map(b => b.name) });
+        debug.error('space-photos bucket not found', { availableBuckets: buckets?.map(b => b.name) });
+        throw new Error('Storage bucket "space-photos" not found. Please run the SQL setup script.');
       }
+      
+      console.log('✅ Storage access confirmed:', { bucketName: spacePhotosBucket.name, public: spacePhotosBucket.public });
+      debug.info('Storage access confirmed', { bucketName: spacePhotosBucket.name, public: spacePhotosBucket.public });
+      
     } catch (error: any) {
-      console.error('❌ Storage setup error:', error);
-      debug.logError(error, { context: 'storage_setup' });
+      console.error('❌ Storage access error:', error);
+      debug.logError(error, { context: 'storage_access_check' });
       toast({
-        title: "Storage Setup Error",
-        description: error.message || "Unable to setup file storage. Please try again.",
+        title: "Storage Access Error",
+        description: error.message || "Unable to access file storage. Please ensure the bucket is set up correctly.",
         variant: "destructive",
       });
       return;
@@ -963,7 +958,7 @@ export function AISpaceListingModal({ open, onOpenChange }: AISpaceListingModalP
                 <div className="mt-4 p-3 bg-gray-100 rounded-lg text-xs">
                   <h4 className="font-semibold mb-2">🐛 Debug Info:</h4>
                   <div className="mb-2 text-xs text-gray-600">
-                    Check browser console for detailed upload logs
+                    Check browser console for detailed upload logs. Bucket should exist from SQL setup.
                   </div>
                   <div className="space-y-1">
                     <p><strong>Uploading:</strong> {uploading ? 'Yes' : 'No'}</p>
@@ -998,33 +993,34 @@ export function AISpaceListingModal({ open, onOpenChange }: AISpaceListingModalP
                       variant="outline"
                       size="sm"
                       onClick={async () => {
-                        debug.info('Manual storage setup triggered');
+                        debug.info('Manual storage check triggered');
                         try {
-                          const result = await setupStorageBuckets();
+                          const { checkStorageAccess } = await import('@/lib/setup-storage');
+                          const result = await checkStorageAccess();
                           if (result.success) {
                             toast({
-                              title: "Storage Setup Complete",
+                              title: "Storage Access OK",
                               description: result.message,
                             });
                           } else {
                             toast({
-                              title: "Storage Setup Failed",
+                              title: "Storage Access Failed",
                               description: result.message,
                               variant: "destructive",
                             });
                           }
                         } catch (error: any) {
-                          debug.logError(error, { context: 'manual_storage_setup' });
+                          debug.logError(error, { context: 'manual_storage_check' });
                           toast({
-                            title: "Storage Setup Error",
-                            description: error.message || "Failed to setup storage",
+                            title: "Storage Check Error",
+                            description: error.message || "Failed to check storage access",
                             variant: "destructive",
                           });
                         }
                       }}
                       className="w-full text-xs"
                     >
-                      Setup Storage Buckets
+                      Check Storage Access
                     </Button>
                     <Button
                       type="button"

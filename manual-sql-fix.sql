@@ -1,12 +1,20 @@
--- Manual SQL fix for RLS policies (run this in Supabase SQL Editor if needed)
--- This script will set up proper RLS policies for storage
+-- Manual SQL fix for storage bucket (run this FIRST in Supabase SQL Editor)
+-- This script will create the bucket and set it to public to avoid RLS issues
 
--- First, let's check if the bucket exists and is public
--- If you want to use RLS policies, run this script in Supabase SQL Editor
+-- IMPORTANT: Run this script BEFORE using the app to avoid RLS errors
 
--- Option 1: Make bucket public (simplest solution)
+-- Option 1: Create bucket and make it public (recommended)
+INSERT INTO storage.buckets (id, name, "public", file_size_limit)
+VALUES (
+  'space-photos',
+  'space-photos', 
+  true,
+  10485760 -- 10MB limit
+);
+
+-- Option 2: If bucket already exists, just make it public
 UPDATE storage.buckets 
-SET public = true 
+SET [public] = true 
 WHERE id = 'space-photos';
 
 -- Option 2: Set up RLS policies (more secure but requires the policies)
