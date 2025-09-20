@@ -1,6 +1,9 @@
 interface LocationContext {
   address?: string;
   zipCode?: string;
+  selectedSpaceTypes?: string[];
+  enableWebScraping?: boolean;
+  enablePricingOptimization?: boolean;
 }
 
 interface PhotoAnalysisResult {
@@ -33,17 +36,26 @@ class AIService {
     photoUrls: string[], 
     location: LocationContext
   ): Promise<PhotoAnalysisResult> {
-    console.log('Starting AI analysis. API Key present:', !!this.apiKey);
-    console.log('Photo URLs:', photoUrls);
-    console.log('Location:', location);
+    console.log('🤖 Starting AI analysis...');
+    console.log('📊 Analysis Parameters:', {
+      apiKeyPresent: !!this.apiKey,
+      apiKeyLength: this.apiKey.length,
+      photoCount: photoUrls.length,
+      location: location.address ? `${location.address}, ${location.zipCode}` : 'Not specified',
+      selectedSpaceTypes: location.selectedSpaceTypes || [],
+      webScrapingEnabled: location.enableWebScraping || false,
+      pricingOptimizationEnabled: location.enablePricingOptimization || false
+    });
+    console.log('📸 Photo URLs:', photoUrls);
     
     // If API key is available, use real analysis
     if (this.apiKey) {
-      console.log('Using real AI analysis');
+      console.log('✅ API key found - proceeding with real OpenAI analysis');
       return await this.realAnalysis(photoUrls, location);
     } else {
-      console.log('No API key available - throwing error for manual entry');
-      throw new Error('AI analysis unavailable - please enter your space details manually');
+      console.error('❌ No OpenAI API key found!');
+      console.error('🔧 To enable AI analysis, set VITE_OPENAI_API_KEY in your environment variables');
+      throw new Error('AI analysis unavailable - OpenAI API key not configured. Please enter your space details manually.');
     }
   }
 
@@ -51,70 +63,138 @@ class AIService {
     photoUrls: string[],
     location: LocationContext
   ): Promise<PhotoAnalysisResult> {
-    console.log('Making real API call to OpenAI...');
-    console.log('API URL:', `${this.baseUrl}/chat/completions`);
+    const startTime = Date.now();
+    console.log('🚀 Making real API call to OpenAI...');
+    console.log('🌐 API URL:', `${this.baseUrl}/chat/completions`);
     
-    const response = await fetch(`${this.baseUrl}/chat/completions`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${this.apiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'gpt-4o',
-        messages: [
-          {
-            role: 'user',
-            content: [
-              {
-                type: 'text',
-                text: `Analyze these photos of a space for rent and generate a listing.
-                ${location.address && location.zipCode ? `Location: ${location.address}, ${location.zipCode}` : 'Location: Not specified'}
+    const requestBody = {
+      model: 'gpt-4o',
+      messages: [
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'text',
+              text: `Analyze these photos of a space for rent and generate a comprehensive listing.
 
-                Please provide:
-                1. Space type (garage, driveway, warehouse, parking_spot, storage_unit, outdoor_space)
-                2. Compelling title (max 60 characters)
-                3. Detailed description (2-3 sentences)
-                4. Estimated dimensions
-                5. Suggested hourly price (use average market rates if location not specified)
-                6. Key features
+              CONTEXT:
+              ${location.address && location.zipCode ? `Location: ${location.address}, ${location.zipCode}` : 'Location: Not specified'}
+              ${location.selectedSpaceTypes && location.selectedSpaceTypes.length > 0 ? `Selected Space Types: ${location.selectedSpaceTypes.join(', ')}` : 'No specific space types selected'}
+              ${location.enableWebScraping ? 'Market Research: Enabled - consider competitive pricing' : 'Market Research: Disabled'}
+              ${location.enablePricingOptimization ? 'Pricing Optimization: Enabled - suggest optimal pricing strategy' : 'Pricing Optimization: Disabled'}
 
-                Return as JSON with these fields: spaceType, title, description, dimensions, pricePerHour, features`
-              },
-              ...photoUrls.map(url => ({
-                type: 'image_url',
-                image_url: { url }
-              }))
-            ]
-          }
-        ],
-        max_tokens: 500,
-      }),
+              ANALYSIS REQUIREMENTS:
+              1. Space type: Choose the MOST APPROPRIATE type from: garage, driveway, warehouse, parking_spot, storage_unit, outdoor_space, rv_storage, other
+              2. Title: Create a compelling, SEO-friendly title (max 60 characters) that highlights key benefits
+              3. Description: Write a detailed, marketing-focused description (2-3 sentences) that emphasizes unique features and benefits
+              4. Dimensions: Estimate realistic dimensions based on what you can see in the photos
+              5. Pricing: Suggest competitive hourly price based on:
+                 - Space type and quality
+                 - Location (if provided)
+                 - Market conditions
+                 - Space features and amenities
+              6. Features: List 3-5 key selling points and amenities
+
+              PRICING GUIDELINES:
+              - Garage: $5-15/hour (urban areas higher)
+              - Driveway: $3-8/hour
+              - Warehouse: $20-50/hour
+              - Parking Spot: $2-6/hour
+              - Storage Unit: $8-25/hour
+              - Outdoor Space: $4-12/hour
+              - RV Storage: $10-30/hour
+
+              Return as JSON with these exact fields: spaceType, title, description, dimensions, pricePerHour, features`
+            },
+            ...photoUrls.map(url => ({
+              type: 'image_url',
+              image_url: { url }
+            }))
+          ]
+        }
+      ],
+      max_tokens: 500,
+    };
+
+    console.log('📤 Request payload:', {
+      model: requestBody.model,
+      messageCount: requestBody.messages.length,
+      photoCount: photoUrls.length,
+      maxTokens: requestBody.max_tokens,
+      promptLength: requestBody.messages[0].content[0].text.length
     });
 
-    if (!response.ok) {
-      throw new Error(`OpenAI API error: ${response.statusText}`);
-    }
-
-    const data = await response.json();
-    const content = data.choices[0]?.message?.content;
-    
-    if (!content) {
-      throw new Error('No analysis result from OpenAI');
-    }
-
     try {
-      const analysis = JSON.parse(content);
-      return {
-        spaceType: analysis.spaceType || 'garage',
-        title: analysis.title || 'Space Available',
-        description: analysis.description || 'A great space for your needs',
-        dimensions: analysis.dimensions || 'Standard size',
-        pricePerHour: analysis.pricePerHour || 5,
-        features: analysis.features || ['Convenient location']
-      };
-    } catch (parseError) {
-      throw new Error('Failed to parse AI analysis result');
+      const response = await fetch(`${this.baseUrl}/chat/completions`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${this.apiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestBody),
+      });
+
+      const responseTime = Date.now() - startTime;
+      console.log('⏱️ API Response time:', `${responseTime}ms`);
+      console.log('📊 Response status:', response.status, response.statusText);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('❌ OpenAI API error:', {
+          status: response.status,
+          statusText: response.statusText,
+          errorBody: errorText
+        });
+        throw new Error(`OpenAI API error: ${response.status} ${response.statusText} - ${errorText}`);
+      }
+
+      const data = await response.json();
+      console.log('📥 OpenAI Response:', {
+        model: data.model,
+        usage: data.usage,
+        finishReason: data.choices[0]?.finish_reason,
+        contentLength: data.choices[0]?.message?.content?.length || 0
+      });
+
+      const content = data.choices[0]?.message?.content;
+      
+      if (!content) {
+        console.error('❌ No content in OpenAI response:', data);
+        throw new Error('No analysis result from OpenAI');
+      }
+
+      console.log('📝 Raw AI Response:', content);
+
+      try {
+        const analysis = JSON.parse(content);
+        console.log('✅ Parsed AI Analysis:', analysis);
+        
+        const result = {
+          spaceType: analysis.spaceType || 'garage',
+          title: analysis.title || 'Space Available',
+          description: analysis.description || 'A great space for your needs',
+          dimensions: analysis.dimensions || 'Standard size',
+          pricePerHour: analysis.pricePerHour || 5,
+          features: analysis.features || ['Convenient location']
+        };
+        
+        console.log('🎯 Final Analysis Result:', result);
+        return result;
+      } catch (parseError) {
+        console.error('❌ Failed to parse AI response as JSON:', {
+          content,
+          parseError: parseError instanceof Error ? parseError.message : String(parseError)
+        });
+        throw new Error(`Failed to parse AI analysis result: ${parseError instanceof Error ? parseError.message : String(parseError)}`);
+      }
+    } catch (error) {
+      const responseTime = Date.now() - startTime;
+      console.error('💥 OpenAI API call failed:', {
+        error: error instanceof Error ? error.message : String(error),
+        responseTime: `${responseTime}ms`,
+        photoCount: photoUrls.length
+      });
+      throw error;
     }
   }
 
@@ -315,6 +395,137 @@ class AIService {
     }
   }
   */
+
+  async optimizePricing(
+    basePrice: number,
+    spaceType: string,
+    location?: string,
+    marketData?: any
+  ): Promise<{
+    optimizedPrice: number;
+    reasoning: string;
+    recommendations: string[];
+    marketFactors: any;
+  }> {
+    console.log('💰 Starting AI pricing optimization...');
+    console.log('📊 Optimization Parameters:', {
+      basePrice,
+      spaceType,
+      location: location || 'Not specified',
+      hasMarketData: !!marketData
+    });
+
+    if (!this.apiKey) {
+      console.warn('⚠️ No OpenAI API key - using fallback pricing optimization');
+      return this.getFallbackPricingOptimization(basePrice, spaceType, location);
+    }
+
+    const startTime = Date.now();
+    console.log('🚀 Making OpenAI API call for pricing optimization...');
+
+    const prompt = `You are a pricing optimization expert for space rental platforms. Analyze the following data and provide optimal pricing recommendations.
+
+    SPACE DETAILS:
+    - Space Type: ${spaceType}
+    - Current Base Price: $${basePrice}/hour
+    - Location: ${location || 'Not specified'}
+    ${marketData ? `- Market Data Available: Yes (${marketData.competitorCount} competitors found)` : '- Market Data Available: No'}
+
+    ${marketData ? `
+    MARKET DATA:
+    - Average Market Price: $${marketData.averagePrice}/hour
+    - Price Range: $${marketData.priceRange.min} - $${marketData.priceRange.max}/hour
+    - Competitor Count: ${marketData.competitorCount}
+    ` : ''}
+
+    OPTIMIZATION REQUIREMENTS:
+    1. Suggest an optimized hourly price based on market conditions
+    2. Provide clear reasoning for the pricing decision
+    3. List 3-4 specific pricing recommendations (peak hours, weekends, seasonal, etc.)
+    4. Analyze market factors that influence pricing
+
+    Return as JSON with these exact fields: optimizedPrice, reasoning, recommendations, marketFactors`;
+
+    try {
+      const response = await fetch(`${this.baseUrl}/chat/completions`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${this.apiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'gpt-4o',
+          messages: [{ role: 'user', content: prompt }],
+          max_tokens: 400,
+        }),
+      });
+
+      const responseTime = Date.now() - startTime;
+      console.log('⏱️ Pricing optimization response time:', `${responseTime}ms`);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('❌ Pricing optimization API error:', errorText);
+        throw new Error(`Pricing optimization failed: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      const content = data.choices[0]?.message?.content;
+      
+      if (!content) {
+        throw new Error('No pricing optimization result from OpenAI');
+      }
+
+      console.log('📝 Raw pricing optimization response:', content);
+
+      const optimization = JSON.parse(content);
+      console.log('✅ Parsed pricing optimization:', optimization);
+
+      return {
+        optimizedPrice: optimization.optimizedPrice || basePrice * 1.1,
+        reasoning: optimization.reasoning || 'AI-optimized pricing based on market analysis',
+        recommendations: optimization.recommendations || ['Consider peak hour pricing'],
+        marketFactors: optimization.marketFactors || { demandLevel: 'Medium' }
+      };
+    } catch (error) {
+      console.error('💥 Pricing optimization failed:', error);
+      return this.getFallbackPricingOptimization(basePrice, spaceType, location);
+    }
+  }
+
+  private getFallbackPricingOptimization(
+    basePrice: number,
+    spaceType: string,
+    location?: string
+  ) {
+    console.log('🔄 Using fallback pricing optimization');
+    
+    const isUrban = location && (
+      location.toLowerCase().includes('san francisco') ||
+      location.toLowerCase().includes('new york') ||
+      location.toLowerCase().includes('los angeles')
+    );
+
+    const optimizationFactor = isUrban ? 1.2 : 1.1;
+    const optimizedPrice = Math.round(basePrice * optimizationFactor * 100) / 100;
+
+    return {
+      optimizedPrice,
+      reasoning: `Optimized pricing based on ${isUrban ? 'urban market conditions' : 'standard market rates'}. ${isUrban ? 'Urban areas typically command 20% higher rates' : 'Standard market adjustment applied'}.`,
+      recommendations: [
+        'Consider peak hour pricing (+20% during 9-5 weekdays)',
+        'Weekend premium pricing (+25% for Saturday-Sunday)',
+        'Seasonal adjustments (+10% during summer months)',
+        'Dynamic pricing based on booking frequency'
+      ],
+      marketFactors: {
+        demandLevel: isUrban ? 'High' : 'Medium',
+        competitionLevel: 'Medium',
+        seasonalTrend: 'Stable',
+        locationPremium: isUrban ? 'Premium location detected' : 'Standard location'
+      }
+    };
+  }
 }
 
 export const aiService = new AIService();

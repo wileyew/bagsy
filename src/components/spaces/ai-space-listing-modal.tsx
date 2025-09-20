@@ -461,25 +461,14 @@ export function AISpaceListingModal({ open, onOpenChange }: AISpaceListingModalP
     debug.info('Starting AI pricing optimization', { basePrice, spaceType });
     
     try {
-      // Simulate AI pricing optimization analysis
-      // In a real implementation, this would call an AI service
-      const optimizationData = {
+      console.log('💰 Calling AI service for pricing optimization...');
+      
+      const optimizationData = await aiService.optimizePricing(
         basePrice,
-        optimizedPrice: basePrice * 1.15, // 15% increase for optimization
-        reasoning: "AI analysis suggests increasing price by 15% based on market demand, seasonal trends, and competitor analysis.",
-        recommendations: [
-          "Consider peak hour pricing (+20% during 9-5 weekdays)",
-          "Weekend premium pricing (+25% for Saturday-Sunday)",
-          "Seasonal adjustments (+10% during summer months)",
-          "Dynamic pricing based on booking frequency"
-        ],
-        marketFactors: {
-          demandLevel: "High",
-          competitionLevel: "Medium",
-          seasonalTrend: "Increasing",
-          locationPremium: formData.address ? "Premium location detected" : "Standard location"
-        }
-      };
+        spaceType,
+        formData.address ? `${formData.address}, ${formData.zipCode}` : undefined,
+        marketAnalysis
+      );
       
       debug.info('Pricing optimization completed', optimizationData);
       
@@ -498,7 +487,7 @@ export function AISpaceListingModal({ open, onOpenChange }: AISpaceListingModalP
       });
       return null;
     }
-  }, [formData.enablePricingOptimization, formData.address, debug, toast]);
+  }, [formData.enablePricingOptimization, formData.address, formData.zipCode, marketAnalysis, debug, toast]);
 
   const analyzePhotosWithAI = useCallback(async (photoUrls?: string[]) => {
     const urlsToUse = photoUrls || formData.photoUrls;
@@ -525,6 +514,9 @@ export function AISpaceListingModal({ open, onOpenChange }: AISpaceListingModalP
       const analysisPromise = aiService.analyzeSpacePhotos(urlsToUse, {
         address: formData.address,
         zipCode: formData.zipCode,
+        selectedSpaceTypes: formData.selectedSpaceTypes,
+        enableWebScraping: formData.enableWebScraping,
+        enablePricingOptimization: formData.enablePricingOptimization,
       });
       
       const timeoutPromise = new Promise((_, reject) => 
@@ -615,7 +607,7 @@ export function AISpaceListingModal({ open, onOpenChange }: AISpaceListingModalP
     } finally {
       setAnalyzing(false);
     }
-  }, [formData.photoUrls, formData.address, formData.zipCode, formData.enableWebScraping, formData.customSpaceType, debug, toast, performWebScraping, performPricingOptimization]);
+  }, [formData.photoUrls, formData.address, formData.zipCode, formData.enableWebScraping, formData.enablePricingOptimization, formData.selectedSpaceTypes, formData.customSpaceType, debug, toast, performWebScraping, performPricingOptimization]);
 
   // Re-run AI analysis when location is added and we have existing AI data
   useEffect(() => {
@@ -1155,6 +1147,11 @@ export function AISpaceListingModal({ open, onOpenChange }: AISpaceListingModalP
                     <p><strong>User ID:</strong> {user?.id || 'Not logged in'}</p>
                     <p><strong>Step:</strong> {step}</p>
                     <p><strong>Custom Space Type:</strong> {formData.customSpaceType || 'None'}</p>
+                    <p><strong>Selected Space Types:</strong> {formData.selectedSpaceTypes.length > 0 ? formData.selectedSpaceTypes.join(', ') : 'None'}</p>
+                    <p><strong>AI Analysis:</strong> {aiGeneratedData ? 'Completed' : 'Not started'}</p>
+                    <p><strong>Market Analysis:</strong> {marketAnalysis ? `${marketAnalysis.competitorCount} competitors found` : 'Not available'}</p>
+                    <p><strong>Web Scraping:</strong> {formData.enableWebScraping ? 'Enabled' : 'Disabled'}</p>
+                    <p><strong>Pricing Optimization:</strong> {formData.enablePricingOptimization ? 'Enabled' : 'Disabled'}</p>
                     {formData.photoUrls.length > 0 && (
                       <div>
                         <p><strong>Uploaded URLs:</strong></p>
