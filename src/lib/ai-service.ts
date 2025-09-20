@@ -1,9 +1,19 @@
-interface LocationContext {
+export interface LocationContext {
   address?: string;
   zipCode?: string;
   selectedSpaceTypes?: string[];
   enableWebScraping?: boolean;
   enablePricingOptimization?: boolean;
+  currentLocation?: {
+    latitude: number;
+    longitude: number;
+    address: string;
+    city: string;
+    state: string;
+    zipCode: string;
+    country: string;
+    accuracy: number;
+  };
 }
 
 interface PhotoAnalysisResult {
@@ -42,6 +52,7 @@ class AIService {
       apiKeyLength: this.apiKey.length,
       photoCount: photoUrls.length,
       location: location.address ? `${location.address}, ${location.zipCode}` : 'Not specified',
+      geolocation: location.currentLocation ? `${location.currentLocation.latitude}, ${location.currentLocation.longitude}` : 'Not available',
       selectedSpaceTypes: location.selectedSpaceTypes || [],
       webScrapingEnabled: location.enableWebScraping || false,
       pricingOptimizationEnabled: location.enablePricingOptimization || false
@@ -79,6 +90,7 @@ class AIService {
 
               CONTEXT:
               ${location.address && location.zipCode ? `Location: ${location.address}, ${location.zipCode}` : 'Location: Not specified'}
+              ${location.currentLocation ? `Precise Location: ${location.currentLocation.latitude}, ${location.currentLocation.longitude} (${location.currentLocation.address})` : 'Precise Location: Not available'}
               ${location.selectedSpaceTypes && location.selectedSpaceTypes.length > 0 ? `Selected Space Types: ${location.selectedSpaceTypes.join(', ')}` : 'No specific space types selected'}
               ${location.enableWebScraping ? 'Market Research: Enabled - consider competitive pricing and market positioning' : 'Market Research: Disabled'}
               ${location.enablePricingOptimization ? 'Pricing Optimization: Enabled - suggest optimal pricing strategy' : 'Pricing Optimization: Disabled'}

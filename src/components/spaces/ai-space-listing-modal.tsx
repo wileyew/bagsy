@@ -11,11 +11,12 @@ import { useAuthContext } from "@/contexts/auth-context";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { LoadingDots } from "@/components/ui/loading-dots";
-import { aiService } from "@/lib/ai-service";
+import { aiService, LocationContext } from "@/lib/ai-service";
 import { webScrapingService } from "@/lib/web-scraping-service";
 import { smartSchedulingService } from "@/lib/smart-scheduling-service";
 import { smartMatchingService } from "@/lib/smart-matching-service";
 import { marketingContentService } from "@/lib/marketing-content-service";
+import { geolocationService, LocationData } from "@/lib/geolocation-service";
 import { createComponentDebugger } from "@/lib/debug-utils";
 import { runFullStorageTest } from "@/lib/storage-test";
 import { setupStorageBuckets, checkStorageAccess } from "@/lib/setup-storage";
@@ -114,6 +115,8 @@ export function AISpaceListingModal({ open, onOpenChange }: AISpaceListingModalP
   const [analyzing, setAnalyzing] = useState(false);
   const [scraping, setScraping] = useState(false);
   const [step, setStep] = useState<'upload' | 'analyze' | 'review' | 'manual' | 'confirm'>('upload');
+  const [currentLocation, setCurrentLocation] = useState<LocationData | null>(null);
+  const [locationLoading, setLocationLoading] = useState(false);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { user } = useAuthContext();
@@ -151,6 +154,39 @@ export function AISpaceListingModal({ open, onOpenChange }: AISpaceListingModalP
       debug.stateChange(field, prev[field], value);
       return newData;
     });
+  };
+
+  const getCurrentLocation = async () => {
+    setLocationLoading(true);
+    try {
+      debug.info('Requesting current location');
+      const location = await geolocationService.getCurrentLocation();
+      setCurrentLocation(location);
+      
+      // Auto-fill address and zip code if not already set
+      if (!formData.address && location.address) {
+        setFormData(prev => ({ ...prev, address: location.address }));
+      }
+      if (!formData.zipCode && location.zipCode) {
+        setFormData(prev => ({ ...prev, zipCode: location.zipCode }));
+      }
+      
+      toast({
+        title: "Location Found!",
+        description: `Located: ${location.address}`,
+      });
+      
+      debug.info('Location obtained successfully', location);
+    } catch (error) {
+      debug.error('Failed to get location', error);
+      toast({
+        title: "Location Access Denied",
+        description: "Please enter your address manually or allow location access.",
+        variant: "destructive",
+      });
+    } finally {
+      setLocationLoading(false);
+    }
   };
 
   const handleSpaceTypeChange = (spaceType: string, checked: boolean) => {
@@ -361,10 +397,10 @@ export function AISpaceListingModal({ open, onOpenChange }: AISpaceListingModalP
       
       // Stay on upload step to show AI analysis options
       debug.info('Photos uploaded successfully', { 
-        photoCount: uploadedUrls.length,
+          photoCount: uploadedUrls.length,
         enableWebScraping: formData.enableWebScraping,
         enablePricingOptimization: formData.enablePricingOptimization
-      });
+        });
     } catch (error: unknown) {
       console.error('💥 Upload process failed:', error);
       debug.logError(error instanceof Error ? error : new Error(String(error)), { 
@@ -507,6 +543,7 @@ export function AISpaceListingModal({ open, onOpenChange }: AISpaceListingModalP
         selectedSpaceTypes: formData.selectedSpaceTypes,
         enableWebScraping: formData.enableWebScraping,
         enablePricingOptimization: formData.enablePricingOptimization,
+        currentLocation: currentLocation,
       });
       
       const timeoutPromise = new Promise((_, reject) => 
@@ -741,7 +778,7 @@ export function AISpaceListingModal({ open, onOpenChange }: AISpaceListingModalP
       const description = enabledFeatures.length > 0 
         ? `Your space has been analyzed with ${enabledFeatures.join(', ')}. Review the suggestions below.`
         : "Your space has been analyzed. Review the suggestions below.";
-
+      
       toast({
         title: "AI Analysis Complete!",
         description,
@@ -760,7 +797,7 @@ export function AISpaceListingModal({ open, onOpenChange }: AISpaceListingModalP
     } finally {
       setAnalyzing(false);
     }
-  }, [formData.photoUrls, formData.address, formData.zipCode, formData.enableWebScraping, formData.enablePricingOptimization, formData.enableSmartScheduling, formData.enableMarketingContent, formData.enablePredictiveAnalytics, formData.selectedSpaceTypes, formData.customSpaceType, debug, toast, performWebScraping, performPricingOptimization]);
+  }, [formData.photoUrls, formData.address, formData.zipCode, formData.enableWebScraping, formData.enablePricingOptimization, formData.enableSmartScheduling, formData.enableMarketingContent, formData.enablePredictiveAnalytics, formData.selectedSpaceTypes, formData.customSpaceType, currentLocation, debug, toast, performWebScraping, performPricingOptimization]);
 
   // Re-run AI analysis when location is added and we have existing AI data
   useEffect(() => {
@@ -1090,7 +1127,8 @@ export function AISpaceListingModal({ open, onOpenChange }: AISpaceListingModalP
                     <Label htmlFor="address" className="text-sm font-medium">
                       Address (optional)
                     </Label>
-                    <div className="relative">
+                    <div className="flex gap-2">
+                      <div className="relative flex-1">
                       <MapPin className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                       <Input
                         id="address"
@@ -1100,6 +1138,27 @@ export function AISpaceListingModal({ open, onOpenChange }: AISpaceListingModalP
                         className="apple-input pl-10 h-12"
                       />
                     </div>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={getCurrentLocation}
+                        disabled={locationLoading}
+                        className="apple-button-secondary h-12 px-3"
+                        title="Use current location"
+                      >
+                        {locationLoading ? (
+                          <LoadingDots />
+                        ) : (
+                          <MapPin className="h-4 w-4" />
+                        )}
+                      </Button>
+                    </div>
+                    {currentLocation && (
+                      <p className="text-xs text-green-600">
+                        📍 Location detected: {currentLocation.address}
+                      </p>
+                    )}
                   </div>
 
                   <div className="space-y-2">
@@ -1427,12 +1486,20 @@ export function AISpaceListingModal({ open, onOpenChange }: AISpaceListingModalP
                           });
                           return;
                         }
+                        if (formData.photoUrls.length === 0) {
+                          toast({
+                            title: "Photos Required",
+                            description: "Please upload at least one photo to proceed with AI analysis.",
+                            variant: "destructive",
+                          });
+                          return;
+                        }
                         setStep('analyze');
                         setTimeout(() => {
                           analyzePhotosWithAI();
                         }, 500);
                       }}
-                      disabled={formData.selectedSpaceTypes.length === 0}
+                      disabled={formData.selectedSpaceTypes.length === 0 || formData.photoUrls.length === 0}
                       className="w-full apple-button-primary h-12"
                     >
                       <ArrowRight className="h-4 w-4 mr-2" />
@@ -1444,9 +1511,11 @@ export function AISpaceListingModal({ open, onOpenChange }: AISpaceListingModalP
                       ? "ℹ️ AI analysis disabled - you'll enter details manually"
                       : formData.selectedSpaceTypes.length === 0
                         ? "⚠️ Please select at least one space type above to enable AI analysis"
-                        : formData.address && formData.zipCode 
-                          ? `✅ Location provided - AI will generate location-specific pricing and features${formData.enableWebScraping ? ' + market research' : ''}${formData.enablePricingOptimization ? ' + pricing optimization' : ''}`
-                          : `ℹ️ No location provided - AI will use general market rates${formData.enableWebScraping ? ' + market research' : ''}${formData.enablePricingOptimization ? ' + pricing optimization' : ''}`
+                        : formData.photoUrls.length === 0
+                          ? "⚠️ Please upload at least one photo to enable AI analysis"
+                      : formData.address && formData.zipCode 
+                            ? `✅ Ready for AI analysis - Location provided${formData.enableWebScraping ? ' + market research' : ''}${formData.enablePricingOptimization ? ' + pricing optimization' : ''}`
+                            : `✅ Ready for AI analysis - No location provided${formData.enableWebScraping ? ' + market research' : ''}${formData.enablePricingOptimization ? ' + pricing optimization' : ''}`
                     }
                   </p>
                 </div>
@@ -1692,16 +1761,16 @@ export function AISpaceListingModal({ open, onOpenChange }: AISpaceListingModalP
                       <div className="mt-4 pt-4 border-t border-muted-foreground/25">
                         <div className="space-y-2">
                           <Label className="text-sm font-medium">Custom Space Type (Optional)</Label>
-                          <Input
-                            value={formData.customSpaceType || ''}
-                            onChange={(e) => handleInputChange("customSpaceType", e.target.value)}
+                      <Input
+                        value={formData.customSpaceType || ''}
+                        onChange={(e) => handleInputChange("customSpaceType", e.target.value)}
                             placeholder="e.g., Boat Slip, Workshop, Event Space"
                             className="apple-input h-10"
                           />
                           <p className="text-xs text-muted-foreground">
                             Specify a custom space type if none of the above options fit your space
-                          </p>
-                        </div>
+                        </p>
+                      </div>
                       </div>
                     </div>
                   </div>
@@ -1914,16 +1983,16 @@ export function AISpaceListingModal({ open, onOpenChange }: AISpaceListingModalP
                       <div className="mt-4 pt-4 border-t border-muted-foreground/25">
                         <div className="space-y-2">
                           <Label className="text-sm font-medium">Custom Space Type (Optional)</Label>
-                          <Input
-                            value={formData.customSpaceType || ''}
-                            onChange={(e) => handleInputChange("customSpaceType", e.target.value)}
+                      <Input
+                        value={formData.customSpaceType || ''}
+                        onChange={(e) => handleInputChange("customSpaceType", e.target.value)}
                             placeholder="e.g., Boat Slip, Workshop, Event Space"
                             className="apple-input h-10"
                           />
                           <p className="text-xs text-muted-foreground">
                             Specify a custom space type if none of the above options fit your space
-                          </p>
-                        </div>
+                        </p>
+                      </div>
                       </div>
                     </div>
                   </div>
@@ -2006,12 +2075,12 @@ export function AISpaceListingModal({ open, onOpenChange }: AISpaceListingModalP
                       )}
                       
                       <div className="flex gap-2">
-                        <Input
-                          type="number"
-                          min="0"
-                          step="0.01"
-                          value={editableData.pricePerHour}
-                          onChange={(e) => handleEditableChange("pricePerHour", parseFloat(e.target.value) || 0)}
+                      <Input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={editableData.pricePerHour}
+                        onChange={(e) => handleEditableChange("pricePerHour", parseFloat(e.target.value) || 0)}
                           className="apple-input h-12 flex-1"
                         />
                         {(marketAnalysis || formData.enablePricingOptimization) && (
@@ -2121,8 +2190,8 @@ export function AISpaceListingModal({ open, onOpenChange }: AISpaceListingModalP
                           formData.selectedSpaceTypes.length > 0 
                             ? formData.selectedSpaceTypes.map(type => spaceTypes.find(t => t.value === type)?.label).join(', ')
                             : editableData.spaceType === 'other' 
-                              ? formData.customSpaceType || 'Other (not specified)'
-                              : spaceTypes.find(t => t.value === editableData.spaceType)?.label
+                            ? formData.customSpaceType || 'Other (not specified)'
+                            : spaceTypes.find(t => t.value === editableData.spaceType)?.label
                         }
                         {formData.customSpaceType && (
                           <span className="text-muted-foreground">, {formData.customSpaceType}</span>
