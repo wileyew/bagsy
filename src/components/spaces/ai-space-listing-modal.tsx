@@ -383,6 +383,17 @@ export function AISpaceListingModal({ open, onOpenChange }: AISpaceListingModalP
         disableAI: formData.disableAI,
         enableWebScraping: formData.enableWebScraping
       });
+      
+      // Debug: Log the state update
+      debug.info('Form data updated with photos', {
+        photoCount: uploadedUrls.length,
+        photoUrls: uploadedUrls,
+        newState: { 
+          ...formData, 
+          photos: Array.from(files),
+          photoUrls: uploadedUrls 
+        }
+      });
       debug.info('File upload completed successfully', {
         uploadedCount: uploadedUrls.length,
         uploadedUrls,
@@ -1087,29 +1098,104 @@ export function AISpaceListingModal({ open, onOpenChange }: AISpaceListingModalP
             <>
               <div className="space-y-4">
                 <h3 className="text-lg font-semibold">Upload Photos</h3>
-                <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-8 text-center">
-                  <Upload className="h-8 w-8 mx-auto mb-4 text-muted-foreground" />
-                  <p className="text-sm text-muted-foreground mb-4">
-                    Upload 1-5 photos of your space
-                  </p>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => fileInputRef.current?.click()}
-                    disabled={uploading}
-                    className="apple-button-secondary"
-                  >
-                    {uploading ? "Uploading..." : "Choose Photos"}
-                  </Button>
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="image/*"
-                    multiple
-                    onChange={handleFileSelect}
-                    className="hidden"
-                  />
-                </div>
+                {formData.photoUrls.length === 0 ? (
+                  <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-8 text-center">
+                    <Upload className="h-8 w-8 mx-auto mb-4 text-muted-foreground" />
+                    <p className="text-sm text-muted-foreground mb-4">
+                      Upload 1-5 photos of your space
+                    </p>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={uploading}
+                      className="apple-button-secondary"
+                    >
+                      {uploading ? "Uploading..." : "Choose Photos"}
+                    </Button>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      onChange={handleFileSelect}
+                      className="hidden"
+                    />
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <p className="text-sm font-medium text-green-600">
+                        ✅ {formData.photoUrls.length} photo{formData.photoUrls.length !== 1 ? 's' : ''} uploaded successfully
+                      </p>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => fileInputRef.current?.click()}
+                        disabled={uploading}
+                        className="apple-button-secondary"
+                      >
+                        {uploading ? "Uploading..." : "Add More Photos"}
+                      </Button>
+                    </div>
+                    
+                    {/* Photo Preview Grid */}
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                      {formData.photoUrls.map((url, index) => {
+                        console.log(`Rendering photo ${index + 1}:`, url);
+                        return (
+                          <Card key={index} className="overflow-hidden">
+                            <CardContent className="p-0">
+                              <div className="relative">
+                                <img
+                                  src={url}
+                                  alt={`Space photo ${index + 1}`}
+                                  className="w-full h-32 object-cover"
+                                  onLoad={() => {
+                                    console.log(`✅ Photo ${index + 1} loaded successfully:`, url);
+                                  }}
+                                  onError={(e) => {
+                                    console.error(`❌ Image failed to load:`, url);
+                                    console.error('Error details:', e);
+                                    e.currentTarget.style.display = 'none';
+                                  }}
+                                />
+                                <Button
+                                  type="button"
+                                  variant="destructive"
+                                  size="sm"
+                                  onClick={() => removePhoto(index)}
+                                  className="absolute top-2 right-2 h-6 w-6 p-0"
+                                >
+                                  <X className="h-3 w-3" />
+                                </Button>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        );
+                      })}
+                    </div>
+                    
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      onChange={handleFileSelect}
+                      className="hidden"
+                    />
+                  </div>
+                )}
+                
+                {/* Debug Info - Remove this in production */}
+                {formData.photoUrls.length > 0 && (
+                  <div className="p-3 bg-gray-100 rounded-lg text-xs">
+                    <p><strong>Debug Info:</strong></p>
+                    <p>Photo URLs count: {formData.photoUrls.length}</p>
+                    <p>Photo URLs: {JSON.stringify(formData.photoUrls)}</p>
+                  </div>
+                )}
               </div>
 
               <div className="space-y-4">
