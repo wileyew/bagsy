@@ -17,6 +17,7 @@ import { smartSchedulingService } from "@/lib/smart-scheduling-service";
 import { smartMatchingService } from "@/lib/smart-matching-service";
 import { marketingContentService } from "@/lib/marketing-content-service";
 import { geolocationService, LocationData } from "@/lib/geolocation-service";
+import { aiRecommendationsService, AIRecommendation } from "@/lib/ai-recommendations-service";
 import { createComponentDebugger } from "@/lib/debug-utils";
 import { runFullStorageTest } from "@/lib/storage-test";
 import { setupStorageBuckets, checkStorageAccess } from "@/lib/setup-storage";
@@ -117,6 +118,8 @@ export function AISpaceListingModal({ open, onOpenChange }: AISpaceListingModalP
   const [step, setStep] = useState<'upload' | 'analyze' | 'review' | 'manual' | 'confirm'>('upload');
   const [currentLocation, setCurrentLocation] = useState<LocationData | null>(null);
   const [locationLoading, setLocationLoading] = useState(false);
+  const [aiRecommendations, setAiRecommendations] = useState<AIRecommendation[]>([]);
+  const [recommendationsLoading, setRecommendationsLoading] = useState(false);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { user } = useAuthContext();
@@ -189,12 +192,108 @@ export function AISpaceListingModal({ open, onOpenChange }: AISpaceListingModalP
     }
   };
 
+  const generateAIRecommendations = async () => {
+    if (!user || formData.selectedSpaceTypes.length === 0) return;
+    
+    setRecommendationsLoading(true);
+    try {
+      debug.info('Generating AI recommendations');
+      
+      // Create a mock user profile based on current form data
+      const userProfile = {
+        userId: user.id,
+        preferences: {
+          spaceTypes: formData.selectedSpaceTypes,
+          priceRange: { min: 0, max: 100 },
+          locations: formData.address ? [formData.address] : [],
+          amenities: []
+        },
+        searchHistory: [],
+        bookingHistory: [],
+        behaviorPatterns: {
+          frequency: 'medium' as const,
+          priceSensitivity: 'medium' as const,
+          locationPreference: 'flexible' as const
+        }
+      };
+
+      // Get recommendations for the selected space types
+      const recommendations: AIRecommendation[] = [];
+      for (const spaceType of formData.selectedSpaceTypes) {
+        const spaceRecommendations = await aiRecommendationsService.getSpaceTypeRecommendations(spaceType, userProfile);
+        recommendations.push(...spaceRecommendations);
+      }
+
+      // Remove duplicates and sort by confidence
+      const uniqueRecommendations = recommendations.filter((rec, index, self) => 
+        index === self.findIndex(r => r.id === rec.id)
+      ).sort((a, b) => b.confidence - a.confidence);
+
+      setAiRecommendations(uniqueRecommendations);
+      
+      debug.info('AI recommendations generated', { 
+        count: uniqueRecommendations.length,
+        recommendations: uniqueRecommendations.map(r => ({ id: r.id, title: r.title }))
+      });
+      
+      toast({
+        title: "AI Recommendations Ready!",
+        description: `Generated ${uniqueRecommendations.length} personalized recommendations for your space.`,
+      });
+    } catch (error) {
+      debug.error('Failed to generate AI recommendations', error);
+      toast({
+        title: "Recommendations Unavailable",
+        description: "Unable to generate AI recommendations at this time.",
+        variant: "destructive",
+      });
+    } finally {
+      setRecommendationsLoading(false);
+    }
+  };
+
+  const applyRecommendation = (recommendation: AIRecommendation) => {
+    debug.info('Applying AI recommendation', { recommendationId: recommendation.id });
+    
+    // Apply the recommendation based on its category
+    switch (recommendation.category) {
+      case 'pricing':
+        setFormData(prev => ({ ...prev, enablePricingOptimization: true }));
+        break;
+      case 'marketing':
+        setFormData(prev => ({ ...prev, enableMarketingContent: true }));
+        break;
+      case 'scheduling':
+        setFormData(prev => ({ ...prev, enableSmartScheduling: true }));
+        break;
+      case 'webscraping':
+        setFormData(prev => ({ ...prev, enableWebScraping: true }));
+        break;
+      case 'analytics':
+        setFormData(prev => ({ ...prev, enablePredictiveAnalytics: true }));
+        break;
+    }
+    
+    toast({
+      title: "Recommendation Applied!",
+      description: `${recommendation.title} has been enabled for your listing.`,
+    });
+  };
+
   const handleSpaceTypeChange = (spaceType: string, checked: boolean) => {
     debug.userAction('Space type checkbox changed', { spaceType, checked });
     setFormData(prev => {
       const newSelectedTypes = checked
         ? [...prev.selectedSpaceTypes, spaceType]
         : prev.selectedSpaceTypes.filter(type => type !== spaceType);
+      
+      console.log('Space type change:', {
+        spaceType,
+        checked,
+        previousTypes: prev.selectedSpaceTypes,
+        newTypes: newSelectedTypes,
+        newLength: newSelectedTypes.length
+      });
       
       debug.stateChange('selectedSpaceTypes', prev.selectedSpaceTypes, newSelectedTypes);
       return { ...prev, selectedSpaceTypes: newSelectedTypes };
@@ -1272,6 +1371,153 @@ export function AISpaceListingModal({ open, onOpenChange }: AISpaceListingModalP
                 </div>
               </div>
 
+              {/* Space Type Selection */}
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium">
+                    Space Types * 
+                    {formData.selectedSpaceTypes.length > 0 && (
+                      <span className="ml-2 text-xs bg-primary text-primary-foreground px-2 py-1 rounded-full">
+                        {formData.selectedSpaceTypes.length} selected
+                      </span>
+                    )}
+                  </Label>
+                  <div className="space-y-3 p-4 border border-muted-foreground/25 rounded-lg bg-muted/30">
+                    <p className="text-xs text-muted-foreground mb-3">
+                      Select all space types that apply to your listing:
+                    </p>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      {spaceTypes.map((type) => (
+                        <div key={type.value} className="flex items-start space-x-3">
+                          <Checkbox
+                            id={`space-type-${type.value}`}
+                            checked={formData.selectedSpaceTypes.includes(type.value)}
+                            onCheckedChange={(checked) => handleSpaceTypeChange(type.value, checked as boolean)}
+                            className="mt-1"
+                          />
+                          <div className="space-y-1">
+                            <Label htmlFor={`space-type-${type.value}`} className="text-sm font-medium cursor-pointer">
+                              {type.label}
+                            </Label>
+                            <p className="text-xs text-muted-foreground">
+                              {type.description}
+                            </p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    
+                    {/* Custom space type input */}
+                    <div className="mt-4 pt-4 border-t border-muted-foreground/25">
+                      <div className="space-y-2">
+                        <Label className="text-sm font-medium">Custom Space Type (Optional)</Label>
+                        <Input
+                          value={formData.customSpaceType || ''}
+                          onChange={(e) => handleInputChange("customSpaceType", e.target.value)}
+                          placeholder="e.g., Boat Slip, Workshop, Event Space"
+                          className="apple-input h-10"
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          Specify a custom space type if none of the above options fit your space
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Personalized AI Recommendations */}
+              {formData.selectedSpaceTypes.length > 0 && (
+                <div className="space-y-4">
+                  <div className="p-4 border border-muted-foreground/25 rounded-lg bg-gradient-to-r from-purple-50 to-blue-50">
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center gap-2">
+                        <Sparkles className="h-5 w-5 text-purple-600" />
+                        <h3 className="text-lg font-semibold text-purple-800">AI Recommendations</h3>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={generateAIRecommendations}
+                        disabled={recommendationsLoading}
+                        className="apple-button-secondary"
+                      >
+                        {recommendationsLoading ? (
+                          <>
+                            <LoadingDots />
+                            <span className="ml-2">Generating...</span>
+                          </>
+                        ) : (
+                          <>
+                            <Sparkles className="h-4 w-4 mr-2" />
+                            Get Recommendations
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                    
+                    <p className="text-sm text-purple-700 mb-4">
+                      Based on your selected space types, our AI will recommend the most beneficial features for your listing.
+                    </p>
+
+                    {aiRecommendations.length > 0 ? (
+                      <div className="space-y-3">
+                        <p className="text-sm font-medium text-purple-800">
+                          ✅ {aiRecommendations.length} personalized recommendations generated
+                        </p>
+                        <div className="space-y-2">
+                          {aiRecommendations.slice(0, 3).map((recommendation) => (
+                            <div key={recommendation.id} className="p-3 bg-white rounded-lg border border-purple-200">
+                              <div className="flex items-start justify-between">
+                                <div className="flex-1">
+                                  <h4 className="font-medium text-gray-900">{recommendation.title}</h4>
+                                  <p className="text-sm text-gray-600 mt-1">{recommendation.description}</p>
+                                  <div className="flex items-center gap-2 mt-2">
+                                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                      recommendation.estimatedImpact === 'high' 
+                                        ? 'bg-green-100 text-green-800'
+                                        : recommendation.estimatedImpact === 'medium'
+                                        ? 'bg-yellow-100 text-yellow-800'
+                                        : 'bg-gray-100 text-gray-800'
+                                    }`}>
+                                      {recommendation.estimatedImpact} impact
+                                    </span>
+                                    <span className="text-xs text-gray-500">
+                                      {Math.round(recommendation.confidence * 100)}% confidence
+                                    </span>
+                                  </div>
+                                </div>
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => applyRecommendation(recommendation)}
+                                  className="ml-3 apple-button-secondary"
+                                >
+                                  Apply
+                                </Button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                        {aiRecommendations.length > 3 && (
+                          <p className="text-xs text-purple-600">
+                            +{aiRecommendations.length - 3} more recommendations available
+                          </p>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="text-center py-4">
+                        <p className="text-sm text-purple-600">
+                          Click "Get Recommendations" to receive personalized AI suggestions for your space.
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
               {/* AI Analysis Toggle */}
               <div className="space-y-4">
                 <div className="p-4 border border-muted-foreground/25 rounded-lg bg-muted/30">
@@ -1295,259 +1541,7 @@ export function AISpaceListingModal({ open, onOpenChange }: AISpaceListingModalP
                 </div>
               </div>
 
-              {/* Web Scraping Toggle */}
-              <div className="space-y-4">
-                <div className="p-4 border border-muted-foreground/25 rounded-lg bg-blue-50/50">
-                  <div className="flex items-start space-x-3">
-                    <Checkbox
-                      id="enableWebScraping"
-                      checked={formData.enableWebScraping}
-                      onCheckedChange={(checked) => handleInputChange("enableWebScraping", checked as boolean)}
-                      className="mt-1"
-                    />
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2">
-                        <Label htmlFor="enableWebScraping" className="text-sm font-medium cursor-pointer">
-                          Enable market research via web scraping
-                        </Label>
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <HelpCircle className="h-4 w-4 text-muted-foreground cursor-help" />
-                            </TooltipTrigger>
-                            <TooltipContent className="max-w-sm p-4">
-                              <div className="space-y-2">
-                                <p className="font-medium">Market Research</p>
-                                <p className="text-sm">
-                                  Our AI will automatically search other websites (Craigslist, Facebook Marketplace, etc.) 
-                                  to find similar listings in your area and provide competitive pricing insights.
-                                </p>
-                                <div className="text-xs text-muted-foreground">
-                                  <p className="font-medium mb-1">What we'll find:</p>
-                                  <ul className="space-y-1 list-disc list-inside">
-                                    <li>Competitor pricing data</li>
-                                    <li>Market average rates</li>
-                                    <li>Location-specific insights</li>
-                                    <li>Pricing recommendations</li>
-                                  </ul>
-                                </div>
-                              </div>
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
-                      </div>
-                      <p className="text-xs text-muted-foreground">
-                        When enabled, our AI will research similar listings on other platforms to provide 
-                        data-driven pricing recommendations and market insights for your space.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </div>
 
-              {/* Pricing Optimization Toggle */}
-              <div className="space-y-4">
-                <div className="p-4 border border-muted-foreground/25 rounded-lg bg-green-50/50">
-                  <div className="flex items-start space-x-3">
-                    <Checkbox
-                      id="enablePricingOptimization"
-                      checked={formData.enablePricingOptimization}
-                      onCheckedChange={(checked) => handleInputChange("enablePricingOptimization", checked as boolean)}
-                      className="mt-1"
-                    />
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2">
-                        <Label htmlFor="enablePricingOptimization" className="text-sm font-medium cursor-pointer">
-                          Enable AI-powered pricing optimization
-                        </Label>
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <HelpCircle className="h-4 w-4 text-muted-foreground cursor-help" />
-                            </TooltipTrigger>
-                            <TooltipContent className="max-w-sm p-4">
-                              <div className="space-y-2">
-                                <p className="font-medium">Pricing Optimization</p>
-                                <p className="text-sm">
-                                  Our AI analyzes market trends, seasonal demand, competitor pricing, and location factors 
-                                  to suggest optimal pricing strategies that maximize your revenue potential.
-                                </p>
-                                <div className="text-xs text-muted-foreground">
-                                  <p className="font-medium mb-1">Optimization features:</p>
-                                  <ul className="space-y-1 list-disc list-inside">
-                                    <li>Dynamic pricing recommendations</li>
-                                    <li>Peak hour pricing strategies</li>
-                                    <li>Seasonal adjustment suggestions</li>
-                                    <li>Competitive positioning analysis</li>
-                                    <li>Revenue maximization insights</li>
-                                  </ul>
-                                </div>
-                              </div>
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
-                      </div>
-                      <p className="text-xs text-muted-foreground">
-                        When enabled, our AI will analyze market conditions and suggest pricing strategies 
-                        to help you maximize revenue while remaining competitive in your market.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Smart Scheduling Toggle */}
-              <div className="space-y-4">
-                <div className="p-4 border border-muted-foreground/25 rounded-lg bg-blue-50/50">
-                  <div className="flex items-start space-x-3">
-                    <Checkbox
-                      id="enableSmartScheduling"
-                      checked={formData.enableSmartScheduling}
-                      onCheckedChange={(checked) => handleInputChange("enableSmartScheduling", checked as boolean)}
-                      className="mt-1"
-                    />
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2">
-                        <Label htmlFor="enableSmartScheduling" className="text-sm font-medium cursor-pointer">
-                          Enable AI-powered smart scheduling
-                        </Label>
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <HelpCircle className="h-4 w-4 text-muted-foreground cursor-help" />
-                            </TooltipTrigger>
-                            <TooltipContent className="max-w-sm p-4">
-                              <div className="space-y-2">
-                                <p className="font-medium">Smart Scheduling</p>
-                                <p className="text-sm">
-                                  Our AI analyzes booking patterns, demand trends, and optimal availability windows 
-                                  to automatically suggest the best times to make your space available.
-                                </p>
-                                <div className="text-xs text-muted-foreground">
-                                  <p className="font-medium mb-1">Smart features:</p>
-                                  <ul className="space-y-1 list-disc list-inside">
-                                    <li>Optimal availability windows</li>
-                                    <li>Demand pattern analysis</li>
-                                    <li>Peak hour identification</li>
-                                    <li>Revenue optimization scheduling</li>
-                                    <li>Automatic pricing adjustments</li>
-                                  </ul>
-                                </div>
-                              </div>
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
-                      </div>
-                      <p className="text-xs text-muted-foreground">
-                        When enabled, our AI will analyze demand patterns and suggest optimal scheduling 
-                        strategies to maximize your space utilization and revenue.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Marketing Content Toggle */}
-              <div className="space-y-4">
-                <div className="p-4 border border-muted-foreground/25 rounded-lg bg-purple-50/50">
-                  <div className="flex items-start space-x-3">
-                    <Checkbox
-                      id="enableMarketingContent"
-                      checked={formData.enableMarketingContent}
-                      onCheckedChange={(checked) => handleInputChange("enableMarketingContent", checked as boolean)}
-                      className="mt-1"
-                    />
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2">
-                        <Label htmlFor="enableMarketingContent" className="text-sm font-medium cursor-pointer">
-                          Enable AI-generated marketing content
-                        </Label>
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <HelpCircle className="h-4 w-4 text-muted-foreground cursor-help" />
-                            </TooltipTrigger>
-                            <TooltipContent className="max-w-sm p-4">
-                              <div className="space-y-2">
-                                <p className="font-medium">Marketing Content</p>
-                                <p className="text-sm">
-                                  Our AI creates compelling marketing content including SEO-optimized titles, 
-                                  social media posts, email campaigns, and listing optimization suggestions.
-                                </p>
-                                <div className="text-xs text-muted-foreground">
-                                  <p className="font-medium mb-1">Content types:</p>
-                                  <ul className="space-y-1 list-disc list-inside">
-                                    <li>SEO-optimized titles & descriptions</li>
-                                    <li>Social media marketing posts</li>
-                                    <li>Email campaign templates</li>
-                                    <li>Listing optimization suggestions</li>
-                                    <li>Engagement-focused content</li>
-                                  </ul>
-                                </div>
-                              </div>
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
-                      </div>
-                      <p className="text-xs text-muted-foreground">
-                        When enabled, our AI will generate professional marketing content to help you 
-                        attract more renters and improve your listing's visibility.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Predictive Analytics Toggle */}
-              <div className="space-y-4">
-                <div className="p-4 border border-muted-foreground/25 rounded-lg bg-orange-50/50">
-                  <div className="flex items-start space-x-3">
-                    <Checkbox
-                      id="enablePredictiveAnalytics"
-                      checked={formData.enablePredictiveAnalytics}
-                      onCheckedChange={(checked) => handleInputChange("enablePredictiveAnalytics", checked as boolean)}
-                      className="mt-1"
-                    />
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2">
-                        <Label htmlFor="enablePredictiveAnalytics" className="text-sm font-medium cursor-pointer">
-                          Enable predictive analytics & insights
-                        </Label>
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <HelpCircle className="h-4 w-4 text-muted-foreground cursor-help" />
-                            </TooltipTrigger>
-                            <TooltipContent className="max-w-sm p-4">
-                              <div className="space-y-2">
-                                <p className="font-medium">Predictive Analytics</p>
-                                <p className="text-sm">
-                                  Our AI provides advanced analytics including revenue forecasting, 
-                                  market trend predictions, and performance insights to help you make data-driven decisions.
-                                </p>
-                                <div className="text-xs text-muted-foreground">
-                                  <p className="font-medium mb-1">Analytics features:</p>
-                                  <ul className="space-y-1 list-disc list-inside">
-                                    <li>Revenue potential forecasting</li>
-                                    <li>Market trend predictions</li>
-                                    <li>Booking pattern analysis</li>
-                                    <li>Performance optimization insights</li>
-                                    <li>Competitive intelligence reports</li>
-                                  </ul>
-                                </div>
-                              </div>
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
-                      </div>
-                      <p className="text-xs text-muted-foreground">
-                        When enabled, our AI will provide advanced analytics and predictions to help you 
-                        optimize your space rental strategy and maximize profitability.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </div>
 
               {formData.photoUrls.length > 0 ? (
                 <div className="space-y-3">
