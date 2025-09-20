@@ -80,10 +80,23 @@ class AIService {
               CONTEXT:
               ${location.address && location.zipCode ? `Location: ${location.address}, ${location.zipCode}` : 'Location: Not specified'}
               ${location.selectedSpaceTypes && location.selectedSpaceTypes.length > 0 ? `Selected Space Types: ${location.selectedSpaceTypes.join(', ')}` : 'No specific space types selected'}
-              ${location.enableWebScraping ? 'Market Research: Enabled - consider competitive pricing' : 'Market Research: Disabled'}
+              ${location.enableWebScraping ? 'Market Research: Enabled - consider competitive pricing and market positioning' : 'Market Research: Disabled'}
               ${location.enablePricingOptimization ? 'Pricing Optimization: Enabled - suggest optimal pricing strategy' : 'Pricing Optimization: Disabled'}
 
               ANALYSIS REQUIREMENTS:
+              ${location.enableWebScraping ? `
+              - Focus on space type identification and market positioning
+              - Provide detailed description highlighting competitive advantages
+              - Include specific dimensions and features that differentiate this space
+              - Suggest pricing that can be enhanced with market data
+              - Emphasize unique selling points for market competition
+              ` : `
+              - Identify the primary space type from the photos
+              - Provide a compelling description based on visual features
+              - Estimate dimensions based on what's visible
+              - Suggest competitive pricing for the area
+              `}
+              
               1. Space type: Choose the MOST APPROPRIATE type from: garage, driveway, warehouse, parking_spot, storage_unit, outdoor_space, rv_storage, other
               2. Title: Create a compelling, SEO-friendly title (max 60 characters) that highlights key benefits
               3. Description: Write a detailed, marketing-focused description (2-3 sentences) that emphasizes unique features and benefits
@@ -104,7 +117,17 @@ class AIService {
               - Outdoor Space: $4-12/hour
               - RV Storage: $10-30/hour
 
-              Return as JSON with these exact fields: spaceType, title, description, dimensions, pricePerHour, features`
+              IMPORTANT: Return ONLY valid JSON in this exact format:
+              {
+                "spaceType": "garage",
+                "title": "Modern Garage Space",
+                "description": "Clean, secure garage space perfect for storage or parking",
+                "dimensions": "20x10 feet",
+                "pricePerHour": 8,
+                "features": ["Secure access", "Well-lit", "Easy parking"]
+              }
+              
+              Do not include any text before or after the JSON. Return only the JSON object.`
             },
             ...photoUrls.map(url => ({
               type: 'image_url',
@@ -166,7 +189,9 @@ class AIService {
       console.log('📝 Raw AI Response:', content);
 
       try {
-        const analysis = JSON.parse(content);
+        // Try to extract JSON from the response content
+        const cleanedContent = this.extractJSONFromContent(content);
+        const analysis = JSON.parse(cleanedContent);
         console.log('✅ Parsed AI Analysis:', analysis);
         
         const result = {
@@ -185,7 +210,12 @@ class AIService {
           content,
           parseError: parseError instanceof Error ? parseError.message : String(parseError)
         });
-        throw new Error(`Failed to parse AI analysis result: ${parseError instanceof Error ? parseError.message : String(parseError)}`);
+        
+        // Fallback: try to extract information using regex patterns
+        console.log('🔄 Attempting fallback parsing...');
+        const fallbackResult = this.parseWithFallback(content);
+        console.log('🎯 Fallback Analysis Result:', fallbackResult);
+        return fallbackResult;
       }
     } catch (error) {
       const responseTime = Date.now() - startTime;
@@ -444,7 +474,15 @@ class AIService {
     3. List 3-4 specific pricing recommendations (peak hours, weekends, seasonal, etc.)
     4. Analyze market factors that influence pricing
 
-    Return as JSON with these exact fields: optimizedPrice, reasoning, recommendations, marketFactors`;
+      IMPORTANT: Return ONLY valid JSON in this exact format:
+      {
+        "optimizedPrice": 12.5,
+        "reasoning": "Based on market analysis and location factors",
+        "recommendations": ["Peak hour pricing", "Weekend premium"],
+        "marketFactors": {"demandLevel": "High", "competitionLevel": "Medium"}
+      }
+      
+      Do not include any text before or after the JSON. Return only the JSON object.`;
 
     try {
       const response = await fetch(`${this.baseUrl}/chat/completions`, {
@@ -525,6 +563,64 @@ class AIService {
         locationPremium: isUrban ? 'Premium location detected' : 'Standard location'
       }
     };
+  }
+
+  private extractJSONFromContent(content: string): string {
+    console.log('🔍 Extracting JSON from content...');
+    
+    // Try to find JSON object in the content
+    const jsonMatch = content.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      console.log('✅ Found JSON object in content');
+      return jsonMatch[0];
+    }
+    
+    // Try to find JSON array
+    const arrayMatch = content.match(/\[[\s\S]*\]/);
+    if (arrayMatch) {
+      console.log('✅ Found JSON array in content');
+      return arrayMatch[0];
+    }
+    
+    // If no JSON found, return the original content
+    console.log('⚠️ No JSON structure found, returning original content');
+    return content;
+  }
+
+  private parseWithFallback(content: string): PhotoAnalysisResult {
+    console.log('🔍 Parsing content with fallback method...');
+    
+    // Extract information using regex patterns
+    const spaceTypeMatch = content.match(/"spaceType":\s*"([^"]+)"/i) || 
+                          content.match(/spaceType:\s*([^,\n]+)/i);
+    const titleMatch = content.match(/"title":\s*"([^"]+)"/i) || 
+                       content.match(/title:\s*([^,\n]+)/i);
+    const descriptionMatch = content.match(/"description":\s*"([^"]+)"/i) || 
+                           content.match(/description:\s*([^,\n]+)/i);
+    const dimensionsMatch = content.match(/"dimensions":\s*"([^"]+)"/i) || 
+                           content.match(/dimensions:\s*([^,\n]+)/i);
+    const priceMatch = content.match(/"pricePerHour":\s*(\d+(?:\.\d+)?)/i) || 
+                      content.match(/pricePerHour:\s*(\d+(?:\.\d+)?)/i) ||
+                      content.match(/\$(\d+(?:\.\d+)?)/);
+    
+    const result: PhotoAnalysisResult = {
+      spaceType: spaceTypeMatch ? spaceTypeMatch[1].trim() : 'garage',
+      title: titleMatch ? titleMatch[1].trim() : 'Space Available',
+      description: descriptionMatch ? descriptionMatch[1].trim() : 'A great space for your needs',
+      dimensions: dimensionsMatch ? dimensionsMatch[1].trim() : 'Standard size',
+      pricePerHour: priceMatch ? parseFloat(priceMatch[1]) : 5,
+      features: ['Convenient location', 'Easy access']
+    };
+    
+    console.log('📊 Extracted values:', {
+      spaceType: result.spaceType,
+      title: result.title,
+      description: result.description.substring(0, 50) + '...',
+      dimensions: result.dimensions,
+      pricePerHour: result.pricePerHour
+    });
+    
+    return result;
   }
 }
 

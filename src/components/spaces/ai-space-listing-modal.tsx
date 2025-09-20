@@ -6,7 +6,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Card, CardContent } from "@/components/ui/card";
-import { Upload, X, MapPin, Sparkles, CheckCircle, Edit3, HelpCircle, ExternalLink } from "lucide-react";
+import { Upload, X, MapPin, Sparkles, CheckCircle, Edit3, HelpCircle, ExternalLink, ArrowRight } from "lucide-react";
 import { useAuthContext } from "@/contexts/auth-context";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -347,24 +347,15 @@ export function AISpaceListingModal({ open, onOpenChange }: AISpaceListingModalP
       
       toast({
         title: "Photos uploaded successfully!",
-        description: formData.disableAI 
-          ? `${files.length} photo(s) uploaded. Ready for manual entry.`
-          : `${files.length} photo(s) uploaded. AI analysis starting automatically...`,
+        description: `${files.length} photo(s) uploaded. Ready for AI analysis!`,
       });
       
-      if (formData.disableAI) {
-        debug.info('Skipping AI analysis - disabled by user');
-        setStep('manual');
-      } else {
-        debug.info('Starting AI analysis after upload', { 
-          photoCount: uploadedUrls.length,
-          enableWebScraping: formData.enableWebScraping
-        });
-        setStep('analyze');
-        setTimeout(() => {
-          analyzePhotosWithAI(uploadedUrls);
-        }, 500); // Small delay to let the UI update
-      }
+      // Stay on upload step to show AI analysis options
+      debug.info('Photos uploaded successfully', { 
+        photoCount: uploadedUrls.length,
+        enableWebScraping: formData.enableWebScraping,
+        enablePricingOptimization: formData.enablePricingOptimization
+      });
     } catch (error: unknown) {
       console.error('💥 Upload process failed:', error);
       debug.logError(error instanceof Error ? error : new Error(String(error)), { 
@@ -527,21 +518,56 @@ export function AISpaceListingModal({ open, onOpenChange }: AISpaceListingModalP
       let pricePerHour = analysisResult.pricePerHour;
       let pricePerDay = pricePerHour * 8;
       
-      debug.debug('Initial pricing from AI', { pricePerHour, pricePerDay });
+      // Initialize final result with AI analysis
+      let finalDescription = analysisResult.description;
+      let finalDimensions = analysisResult.dimensions;
+      let finalTitle = analysisResult.title;
       
-      // Adjust pricing based on market analysis if available
-      if (marketData) {
+      debug.debug('Initial data from AI', { 
+        pricePerHour, 
+        pricePerDay, 
+        description: finalDescription.substring(0, 50) + '...',
+        dimensions: finalDimensions,
+        title: finalTitle
+      });
+      
+      // Enhance with webscraping data if available
+      if (marketData && formData.enableWebScraping) {
+        debug.info('Enhancing AI analysis with webscraping data', {
+          marketData: {
+            averagePrice: marketData.averagePrice,
+            competitorCount: marketData.competitorCount,
+            priceRange: marketData.priceRange,
+            recommendations: marketData.recommendations
+          }
+        });
+        
+        // Use market-suggested pricing
         const marketSuggestedPrice = marketData.recommendations.suggestedPrice;
-        const originalPrice = pricePerHour;
-        // Use market data to inform pricing, but don't override completely
-        pricePerHour = Math.round((pricePerHour + marketSuggestedPrice) / 2 * 100) / 100;
+        pricePerHour = marketSuggestedPrice;
         pricePerDay = pricePerHour * 8;
         
-        debug.info('Pricing adjusted with market data', {
-          originalPrice,
-          marketSuggestedPrice,
+        // Enhance description with market insights
+        if (marketData.recommendations.competitiveAdvantages.length > 0) {
+          const advantages = marketData.recommendations.competitiveAdvantages.join(', ');
+          finalDescription = `${analysisResult.description} Market analysis shows competitive advantages: ${advantages}.`;
+        }
+        
+        // Enhance dimensions if market data provides insights
+        if (marketData.priceRange && marketData.priceRange.max > marketData.priceRange.min) {
+          finalDimensions = `${analysisResult.dimensions} (Market range: $${marketData.priceRange.min}-$${marketData.priceRange.max}/hour)`;
+        }
+        
+        // Enhance title with market positioning
+        if (marketData.competitorCount > 0) {
+          finalTitle = `${analysisResult.title} - Competitive Market Rate`;
+        }
+        
+        debug.info('Enhanced data with webscraping', {
           finalPrice: pricePerHour,
-          adjustment: ((pricePerHour - originalPrice) / originalPrice * 100).toFixed(2) + '%'
+          enhancedDescription: finalDescription.substring(0, 50) + '...',
+          enhancedDimensions: finalDimensions,
+          enhancedTitle: finalTitle
         });
       }
       
@@ -559,12 +585,12 @@ export function AISpaceListingModal({ open, onOpenChange }: AISpaceListingModalP
         });
       }
       
-      // Convert to the expected format
+      // Convert to the expected format using enhanced data
       const aiData: AIGeneratedData = {
         spaceType: analysisResult.spaceType,
-        title: analysisResult.title,
-        description: analysisResult.description,
-        dimensions: analysisResult.dimensions,
+        title: finalTitle,
+        description: finalDescription,
+        dimensions: finalDimensions,
         pricePerHour: pricePerHour,
         pricePerDay: pricePerDay,
       };
@@ -1096,12 +1122,25 @@ export function AISpaceListingModal({ open, onOpenChange }: AISpaceListingModalP
                   ) : (
                     <Button
                       type="button"
-                      onClick={() => analyzePhotosWithAI()}
+                      onClick={() => {
+                        if (formData.selectedSpaceTypes.length === 0) {
+                          toast({
+                            title: "Space Type Required",
+                            description: "Please select at least one space type to proceed with AI analysis.",
+                            variant: "destructive",
+                          });
+                          return;
+                        }
+                        setStep('analyze');
+                        setTimeout(() => {
+                          analyzePhotosWithAI();
+                        }, 500);
+                      }}
                       disabled={formData.selectedSpaceTypes.length === 0}
                       className="w-full apple-button-primary h-12"
                     >
-                      <Sparkles className="h-4 w-4 mr-2" />
-                      Analyze with AI
+                      <ArrowRight className="h-4 w-4 mr-2" />
+                      Next: AI Analysis
                     </Button>
                   )}
                   <p className="text-xs text-center text-muted-foreground">
@@ -1636,14 +1675,68 @@ export function AISpaceListingModal({ open, onOpenChange }: AISpaceListingModalP
                         <Edit3 className="h-4 w-4" />
                         Price per Hour ($)
                       </Label>
-                      <Input
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        value={editableData.pricePerHour}
-                        onChange={(e) => handleEditableChange("pricePerHour", parseFloat(e.target.value) || 0)}
-                        className="apple-input h-12"
-                      />
+                      
+                      {/* Recommended Pricing Display */}
+                      {(marketAnalysis || formData.enablePricingOptimization) && (
+                        <div className="mb-3 p-3 bg-green-50 border border-green-200 rounded-lg">
+                          <div className="flex items-center gap-2 mb-2">
+                            <Sparkles className="h-4 w-4 text-green-600" />
+                            <span className="text-sm font-medium text-green-800">AI Recommended Pricing</span>
+                          </div>
+                          <div className="grid grid-cols-2 gap-3 text-sm">
+                            {marketAnalysis && (
+                              <>
+                                <div className="text-center p-2 bg-white rounded border">
+                                  <div className="font-semibold text-blue-600">${marketAnalysis.recommendations.suggestedPrice}</div>
+                                  <div className="text-xs text-gray-600">Market Analysis</div>
+                                </div>
+                                <div className="text-center p-2 bg-white rounded border">
+                                  <div className="font-semibold text-purple-600">${marketAnalysis.averagePrice}</div>
+                                  <div className="text-xs text-gray-600">Market Average</div>
+                                </div>
+                              </>
+                            )}
+                            {formData.enablePricingOptimization && (
+                              <div className="text-center p-2 bg-white rounded border">
+                                <div className="font-semibold text-green-600">${editableData.pricePerHour}</div>
+                                <div className="text-xs text-gray-600">AI Optimized</div>
+                              </div>
+                            )}
+                          </div>
+                          <p className="text-xs text-green-700 mt-2">
+                            💡 Click "Use Recommended" below to apply the suggested price
+                          </p>
+                        </div>
+                      )}
+                      
+                      <div className="flex gap-2">
+                        <Input
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          value={editableData.pricePerHour}
+                          onChange={(e) => handleEditableChange("pricePerHour", parseFloat(e.target.value) || 0)}
+                          className="apple-input h-12 flex-1"
+                        />
+                        {(marketAnalysis || formData.enablePricingOptimization) && (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              const recommendedPrice = marketAnalysis?.recommendations.suggestedPrice || editableData.pricePerHour;
+                              handleEditableChange("pricePerHour", recommendedPrice);
+                              toast({
+                                title: "Price Updated",
+                                description: `Applied recommended price: $${recommendedPrice}/hour`,
+                              });
+                            }}
+                            className="apple-button-secondary whitespace-nowrap"
+                          >
+                            Use Recommended
+                          </Button>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>
