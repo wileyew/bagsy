@@ -120,6 +120,7 @@ export function AISpaceListingModal({ open, onOpenChange }: AISpaceListingModalP
   const [locationLoading, setLocationLoading] = useState(false);
   const [aiRecommendations, setAiRecommendations] = useState<AIRecommendation[]>([]);
   const [recommendationsLoading, setRecommendationsLoading] = useState(false);
+  const [requestStatus, setRequestStatus] = useState({ count: 0, maxRequests: 2, isBlocked: false, remaining: 2 });
   
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { user } = useAuthContext();
@@ -279,6 +280,12 @@ export function AISpaceListingModal({ open, onOpenChange }: AISpaceListingModalP
       description: `${recommendation.title} has been enabled for your listing.`,
     });
   };
+
+  const updateRequestStatus = useCallback(() => {
+    const status = aiService.getRequestStatus();
+    setRequestStatus(status);
+    debug.info('Request status updated', status);
+  }, [debug]);
 
   const handleSpaceTypeChange = (spaceType: string, checked: boolean) => {
     debug.userAction('Space type checkbox changed', { spaceType, checked });
@@ -681,6 +688,9 @@ export function AISpaceListingModal({ open, onOpenChange }: AISpaceListingModalP
       
       debug.info('AI analysis completed', { analysisResult });
       
+      // Update request status
+      updateRequestStatus();
+      
       // Perform web scraping if enabled
       const spaceTypeForScraping = analysisResult.spaceType === 'other' && formData.customSpaceType 
         ? formData.customSpaceType 
@@ -924,7 +934,7 @@ export function AISpaceListingModal({ open, onOpenChange }: AISpaceListingModalP
     } finally {
       setAnalyzing(false);
     }
-  }, [formData.photoUrls, formData.address, formData.zipCode, formData.enableWebScraping, formData.enablePricingOptimization, formData.enableSmartScheduling, formData.enableMarketingContent, formData.enablePredictiveAnalytics, formData.selectedSpaceTypes, formData.customSpaceType, currentLocation, debug, toast, performWebScraping, performPricingOptimization]);
+  }, [formData.photoUrls, formData.address, formData.zipCode, formData.enableWebScraping, formData.enablePricingOptimization, formData.enableSmartScheduling, formData.enableMarketingContent, formData.enablePredictiveAnalytics, formData.selectedSpaceTypes, formData.customSpaceType, currentLocation, debug, toast, performWebScraping, performPricingOptimization, updateRequestStatus]);
 
   // Re-run AI analysis when location is added and we have existing AI data
   useEffect(() => {
@@ -1215,29 +1225,29 @@ export function AISpaceListingModal({ open, onOpenChange }: AISpaceListingModalP
               <div className="space-y-4">
                 <h3 className="text-lg font-semibold">Upload Photos</h3>
                 {formData.photoUrls.length === 0 ? (
-                  <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-8 text-center">
-                    <Upload className="h-8 w-8 mx-auto mb-4 text-muted-foreground" />
-                    <p className="text-sm text-muted-foreground mb-4">
-                      Upload 1-5 photos of your space
-                    </p>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => fileInputRef.current?.click()}
-                      disabled={uploading}
-                      className="apple-button-secondary"
-                    >
-                      {uploading ? "Uploading..." : "Choose Photos"}
-                    </Button>
-                    <input
-                      ref={fileInputRef}
-                      type="file"
-                      accept="image/*"
-                      multiple
-                      onChange={handleFileSelect}
-                      className="hidden"
-                    />
-                  </div>
+                <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-8 text-center">
+                  <Upload className="h-8 w-8 mx-auto mb-4 text-muted-foreground" />
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Upload 1-5 photos of your space
+                  </p>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={uploading}
+                    className="apple-button-secondary"
+                  >
+                    {uploading ? "Uploading..." : "Choose Photos"}
+                  </Button>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    onChange={handleFileSelect}
+                    className="hidden"
+                  />
+                </div>
                 ) : (
                   <div className="space-y-4">
                     <div className="flex items-center justify-between">
@@ -1304,51 +1314,6 @@ export function AISpaceListingModal({ open, onOpenChange }: AISpaceListingModalP
                   </div>
                 )}
                 
-                {/* Debug Info - Remove this in production */}
-                {formData.photoUrls.length > 0 && (
-                  <div className="p-3 bg-gray-100 rounded-lg text-xs">
-                    <p><strong>Debug Info:</strong></p>
-                    <p>Photo URLs count: {formData.photoUrls.length}</p>
-                    <p>Photo URLs: {JSON.stringify(formData.photoUrls)}</p>
-                    <div className="mt-2">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={async () => {
-                          try {
-                            const result = await webScrapingService.testConnection();
-                            console.log('ScrapingBee Test Result:', result);
-                            
-                            if (result.success) {
-                              toast({
-                                title: "✅ ScrapingBee Test Passed",
-                                description: `Connection successful (${result.responseTime}ms)`,
-                                variant: "default"
-                              });
-                            } else {
-                              toast({
-                                title: "❌ ScrapingBee Test Failed",
-                                description: `${result.error}${result.details ? `\n\n${result.details}` : ''}`,
-                                variant: "destructive"
-                              });
-                            }
-                          } catch (error) {
-                            console.error('ScrapingBee test error:', error);
-                            toast({
-                              title: "❌ ScrapingBee Test Error",
-                              description: error instanceof Error ? error.message : String(error),
-                              variant: "destructive"
-                            });
-                          }
-                        }}
-                        className="w-full text-xs"
-                      >
-                        Test ScrapingBee Connection
-                      </Button>
-                    </div>
-                  </div>
-                )}
               </div>
 
               <div className="space-y-4">
@@ -1443,21 +1408,21 @@ export function AISpaceListingModal({ open, onOpenChange }: AISpaceListingModalP
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                       {spaceTypes.map((type) => (
                         <div key={type.value} className="flex items-start space-x-3">
-                          <Checkbox
+                    <Checkbox
                             id={`space-type-${type.value}`}
                             checked={formData.selectedSpaceTypes.includes(type.value)}
                             onCheckedChange={(checked) => handleSpaceTypeChange(type.value, checked as boolean)}
-                            className="mt-1"
-                          />
-                          <div className="space-y-1">
+                      className="mt-1"
+                    />
+                    <div className="space-y-1">
                             <Label htmlFor={`space-type-${type.value}`} className="text-sm font-medium cursor-pointer">
                               {type.label}
-                            </Label>
-                            <p className="text-xs text-muted-foreground">
+                      </Label>
+                      <p className="text-xs text-muted-foreground">
                               {type.description}
-                            </p>
-                          </div>
-                        </div>
+                      </p>
+                    </div>
+                  </div>
                       ))}
                     </div>
                     
@@ -1477,6 +1442,32 @@ export function AISpaceListingModal({ open, onOpenChange }: AISpaceListingModalP
                       </div>
                     </div>
                   </div>
+                </div>
+              </div>
+
+              {/* OpenAI Request Limit Status */}
+              <div className="space-y-4">
+                <div className="p-3 border border-muted-foreground/25 rounded-lg bg-gray-50">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className={`w-3 h-3 rounded-full ${requestStatus.isBlocked ? 'bg-red-500' : requestStatus.remaining <= 1 ? 'bg-yellow-500' : 'bg-green-500'}`}></div>
+                      <span className="text-sm font-medium text-gray-700">
+                        OpenAI Requests: {requestStatus.count}/{requestStatus.maxRequests}
+                      </span>
+                    </div>
+                    <div className="text-xs text-gray-500">
+                      {requestStatus.isBlocked ? (
+                        <span className="text-red-600 font-medium">Limit Reached</span>
+                      ) : (
+                        <span>{requestStatus.remaining} remaining</span>
+                      )}
+                    </div>
+                  </div>
+                  {requestStatus.isBlocked && (
+                    <p className="text-xs text-red-600 mt-2">
+                      ⚠️ OpenAI request limit reached. AI analysis will use mock data. Refresh the page to reset.
+                    </p>
+                  )}
                 </div>
               </div>
 
@@ -1520,7 +1511,7 @@ export function AISpaceListingModal({ open, onOpenChange }: AISpaceListingModalP
                         <p className="text-sm font-medium text-purple-800">
                           ✅ {aiRecommendations.length} personalized recommendations generated
                         </p>
-                        <div className="space-y-2">
+                              <div className="space-y-2">
                           {aiRecommendations.slice(0, 3).map((recommendation) => (
                             <div key={recommendation.id} className="p-3 bg-white rounded-lg border border-purple-200">
                               <div className="flex items-start justify-between">
@@ -1560,15 +1551,15 @@ export function AISpaceListingModal({ open, onOpenChange }: AISpaceListingModalP
                             +{aiRecommendations.length - 3} more recommendations available
                           </p>
                         )}
-                      </div>
+                                </div>
                     ) : (
                       <div className="text-center py-4">
                         <p className="text-sm text-purple-600">
                           Click "Get Recommendations" to receive personalized AI suggestions for your space.
                         </p>
-                      </div>
+                              </div>
                     )}
-                  </div>
+                      </div>
                 </div>
               )}
 
@@ -1647,9 +1638,11 @@ export function AISpaceListingModal({ open, onOpenChange }: AISpaceListingModalP
                         ? "⚠️ Please select at least one space type above to enable AI analysis"
                         : formData.photoUrls.length === 0
                           ? "⚠️ Please upload at least one photo to enable AI analysis"
-                      : formData.address && formData.zipCode 
-                            ? `✅ Ready for AI analysis - Location provided${formData.enableWebScraping ? ' + market research' : ''}${formData.enablePricingOptimization ? ' + pricing optimization' : ''}`
-                            : `✅ Ready for AI analysis - No location provided${formData.enableWebScraping ? ' + market research' : ''}${formData.enablePricingOptimization ? ' + pricing optimization' : ''}`
+                          : requestStatus.isBlocked
+                            ? "⚠️ OpenAI request limit reached - will use mock data for analysis"
+                            : formData.address && formData.zipCode 
+                              ? `✅ Ready for AI analysis - Location provided${formData.enableWebScraping ? ' + market research' : ''}${formData.enablePricingOptimization ? ' + pricing optimization' : ''}`
+                              : `✅ Ready for AI analysis - No location provided${formData.enableWebScraping ? ' + market research' : ''}${formData.enablePricingOptimization ? ' + pricing optimization' : ''}`
                     }
                   </p>
                 </div>
