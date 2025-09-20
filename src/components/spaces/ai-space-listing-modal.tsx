@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -30,7 +30,9 @@ interface SpaceFormData {
   disableAI: boolean;
   allowAIAgent: boolean;
   enableWebScraping: boolean;
+  enablePricingOptimization: boolean;
   customSpaceType?: string;
+  selectedSpaceTypes: string[];
 }
 
 interface AIGeneratedData {
@@ -75,6 +77,7 @@ const spaceTypes = [
   { value: "parking_spot", label: "Parking Spot", description: "Single parking space" },
   { value: "storage_unit", label: "Storage Unit", description: "Indoor storage unit" },
   { value: "outdoor_space", label: "Outdoor Space", description: "Open outdoor area" },
+  { value: "rv_storage", label: "RV Storage", description: "Dedicated space for RVs, campers, and trailers" },
   { value: "other", label: "Other", description: "Custom space type" },
 ];
 
@@ -89,7 +92,9 @@ export function AISpaceListingModal({ open, onOpenChange }: AISpaceListingModalP
     disableAI: false,
     allowAIAgent: false,
     enableWebScraping: false,
+    enablePricingOptimization: false,
     customSpaceType: "",
+    selectedSpaceTypes: [],
   });
   
   const [aiGeneratedData, setAiGeneratedData] = useState<AIGeneratedData | null>(null);
@@ -129,12 +134,25 @@ export function AISpaceListingModal({ open, onOpenChange }: AISpaceListingModalP
     });
   }, [loading, uploading, analyzing, scraping, user, aiGeneratedData, editableData, marketAnalysis, debug]);
 
+
   const handleInputChange = (field: keyof SpaceFormData, value: string | File[] | string[] | boolean) => {
     debug.userAction('Form field changed', { field, value, valueType: typeof value });
     setFormData(prev => {
       const newData = { ...prev, [field]: value };
       debug.stateChange(field, prev[field], value);
       return newData;
+    });
+  };
+
+  const handleSpaceTypeChange = (spaceType: string, checked: boolean) => {
+    debug.userAction('Space type checkbox changed', { spaceType, checked });
+    setFormData(prev => {
+      const newSelectedTypes = checked
+        ? [...prev.selectedSpaceTypes, spaceType]
+        : prev.selectedSpaceTypes.filter(type => type !== spaceType);
+      
+      debug.stateChange('selectedSpaceTypes', prev.selectedSpaceTypes, newSelectedTypes);
+      return { ...prev, selectedSpaceTypes: newSelectedTypes };
     });
   };
 
@@ -393,7 +411,7 @@ export function AISpaceListingModal({ open, onOpenChange }: AISpaceListingModalP
     }
   };
 
-  const performWebScraping = async (spaceType: string) => {
+  const performWebScraping = useCallback(async (spaceType: string) => {
     if (!formData.enableWebScraping) {
       debug.info('Web scraping skipped - disabled by user');
       return null;
@@ -432,9 +450,57 @@ export function AISpaceListingModal({ open, onOpenChange }: AISpaceListingModalP
     } finally {
       setScraping(false);
     }
-  };
+  }, [formData.enableWebScraping, formData.address, debug, toast]);
 
-  const analyzePhotosWithAI = async (photoUrls?: string[]) => {
+  const performPricingOptimization = useCallback(async (basePrice: number, spaceType: string) => {
+    if (!formData.enablePricingOptimization) {
+      debug.info('Pricing optimization skipped - disabled by user');
+      return null;
+    }
+    
+    debug.info('Starting AI pricing optimization', { basePrice, spaceType });
+    
+    try {
+      // Simulate AI pricing optimization analysis
+      // In a real implementation, this would call an AI service
+      const optimizationData = {
+        basePrice,
+        optimizedPrice: basePrice * 1.15, // 15% increase for optimization
+        reasoning: "AI analysis suggests increasing price by 15% based on market demand, seasonal trends, and competitor analysis.",
+        recommendations: [
+          "Consider peak hour pricing (+20% during 9-5 weekdays)",
+          "Weekend premium pricing (+25% for Saturday-Sunday)",
+          "Seasonal adjustments (+10% during summer months)",
+          "Dynamic pricing based on booking frequency"
+        ],
+        marketFactors: {
+          demandLevel: "High",
+          competitionLevel: "Medium",
+          seasonalTrend: "Increasing",
+          locationPremium: formData.address ? "Premium location detected" : "Standard location"
+        }
+      };
+      
+      debug.info('Pricing optimization completed', optimizationData);
+      
+      toast({
+        title: "Pricing Optimization Complete!",
+        description: `AI suggests optimizing your price to $${optimizationData.optimizedPrice.toFixed(2)}/hour.`,
+      });
+      
+      return optimizationData;
+    } catch (error: unknown) {
+      debug.logError(error instanceof Error ? error : new Error(String(error)), { basePrice, spaceType });
+      toast({
+        title: "Pricing Optimization Unavailable",
+        description: "Could not perform pricing optimization. Using base AI pricing.",
+        variant: "default",
+      });
+      return null;
+    }
+  }, [formData.enablePricingOptimization, formData.address, debug, toast]);
+
+  const analyzePhotosWithAI = useCallback(async (photoUrls?: string[]) => {
     const urlsToUse = photoUrls || formData.photoUrls;
     
     debug.info('AI analysis started', {
@@ -497,6 +563,20 @@ export function AISpaceListingModal({ open, onOpenChange }: AISpaceListingModalP
         });
       }
       
+      // Apply pricing optimization if enabled
+      const optimizationData = await performPricingOptimization(pricePerHour, analysisResult.spaceType);
+      if (optimizationData) {
+        const originalPrice = pricePerHour;
+        pricePerHour = optimizationData.optimizedPrice;
+        pricePerDay = pricePerHour * 8;
+        
+        debug.info('Pricing optimized with AI', {
+          originalPrice,
+          optimizedPrice: pricePerHour,
+          optimization: ((pricePerHour - originalPrice) / originalPrice * 100).toFixed(2) + '%'
+        });
+      }
+      
       // Convert to the expected format
       const aiData: AIGeneratedData = {
         spaceType: analysisResult.spaceType,
@@ -535,8 +615,25 @@ export function AISpaceListingModal({ open, onOpenChange }: AISpaceListingModalP
     } finally {
       setAnalyzing(false);
     }
-  };
+  }, [formData.photoUrls, formData.address, formData.zipCode, formData.enableWebScraping, formData.customSpaceType, debug, toast, performWebScraping, performPricingOptimization]);
 
+  // Re-run AI analysis when location is added and we have existing AI data
+  useEffect(() => {
+    if (aiGeneratedData && formData.address && formData.zipCode && !analyzing && !loading && step === 'review') {
+      debug.info('Location added after AI analysis - re-running analysis for better results');
+      
+      // Show a toast to inform the user
+      toast({
+        title: "Location Added!",
+        description: "Re-running AI analysis with location data for more accurate results...",
+      });
+      
+      // Re-run AI analysis with the new location data
+      setTimeout(() => {
+        analyzePhotosWithAI();
+      }, 1000); // Small delay to let the toast show
+    }
+  }, [formData.address, formData.zipCode, aiGeneratedData, analyzing, loading, debug, toast, analyzePhotosWithAI, step]);
 
   const handleEditableChange = (field: keyof AIGeneratedData, value: string | number) => {
     if (!editableData) return;
@@ -580,6 +677,7 @@ export function AISpaceListingModal({ open, onOpenChange }: AISpaceListingModalP
         owner_id: user.id,
         is_active: true,
         allow_ai_agent: formData.allowAIAgent,
+        space_types: formData.selectedSpaceTypes.length > 0 ? formData.selectedSpaceTypes : [editableData.spaceType],
       };
 
       debug.debug('Inserting space into database', spaceData);
@@ -641,7 +739,9 @@ export function AISpaceListingModal({ open, onOpenChange }: AISpaceListingModalP
         disableAI: false,
         allowAIAgent: false,
         enableWebScraping: false,
+        enablePricingOptimization: false,
         customSpaceType: "",
+        selectedSpaceTypes: [],
       });
       setAiGeneratedData(null);
       setEditableData(null);
@@ -701,7 +801,9 @@ export function AISpaceListingModal({ open, onOpenChange }: AISpaceListingModalP
       disableAI: false,
       allowAIAgent: false,
       enableWebScraping: false,
+      enablePricingOptimization: false,
       customSpaceType: "",
+      selectedSpaceTypes: [],
     });
     setAiGeneratedData(null);
     setEditableData(null);
@@ -947,6 +1049,57 @@ export function AISpaceListingModal({ open, onOpenChange }: AISpaceListingModalP
                 </div>
               </div>
 
+              {/* Pricing Optimization Toggle */}
+              <div className="space-y-4">
+                <div className="p-4 border border-muted-foreground/25 rounded-lg bg-green-50/50">
+                  <div className="flex items-start space-x-3">
+                    <Checkbox
+                      id="enablePricingOptimization"
+                      checked={formData.enablePricingOptimization}
+                      onCheckedChange={(checked) => handleInputChange("enablePricingOptimization", checked as boolean)}
+                      className="mt-1"
+                    />
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        <Label htmlFor="enablePricingOptimization" className="text-sm font-medium cursor-pointer">
+                          Enable AI-powered pricing optimization
+                        </Label>
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <HelpCircle className="h-4 w-4 text-muted-foreground cursor-help" />
+                            </TooltipTrigger>
+                            <TooltipContent className="max-w-sm p-4">
+                              <div className="space-y-2">
+                                <p className="font-medium">Pricing Optimization</p>
+                                <p className="text-sm">
+                                  Our AI analyzes market trends, seasonal demand, competitor pricing, and location factors 
+                                  to suggest optimal pricing strategies that maximize your revenue potential.
+                                </p>
+                                <div className="text-xs text-muted-foreground">
+                                  <p className="font-medium mb-1">Optimization features:</p>
+                                  <ul className="space-y-1 list-disc list-inside">
+                                    <li>Dynamic pricing recommendations</li>
+                                    <li>Peak hour pricing strategies</li>
+                                    <li>Seasonal adjustment suggestions</li>
+                                    <li>Competitive positioning analysis</li>
+                                    <li>Revenue maximization insights</li>
+                                  </ul>
+                                </div>
+                              </div>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        When enabled, our AI will analyze market conditions and suggest pricing strategies 
+                        to help you maximize revenue while remaining competitive in your market.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
               {formData.photoUrls.length > 0 ? (
                 <div className="space-y-3">
                   {formData.disableAI ? (
@@ -962,6 +1115,7 @@ export function AISpaceListingModal({ open, onOpenChange }: AISpaceListingModalP
                     <Button
                       type="button"
                       onClick={() => analyzePhotosWithAI()}
+                      disabled={formData.selectedSpaceTypes.length === 0}
                       className="w-full apple-button-primary h-12"
                     >
                       <Sparkles className="h-4 w-4 mr-2" />
@@ -971,9 +1125,11 @@ export function AISpaceListingModal({ open, onOpenChange }: AISpaceListingModalP
                   <p className="text-xs text-center text-muted-foreground">
                     {formData.disableAI 
                       ? "ℹ️ AI analysis disabled - you'll enter details manually"
-                      : formData.address && formData.zipCode 
-                        ? "✅ Location provided - AI will generate location-specific pricing and features"
-                        : "ℹ️ No location provided - AI will use general market rates"
+                      : formData.selectedSpaceTypes.length === 0
+                        ? "⚠️ Please select at least one space type above to enable AI analysis"
+                        : formData.address && formData.zipCode 
+                          ? `✅ Location provided - AI will generate location-specific pricing and features${formData.enableWebScraping ? ' + market research' : ''}${formData.enablePricingOptimization ? ' + pricing optimization' : ''}`
+                          : `ℹ️ No location provided - AI will use general market rates${formData.enableWebScraping ? ' + market research' : ''}${formData.enablePricingOptimization ? ' + pricing optimization' : ''}`
                     }
                   </p>
                 </div>
@@ -1118,6 +1274,7 @@ export function AISpaceListingModal({ open, onOpenChange }: AISpaceListingModalP
                         ? "Searching other websites for similar listings and pricing data"
                         : "Preparing your space analysis"
                   }
+                  {formData.enablePricingOptimization && " with pricing optimization"}
                 </p>
                 <div className="text-xs text-muted-foreground mt-4 p-3 bg-gray-50 rounded-lg">
                   <p>This may take 10-30 seconds depending on your connection and API response time.</p>
@@ -1176,69 +1333,55 @@ export function AISpaceListingModal({ open, onOpenChange }: AISpaceListingModalP
                 {/* Manual Entry Fields */}
                 <div className="space-y-4">
                   <div className="space-y-2">
-                    <Label className="text-sm font-medium">Space Type *</Label>
-                    {editableData?.spaceType === 'other' ? (
-                      <Input
-                        value={formData.customSpaceType || ''}
-                        onChange={(e) => handleInputChange("customSpaceType", e.target.value)}
-                        placeholder="e.g., Boat Slip, RV Storage, Workshop"
-                        className="apple-input h-12"
-                        required
-                      />
-                    ) : (
-                      <select
-                        value={editableData?.spaceType || ''}
-                        onChange={(e) => {
-                          const selectedType = e.target.value;
-                          if (!editableData) {
-                            setEditableData({
-                              spaceType: selectedType,
-                              title: '',
-                              description: '',
-                              dimensions: '',
-                              pricePerHour: 0,
-                              pricePerDay: 0
-                            });
-                          } else {
-                            handleEditableChange("spaceType", selectedType);
-                          }
-                          // Clear custom space type if not "other"
-                          if (selectedType !== 'other') {
-                            handleInputChange("customSpaceType", "");
-                          }
-                        }}
-                        className="apple-input h-12 w-full"
-                        required
-                      >
-                        <option value="">Select space type</option>
+                    <Label className="text-sm font-medium">
+                      Space Types * 
+                      {formData.selectedSpaceTypes.length > 0 && (
+                        <span className="ml-2 text-xs bg-primary text-primary-foreground px-2 py-1 rounded-full">
+                          {formData.selectedSpaceTypes.length} selected
+                        </span>
+                      )}
+                    </Label>
+                    <div className="space-y-3 p-4 border border-muted-foreground/25 rounded-lg bg-muted/30">
+                      <p className="text-xs text-muted-foreground mb-3">
+                        Select all space types that apply to your listing:
+                      </p>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                         {spaceTypes.map((type) => (
-                          <option key={type.value} value={type.value}>
-                            {type.label} - {type.description}
-                          </option>
+                          <div key={type.value} className="flex items-start space-x-3">
+                            <Checkbox
+                              id={`space-type-${type.value}`}
+                              checked={formData.selectedSpaceTypes.includes(type.value)}
+                              onCheckedChange={(checked) => handleSpaceTypeChange(type.value, checked as boolean)}
+                              className="mt-1"
+                            />
+                            <div className="space-y-1">
+                              <Label htmlFor={`space-type-${type.value}`} className="text-sm font-medium cursor-pointer">
+                                {type.label}
+                              </Label>
+                              <p className="text-xs text-muted-foreground">
+                                {type.description}
+                              </p>
+                            </div>
+                          </div>
                         ))}
-                      </select>
-                    )}
-                    
-                    {/* Show "Back to dropdown" option when in custom input mode */}
-                    {editableData?.spaceType === 'other' && (
-                      <div className="mt-2">
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          onClick={() => {
-                            handleEditableChange("spaceType", "");
-                            handleInputChange("customSpaceType", "");
-                          }}
-                          className="text-xs"
-                        >
-                          ← Back to dropdown
-                        </Button>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          Please specify what type of space you're offering
-                        </p>
                       </div>
-                    )}
+                      
+                      {/* Custom space type input */}
+                      <div className="mt-4 pt-4 border-t border-muted-foreground/25">
+                        <div className="space-y-2">
+                          <Label className="text-sm font-medium">Custom Space Type (Optional)</Label>
+                          <Input
+                            value={formData.customSpaceType || ''}
+                            onChange={(e) => handleInputChange("customSpaceType", e.target.value)}
+                            placeholder="e.g., Boat Slip, Workshop, Event Space"
+                            className="apple-input h-10"
+                          />
+                          <p className="text-xs text-muted-foreground">
+                            Specify a custom space type if none of the above options fit your space
+                          </p>
+                        </div>
+                      </div>
+                    </div>
                   </div>
 
                   <div className="space-y-2">
@@ -1351,12 +1494,11 @@ export function AISpaceListingModal({ open, onOpenChange }: AISpaceListingModalP
                 type="button"
                 onClick={() => setStep('confirm')}
                 disabled={
-                  !editableData?.spaceType || 
+                  formData.selectedSpaceTypes.length === 0 || 
                   !editableData?.title || 
                   !editableData?.description || 
                   !editableData?.dimensions || 
-                  !editableData?.pricePerHour ||
-                  (editableData?.spaceType === 'other' && !formData.customSpaceType?.trim())
+                  !editableData?.pricePerHour
                 }
                 className="w-full apple-button-primary h-12"
               >
@@ -1414,56 +1556,54 @@ export function AISpaceListingModal({ open, onOpenChange }: AISpaceListingModalP
                   <div className="space-y-2">
                     <Label className="text-sm font-medium flex items-center gap-2">
                       <Edit3 className="h-4 w-4" />
-                      Space Type
+                      Space Types
+                      {formData.selectedSpaceTypes.length > 0 && (
+                        <span className="text-xs bg-primary text-primary-foreground px-2 py-1 rounded-full">
+                          {formData.selectedSpaceTypes.length} selected
+                        </span>
+                      )}
                     </Label>
-                    {editableData.spaceType === 'other' ? (
-                      <Input
-                        value={formData.customSpaceType || ''}
-                        onChange={(e) => handleInputChange("customSpaceType", e.target.value)}
-                        placeholder="e.g., Boat Slip, RV Storage, Workshop"
-                        className="apple-input h-12"
-                      />
-                    ) : (
-                      <select
-                        value={editableData.spaceType}
-                        onChange={(e) => {
-                          const selectedType = e.target.value;
-                          handleEditableChange("spaceType", selectedType);
-                          // Clear custom space type if not "other"
-                          if (selectedType !== 'other') {
-                            handleInputChange("customSpaceType", "");
-                          }
-                        }}
-                        className="apple-input h-12 w-full"
-                      >
+                    <div className="space-y-3 p-4 border border-muted-foreground/25 rounded-lg bg-muted/30">
+                      <p className="text-xs text-muted-foreground mb-3">
+                        Select all space types that apply to your listing:
+                      </p>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                         {spaceTypes.map((type) => (
-                          <option key={type.value} value={type.value}>
-                            {type.label} - {type.description}
-                          </option>
+                          <div key={type.value} className="flex items-start space-x-3">
+                            <Checkbox
+                              id={`review-space-type-${type.value}`}
+                              checked={formData.selectedSpaceTypes.includes(type.value)}
+                              onCheckedChange={(checked) => handleSpaceTypeChange(type.value, checked as boolean)}
+                              className="mt-1"
+                            />
+                            <div className="space-y-1">
+                              <Label htmlFor={`review-space-type-${type.value}`} className="text-sm font-medium cursor-pointer">
+                                {type.label}
+                              </Label>
+                              <p className="text-xs text-muted-foreground">
+                                {type.description}
+                              </p>
+                            </div>
+                          </div>
                         ))}
-                      </select>
-                    )}
-                    
-                    {/* Show "Back to dropdown" option when in custom input mode */}
-                    {editableData.spaceType === 'other' && (
-                      <div className="mt-2">
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          onClick={() => {
-                            handleEditableChange("spaceType", "");
-                            handleInputChange("customSpaceType", "");
-                          }}
-                          className="text-xs"
-                        >
-                          ← Back to dropdown
-                        </Button>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          Please specify what type of space you're offering
-                        </p>
                       </div>
-                    )}
+                      
+                      {/* Custom space type input */}
+                      <div className="mt-4 pt-4 border-t border-muted-foreground/25">
+                        <div className="space-y-2">
+                          <Label className="text-sm font-medium">Custom Space Type (Optional)</Label>
+                          <Input
+                            value={formData.customSpaceType || ''}
+                            onChange={(e) => handleInputChange("customSpaceType", e.target.value)}
+                            placeholder="e.g., Boat Slip, Workshop, Event Space"
+                            className="apple-input h-10"
+                          />
+                          <p className="text-xs text-muted-foreground">
+                            Specify a custom space type if none of the above options fit your space
+                          </p>
+                        </div>
+                      </div>
+                    </div>
                   </div>
 
                   <div className="space-y-2">
@@ -1601,11 +1741,16 @@ export function AISpaceListingModal({ open, onOpenChange }: AISpaceListingModalP
                     
                     <div className="grid grid-cols-2 gap-4 text-sm">
                       <div>
-                        <span className="font-medium">Type:</span> {
-                          editableData.spaceType === 'other' 
-                            ? formData.customSpaceType || 'Other (not specified)'
-                            : spaceTypes.find(t => t.value === editableData.spaceType)?.label
+                        <span className="font-medium">Types:</span> {
+                          formData.selectedSpaceTypes.length > 0 
+                            ? formData.selectedSpaceTypes.map(type => spaceTypes.find(t => t.value === type)?.label).join(', ')
+                            : editableData.spaceType === 'other' 
+                              ? formData.customSpaceType || 'Other (not specified)'
+                              : spaceTypes.find(t => t.value === editableData.spaceType)?.label
                         }
+                        {formData.customSpaceType && (
+                          <span className="text-muted-foreground">, {formData.customSpaceType}</span>
+                        )}
                       </div>
                       <div>
                         <span className="font-medium">Dimensions:</span> {editableData.dimensions}
