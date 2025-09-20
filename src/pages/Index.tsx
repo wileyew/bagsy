@@ -307,7 +307,14 @@ const Index = () => {
       <header className="bg-background/80 backdrop-blur-xl border-b border-border/50 sticky top-0 z-50">
         <div className="container mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
-            <BagsyLogo size="lg" />
+            <div className="flex items-center gap-3">
+              <BagsyLogo size="lg" />
+              <div className="hidden md:block">
+                <span className="text-sm font-medium text-muted-foreground">
+                  AI-Powered Space Rental
+                </span>
+              </div>
+            </div>
             <div className="flex items-center gap-4">
               {user ? (
                 <>
@@ -353,6 +360,11 @@ const Index = () => {
             {currentStep === 0 && (
               <div className="text-center space-y-8 mb-20 animate-fade-in">
                 <div className="space-y-6">
+                  <div className="space-y-2">
+                    <Badge variant="outline" className="px-4 py-2 text-sm font-medium">
+                      Bagsy - AI-Powered Space Rental
+                    </Badge>
+                  </div>
                   <h1 className="text-6xl md:text-7xl font-bold tracking-tight leading-tight">
                     Find the perfect space in
                     <span className="apple-text-gradient"> seconds</span>
@@ -724,7 +736,12 @@ const Index = () => {
       {/* Footer */}
       <footer className="border-t border-border/50 mt-20 py-12">
         <div className="container mx-auto px-6 text-center space-y-4">
-          <BagsyLogo size="lg" />
+          <div className="flex items-center justify-center gap-3">
+            <BagsyLogo size="lg" />
+            <span className="text-sm font-medium text-muted-foreground">
+              AI-Powered Space Rental
+            </span>
+          </div>
           <p className="text-muted-foreground">
             &copy; 2024 Bagsy. Revolutionizing space booking.
           </p>
