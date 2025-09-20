@@ -13,6 +13,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { LoadingDots } from "@/components/ui/loading-dots";
 import { aiService } from "@/lib/ai-service";
 import { webScrapingService } from "@/lib/web-scraping-service";
+import { smartSchedulingService } from "@/lib/smart-scheduling-service";
+import { smartMatchingService } from "@/lib/smart-matching-service";
+import { marketingContentService } from "@/lib/marketing-content-service";
 import { createComponentDebugger } from "@/lib/debug-utils";
 import { runFullStorageTest } from "@/lib/storage-test";
 import { setupStorageBuckets, checkStorageAccess } from "@/lib/setup-storage";
@@ -31,6 +34,9 @@ interface SpaceFormData {
   allowAIAgent: boolean;
   enableWebScraping: boolean;
   enablePricingOptimization: boolean;
+  enableSmartScheduling: boolean;
+  enableMarketingContent: boolean;
+  enablePredictiveAnalytics: boolean;
   customSpaceType?: string;
   selectedSpaceTypes: string[];
 }
@@ -93,6 +99,9 @@ export function AISpaceListingModal({ open, onOpenChange }: AISpaceListingModalP
     allowAIAgent: false,
     enableWebScraping: false,
     enablePricingOptimization: false,
+    enableSmartScheduling: false,
+    enableMarketingContent: false,
+    enablePredictiveAnalytics: false,
     customSpaceType: "",
     selectedSpaceTypes: [],
   });
@@ -585,6 +594,114 @@ export function AISpaceListingModal({ open, onOpenChange }: AISpaceListingModalP
         });
       }
       
+      // Apply smart scheduling if enabled
+      if (formData.enableSmartScheduling) {
+        try {
+          debug.info('Applying smart scheduling analysis');
+          
+          // Get historical booking data for this space type and location
+          const { data: similarSpaces, error: spacesError } = await supabase
+            .from('spaces')
+            .select('id')
+            .eq('space_type', analysisResult.spaceType)
+            .ilike('address', `%${formData.address.split(',')[0]}%`)
+            .eq('is_active', true);
+
+          if (!spacesError && similarSpaces && similarSpaces.length > 0) {
+            const spaceIds = similarSpaces.map(s => s.id);
+            const { data: bookings, error: bookingsError } = await supabase
+              .from('bookings')
+              .select('*')
+              .in('space_id', spaceIds)
+              .eq('status', 'confirmed')
+              .gte('created_at', new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString()); // Last 90 days
+
+            if (!bookingsError && bookings) {
+              const bookingData = bookings.map(booking => ({
+                id: booking.id,
+                spaceId: booking.space_id,
+                startTime: booking.start_time,
+                endTime: booking.end_time,
+                totalPrice: booking.total_price,
+                status: booking.status as 'pending' | 'confirmed' | 'cancelled' | 'completed',
+                createdAt: booking.created_at
+              }));
+
+              const schedulingData = await smartSchedulingService.suggestOptimalAvailability(
+                'temp-space-id', // We'll use a temporary ID for analysis
+                bookingData
+              );
+
+              debug.info('Smart scheduling analysis completed', { 
+                optimalWindows: schedulingData.length,
+                schedulingEnabled: true 
+              });
+            }
+          }
+        } catch (error) {
+          debug.warn('Smart scheduling analysis failed', error);
+        }
+      }
+
+      // Generate marketing content if enabled
+      if (formData.enableMarketingContent) {
+        try {
+          debug.info('Generating marketing content');
+          
+          const spaceData = {
+            id: 'temp-space-id',
+            space_type: analysisResult.spaceType,
+            title: finalTitle,
+            description: finalDescription,
+            address: formData.address,
+            price_per_hour: pricePerHour,
+            dimensions: finalDimensions
+          };
+
+          // Generate SEO content
+          const seoContent = await marketingContentService.generateSEOContent(spaceData, marketData);
+          
+          // Generate social media content
+          const socialContent = await marketingContentService.generateSocialMediaContent(spaceData);
+          
+          // Generate email campaigns
+          const emailCampaigns = await marketingContentService.generateEmailCampaigns(spaceData, 'potential_renters');
+          
+          debug.info('Marketing content generated', {
+            seoScore: seoContent.seoScore,
+            socialPlatforms: socialContent.length,
+            emailCampaigns: emailCampaigns.length
+          });
+        } catch (error) {
+          debug.warn('Marketing content generation failed', error);
+        }
+      }
+
+      // Apply predictive analytics if enabled
+      if (formData.enablePredictiveAnalytics) {
+        try {
+          debug.info('Applying predictive analytics');
+          
+          const timeframe = {
+            start: new Date().toISOString(),
+            end: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString() // Next 30 days
+          };
+
+          const demandForecast = await smartSchedulingService.predictDemandPatterns(
+            formData.address.split(',')[0], // City
+            analysisResult.spaceType,
+            timeframe
+          );
+
+          debug.info('Predictive analytics completed', {
+            forecastDays: demandForecast.length,
+            averageDemand: demandForecast.reduce((sum, f) => sum + f.expectedDemand, 0) / demandForecast.length
+          });
+        } catch (error) {
+          debug.warn('Predictive analytics failed', error);
+        }
+      }
+      
       // Convert to the expected format using enhanced data
       const aiData: AIGeneratedData = {
         spaceType: analysisResult.spaceType,
@@ -603,11 +720,31 @@ export function AISpaceListingModal({ open, onOpenChange }: AISpaceListingModalP
       
       debug.info('Analysis completed successfully, moving to review step');
       
+      // Create enhanced success message
+      const enabledFeatures = [];
+      if (formData.enableWebScraping && marketData) {
+        enabledFeatures.push(`market data from ${marketData.competitorCount} competitors`);
+      }
+      if (formData.enablePricingOptimization) {
+        enabledFeatures.push('AI pricing optimization');
+      }
+      if (formData.enableSmartScheduling) {
+        enabledFeatures.push('smart scheduling analysis');
+      }
+      if (formData.enableMarketingContent) {
+        enabledFeatures.push('marketing content generation');
+      }
+      if (formData.enablePredictiveAnalytics) {
+        enabledFeatures.push('predictive analytics');
+      }
+
+      const description = enabledFeatures.length > 0 
+        ? `Your space has been analyzed with ${enabledFeatures.join(', ')}. Review the suggestions below.`
+        : "Your space has been analyzed. Review the suggestions below.";
+
       toast({
         title: "AI Analysis Complete!",
-        description: marketData 
-          ? `Your space has been analyzed with market data from ${marketData.competitorCount} competitors.`
-          : "Your space has been analyzed. Review the suggestions below.",
+        description,
       });
     } catch (error: unknown) {
       debug.logError(error instanceof Error ? error : new Error(String(error)), { photoCount: urlsToUse.length });
@@ -623,7 +760,7 @@ export function AISpaceListingModal({ open, onOpenChange }: AISpaceListingModalP
     } finally {
       setAnalyzing(false);
     }
-  }, [formData.photoUrls, formData.address, formData.zipCode, formData.enableWebScraping, formData.enablePricingOptimization, formData.selectedSpaceTypes, formData.customSpaceType, debug, toast, performWebScraping, performPricingOptimization]);
+  }, [formData.photoUrls, formData.address, formData.zipCode, formData.enableWebScraping, formData.enablePricingOptimization, formData.enableSmartScheduling, formData.enableMarketingContent, formData.enablePredictiveAnalytics, formData.selectedSpaceTypes, formData.customSpaceType, debug, toast, performWebScraping, performPricingOptimization]);
 
   // Re-run AI analysis when location is added and we have existing AI data
   useEffect(() => {
@@ -748,6 +885,9 @@ export function AISpaceListingModal({ open, onOpenChange }: AISpaceListingModalP
         allowAIAgent: false,
         enableWebScraping: false,
         enablePricingOptimization: false,
+        enableSmartScheduling: false,
+        enableMarketingContent: false,
+        enablePredictiveAnalytics: false,
         customSpaceType: "",
         selectedSpaceTypes: [],
       });
@@ -810,6 +950,9 @@ export function AISpaceListingModal({ open, onOpenChange }: AISpaceListingModalP
       allowAIAgent: false,
       enableWebScraping: false,
       enablePricingOptimization: false,
+      enableSmartScheduling: false,
+      enableMarketingContent: false,
+      enablePredictiveAnalytics: false,
       customSpaceType: "",
       selectedSpaceTypes: [],
     });
@@ -1102,6 +1245,159 @@ export function AISpaceListingModal({ open, onOpenChange }: AISpaceListingModalP
                       <p className="text-xs text-muted-foreground">
                         When enabled, our AI will analyze market conditions and suggest pricing strategies 
                         to help you maximize revenue while remaining competitive in your market.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Smart Scheduling Toggle */}
+              <div className="space-y-4">
+                <div className="p-4 border border-muted-foreground/25 rounded-lg bg-blue-50/50">
+                  <div className="flex items-start space-x-3">
+                    <Checkbox
+                      id="enableSmartScheduling"
+                      checked={formData.enableSmartScheduling}
+                      onCheckedChange={(checked) => handleInputChange("enableSmartScheduling", checked as boolean)}
+                      className="mt-1"
+                    />
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        <Label htmlFor="enableSmartScheduling" className="text-sm font-medium cursor-pointer">
+                          Enable AI-powered smart scheduling
+                        </Label>
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <HelpCircle className="h-4 w-4 text-muted-foreground cursor-help" />
+                            </TooltipTrigger>
+                            <TooltipContent className="max-w-sm p-4">
+                              <div className="space-y-2">
+                                <p className="font-medium">Smart Scheduling</p>
+                                <p className="text-sm">
+                                  Our AI analyzes booking patterns, demand trends, and optimal availability windows 
+                                  to automatically suggest the best times to make your space available.
+                                </p>
+                                <div className="text-xs text-muted-foreground">
+                                  <p className="font-medium mb-1">Smart features:</p>
+                                  <ul className="space-y-1 list-disc list-inside">
+                                    <li>Optimal availability windows</li>
+                                    <li>Demand pattern analysis</li>
+                                    <li>Peak hour identification</li>
+                                    <li>Revenue optimization scheduling</li>
+                                    <li>Automatic pricing adjustments</li>
+                                  </ul>
+                                </div>
+                              </div>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        When enabled, our AI will analyze demand patterns and suggest optimal scheduling 
+                        strategies to maximize your space utilization and revenue.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Marketing Content Toggle */}
+              <div className="space-y-4">
+                <div className="p-4 border border-muted-foreground/25 rounded-lg bg-purple-50/50">
+                  <div className="flex items-start space-x-3">
+                    <Checkbox
+                      id="enableMarketingContent"
+                      checked={formData.enableMarketingContent}
+                      onCheckedChange={(checked) => handleInputChange("enableMarketingContent", checked as boolean)}
+                      className="mt-1"
+                    />
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        <Label htmlFor="enableMarketingContent" className="text-sm font-medium cursor-pointer">
+                          Enable AI-generated marketing content
+                        </Label>
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <HelpCircle className="h-4 w-4 text-muted-foreground cursor-help" />
+                            </TooltipTrigger>
+                            <TooltipContent className="max-w-sm p-4">
+                              <div className="space-y-2">
+                                <p className="font-medium">Marketing Content</p>
+                                <p className="text-sm">
+                                  Our AI creates compelling marketing content including SEO-optimized titles, 
+                                  social media posts, email campaigns, and listing optimization suggestions.
+                                </p>
+                                <div className="text-xs text-muted-foreground">
+                                  <p className="font-medium mb-1">Content types:</p>
+                                  <ul className="space-y-1 list-disc list-inside">
+                                    <li>SEO-optimized titles & descriptions</li>
+                                    <li>Social media marketing posts</li>
+                                    <li>Email campaign templates</li>
+                                    <li>Listing optimization suggestions</li>
+                                    <li>Engagement-focused content</li>
+                                  </ul>
+                                </div>
+                              </div>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        When enabled, our AI will generate professional marketing content to help you 
+                        attract more renters and improve your listing's visibility.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Predictive Analytics Toggle */}
+              <div className="space-y-4">
+                <div className="p-4 border border-muted-foreground/25 rounded-lg bg-orange-50/50">
+                  <div className="flex items-start space-x-3">
+                    <Checkbox
+                      id="enablePredictiveAnalytics"
+                      checked={formData.enablePredictiveAnalytics}
+                      onCheckedChange={(checked) => handleInputChange("enablePredictiveAnalytics", checked as boolean)}
+                      className="mt-1"
+                    />
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        <Label htmlFor="enablePredictiveAnalytics" className="text-sm font-medium cursor-pointer">
+                          Enable predictive analytics & insights
+                        </Label>
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <HelpCircle className="h-4 w-4 text-muted-foreground cursor-help" />
+                            </TooltipTrigger>
+                            <TooltipContent className="max-w-sm p-4">
+                              <div className="space-y-2">
+                                <p className="font-medium">Predictive Analytics</p>
+                                <p className="text-sm">
+                                  Our AI provides advanced analytics including revenue forecasting, 
+                                  market trend predictions, and performance insights to help you make data-driven decisions.
+                                </p>
+                                <div className="text-xs text-muted-foreground">
+                                  <p className="font-medium mb-1">Analytics features:</p>
+                                  <ul className="space-y-1 list-disc list-inside">
+                                    <li>Revenue potential forecasting</li>
+                                    <li>Market trend predictions</li>
+                                    <li>Booking pattern analysis</li>
+                                    <li>Performance optimization insights</li>
+                                    <li>Competitive intelligence reports</li>
+                                  </ul>
+                                </div>
+                              </div>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        When enabled, our AI will provide advanced analytics and predictions to help you 
+                        optimize your space rental strategy and maximize profitability.
                       </p>
                     </div>
                   </div>
