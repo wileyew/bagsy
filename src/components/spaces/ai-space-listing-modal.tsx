@@ -236,7 +236,6 @@ export function AISpaceListingModal({ open, onOpenChange }: AISpaceListingModalP
 
     setUploading(true);
     const uploadedUrls: string[] = [];
-    let uploadTimeout: NodeJS.Timeout | undefined;
     
     try {
       console.log('📤 Starting file upload process', { 
@@ -247,13 +246,6 @@ export function AISpaceListingModal({ open, onOpenChange }: AISpaceListingModalP
         fileCount: files.length,
         userId: user.id 
       });
-      
-      // Add timeout to prevent hanging
-      uploadTimeout = setTimeout(() => {
-        console.error('⏰ Upload timeout after 30 seconds');
-        debug.error('Upload timeout', { fileCount: files.length });
-        throw new Error('Upload timed out after 30 seconds');
-      }, 30000);
       
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
@@ -281,29 +273,35 @@ export function AISpaceListingModal({ open, onOpenChange }: AISpaceListingModalP
             .from('space-photos')
             .upload(fileName, file);
 
-          const { data, error } = await uploadPromise;
+          const uploadTimeoutPromise = new Promise((_, reject) => {
+            setTimeout(() => reject(new Error('Individual file upload timed out after 15 seconds')), 15000);
+          });
+
+          const result = await Promise.race([uploadPromise, uploadTimeoutPromise]) as { data: unknown, error: unknown };
+          const { data, error } = result;
 
           if (error) {
+            const errorMessage = error instanceof Error ? error.message : String(error);
             console.error(`❌ Upload error for file ${i + 1}:`, { 
               fileName, 
               error, 
-              errorMessage: error.message,
+              errorMessage,
               fileIndex: i 
             });
             debug.error('Upload error for individual file', { 
               fileName, 
               error, 
-              errorMessage: error.message,
+              errorMessage,
               fileIndex: i 
             });
             
             // Provide more helpful error messages for RLS issues
-            if (error.message.includes('row-level security')) {
-              throw new Error(`Storage security policy error. Please ensure you're logged in and storage policies are configured. Original error: ${error.message}`);
-            } else if (error.message.includes('bucket')) {
-              throw new Error(`Storage bucket error. Please try the "Setup Storage Buckets" button in debug mode. Original error: ${error.message}`);
+            if (errorMessage.includes('row-level security')) {
+              throw new Error(`Storage security policy error. Please ensure you're logged in and storage policies are configured. Original error: ${errorMessage}`);
+            } else if (errorMessage.includes('bucket')) {
+              throw new Error(`Storage bucket error. Please try the "Setup Storage Buckets" button in debug mode. Original error: ${errorMessage}`);
             } else {
-              throw new Error(`Failed to upload ${file.name}: ${error.message}`);
+              throw new Error(`Failed to upload ${file.name}: ${errorMessage}`);
             }
           }
 
@@ -326,9 +324,6 @@ export function AISpaceListingModal({ open, onOpenChange }: AISpaceListingModalP
           throw fileError; // Re-throw to be caught by outer try-catch
         }
       }
-      
-      // Clear timeout if upload completes successfully
-      clearTimeout(uploadTimeout);
 
       // Update form data with uploaded files and URLs
       setFormData(prev => ({ 
@@ -371,11 +366,6 @@ export function AISpaceListingModal({ open, onOpenChange }: AISpaceListingModalP
         }, 500); // Small delay to let the UI update
       }
     } catch (error: unknown) {
-      // Clear timeout if it exists
-      if (typeof uploadTimeout !== 'undefined') {
-        clearTimeout(uploadTimeout);
-      }
-      
       console.error('💥 Upload process failed:', error);
       debug.logError(error instanceof Error ? error : new Error(String(error)), { 
         fileCount: files.length,
