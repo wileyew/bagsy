@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { MapPin, Clock, DollarSign, Users, Star, ArrowRight, Search, Car, Warehouse, Home, Sparkles } from "lucide-react";
+import { MapPin, Clock, DollarSign, Users, Star, ArrowRight, Search, Car, Warehouse, Home, Sparkles, Zap, Bot, Shield, TrendingUp, CheckCircle, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { LoadingDots } from "@/components/ui/loading-dots";
@@ -381,6 +381,333 @@ const Index = () => {
                       <Sparkles className="h-5 w-5 text-primary" />
                     </div>
                     Auto negotiation
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Differentiation Section */}
+            {currentStep === 0 && (
+              <div className="space-y-16 mb-20">
+                {/* Why Bagsy Section */}
+                <div className="text-center space-y-8 animate-fade-in">
+                  <div className="space-y-4">
+                    <Badge variant="outline" className="px-4 py-2 text-sm font-medium">
+                      Why Choose Bagsy?
+                    </Badge>
+                    <h2 className="text-4xl md:text-5xl font-bold tracking-tight">
+                      The <span className="apple-text-gradient">Uber for Spaces</span>
+                    </h2>
+                    <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
+                      Just like Uber revolutionized transportation, Bagsy is revolutionizing space rental. 
+                      We're not just another marketplace—we're the infrastructure that powers the future of space sharing.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Comparison Table */}
+                <div className="max-w-6xl mx-auto animate-fade-in">
+                  <Card className="apple-card border-0 shadow-xl overflow-hidden">
+                    <CardHeader className="text-center pb-8">
+                      <CardTitle className="text-2xl font-bold">Bagsy vs. Traditional Platforms</CardTitle>
+                      <CardDescription className="text-lg">
+                        See how we're different from Airbnb, Craigslist, and other space rental platforms
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="p-0">
+                      <div className="overflow-x-auto">
+                        <table className="w-full">
+                          <thead className="bg-muted/50">
+                            <tr>
+                              <th className="text-left p-6 font-semibold">Feature</th>
+                              <th className="text-center p-6 font-semibold">
+                                <div className="flex items-center justify-center gap-2">
+                                  <BagsyLogo size="sm" />
+                                  <span>Bagsy</span>
+                                </div>
+                              </th>
+                              <th className="text-center p-6 font-semibold text-muted-foreground">Airbnb</th>
+                              <th className="text-center p-6 font-semibold text-muted-foreground">Craigslist</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-border">
+                            <tr>
+                              <td className="p-6 font-medium">AI-Powered Matching</td>
+                              <td className="p-6 text-center">
+                                <CheckCircle className="h-5 w-5 text-green-500 mx-auto" />
+                              </td>
+                              <td className="p-6 text-center">
+                                <X className="h-5 w-5 text-red-500 mx-auto" />
+                              </td>
+                              <td className="p-6 text-center">
+                                <X className="h-5 w-5 text-red-500 mx-auto" />
+                              </td>
+                            </tr>
+                            <tr>
+                              <td className="p-6 font-medium">Instant Booking</td>
+                              <td className="p-6 text-center">
+                                <CheckCircle className="h-5 w-5 text-green-500 mx-auto" />
+                              </td>
+                              <td className="p-6 text-center">
+                                <CheckCircle className="h-5 w-5 text-green-500 mx-auto" />
+                              </td>
+                              <td className="p-6 text-center">
+                                <X className="h-5 w-5 text-red-500 mx-auto" />
+                              </td>
+                            </tr>
+                            <tr>
+                              <td className="p-6 font-medium">AI Agents for Negotiation</td>
+                              <td className="p-6 text-center">
+                                <CheckCircle className="h-5 w-5 text-green-500 mx-auto" />
+                              </td>
+                              <td className="p-6 text-center">
+                                <X className="h-5 w-5 text-red-500 mx-auto" />
+                              </td>
+                              <td className="p-6 text-center">
+                                <X className="h-5 w-5 text-red-500 mx-auto" />
+                              </td>
+                            </tr>
+                            <tr>
+                              <td className="p-6 font-medium">Dynamic Pricing</td>
+                              <td className="p-6 text-center">
+                                <CheckCircle className="h-5 w-5 text-green-500 mx-auto" />
+                              </td>
+                              <td className="p-6 text-center">
+                                <X className="h-5 w-5 text-red-500 mx-auto" />
+                              </td>
+                              <td className="p-6 text-center">
+                                <X className="h-5 w-5 text-red-500 mx-auto" />
+                              </td>
+                            </tr>
+                            <tr>
+                              <td className="p-6 font-medium">Space-Specific Features</td>
+                              <td className="p-6 text-center">
+                                <CheckCircle className="h-5 w-5 text-green-500 mx-auto" />
+                              </td>
+                              <td className="p-6 text-center">
+                                <X className="h-5 w-5 text-red-500 mx-auto" />
+                              </td>
+                              <td className="p-6 text-center">
+                                <X className="h-5 w-5 text-red-500 mx-auto" />
+                              </td>
+                            </tr>
+                            <tr>
+                              <td className="p-6 font-medium">Market Research Integration</td>
+                              <td className="p-6 text-center">
+                                <CheckCircle className="h-5 w-5 text-green-500 mx-auto" />
+                              </td>
+                              <td className="p-6 text-center">
+                                <X className="h-5 w-5 text-red-500 mx-auto" />
+                              </td>
+                              <td className="p-6 text-center">
+                                <X className="h-5 w-5 text-red-500 mx-auto" />
+                              </td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                {/* Platform Positioning */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto animate-fade-in">
+                  {/* Uber Comparison */}
+                  <Card className="apple-card border-0 shadow-xl text-center">
+                    <CardHeader className="pb-4">
+                      <div className="mx-auto w-16 h-16 bg-blue-100 rounded-2xl flex items-center justify-center mb-4">
+                        <Zap className="h-8 w-8 text-blue-600" />
+                      </div>
+                      <CardTitle className="text-xl">Like Uber for Cars</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <p className="text-muted-foreground">
+                        Uber didn't just create a taxi app—they built the infrastructure for on-demand transportation.
+                      </p>
+                      <div className="space-y-2 text-sm">
+                        <div className="flex items-center gap-2">
+                          <CheckCircle className="h-4 w-4 text-green-500" />
+                          <span>Instant matching</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <CheckCircle className="h-4 w-4 text-green-500" />
+                          <span>Dynamic pricing</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <CheckCircle className="h-4 w-4 text-green-500" />
+                          <span>Seamless experience</span>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Twilio Comparison */}
+                  <Card className="apple-card border-0 shadow-xl text-center">
+                    <CardHeader className="pb-4">
+                      <div className="mx-auto w-16 h-16 bg-green-100 rounded-2xl flex items-center justify-center mb-4">
+                        <Bot className="h-8 w-8 text-green-600" />
+                      </div>
+                      <CardTitle className="text-xl">Like Twilio for Agents</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <p className="text-muted-foreground">
+                        Twilio provides APIs for communication. We provide AI agents for space negotiation.
+                      </p>
+                      <div className="space-y-2 text-sm">
+                        <div className="flex items-center gap-2">
+                          <CheckCircle className="h-4 w-4 text-green-500" />
+                          <span>AI-powered negotiation</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <CheckCircle className="h-4 w-4 text-green-500" />
+                          <span>24/7 availability</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <CheckCircle className="h-4 w-4 text-green-500" />
+                          <span>API-first approach</span>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Infrastructure */}
+                  <Card className="apple-card border-0 shadow-xl text-center">
+                    <CardHeader className="pb-4">
+                      <div className="mx-auto w-16 h-16 bg-purple-100 rounded-2xl flex items-center justify-center mb-4">
+                        <Shield className="h-8 w-8 text-purple-600" />
+                      </div>
+                      <CardTitle className="text-xl">Built for Scale</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <p className="text-muted-foreground">
+                        We're not just a marketplace—we're the infrastructure that powers space sharing.
+                      </p>
+                      <div className="space-y-2 text-sm">
+                        <div className="flex items-center gap-2">
+                          <CheckCircle className="h-4 w-4 text-green-500" />
+                          <span>Enterprise-ready</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <CheckCircle className="h-4 w-4 text-green-500" />
+                          <span>White-label solutions</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <CheckCircle className="h-4 w-4 text-green-500" />
+                          <span>Developer-friendly APIs</span>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                {/* Key Differentiators */}
+                <div className="max-w-4xl mx-auto animate-fade-in">
+                  <Card className="apple-card border-0 shadow-xl">
+                    <CardHeader className="text-center pb-8">
+                      <CardTitle className="text-2xl font-bold">What Makes Bagsy Different</CardTitle>
+                      <CardDescription className="text-lg">
+                        We're building the future of space sharing, not just another rental platform
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-8">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        <div className="space-y-4">
+                          <div className="flex items-start gap-4">
+                            <div className="p-3 bg-primary/10 rounded-xl">
+                              <Sparkles className="h-6 w-6 text-primary" />
+                            </div>
+                            <div>
+                              <h3 className="font-semibold text-lg mb-2">AI-First Approach</h3>
+                              <p className="text-muted-foreground">
+                                Every interaction is powered by AI—from photo analysis to price optimization to automated negotiation.
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="space-y-4">
+                          <div className="flex items-start gap-4">
+                            <div className="p-3 bg-green-100 rounded-xl">
+                              <TrendingUp className="h-6 w-6 text-green-600" />
+                            </div>
+                            <div>
+                              <h3 className="font-semibold text-lg mb-2">Market Intelligence</h3>
+                              <p className="text-muted-foreground">
+                                Real-time market research and competitive analysis ensure optimal pricing and positioning.
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="space-y-4">
+                          <div className="flex items-start gap-4">
+                            <div className="p-3 bg-blue-100 rounded-xl">
+                              <Bot className="h-6 w-6 text-blue-600" />
+                            </div>
+                            <div>
+                              <h3 className="font-semibold text-lg mb-2">Automated Agents</h3>
+                              <p className="text-muted-foreground">
+                                AI agents handle negotiations, bookings, and customer service—24/7 availability without human intervention.
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="space-y-4">
+                          <div className="flex items-start gap-4">
+                            <div className="p-3 bg-purple-100 rounded-xl">
+                              <Zap className="h-6 w-6 text-purple-600" />
+                            </div>
+                            <div>
+                              <h3 className="font-semibold text-lg mb-2">Instant Everything</h3>
+                              <p className="text-muted-foreground">
+                                Instant matching, instant pricing, instant booking—no waiting, no back-and-forth, no delays.
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                {/* Call to Action */}
+                <div className="text-center space-y-6 animate-fade-in">
+                  <h3 className="text-2xl font-bold">Ready to experience the future of space sharing?</h3>
+                  <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+                    Join thousands of users who are already using AI-powered space booking. 
+                    List your space in seconds, get fair prices, and let our AI agents handle the rest.
+                  </p>
+                  <div className="flex items-center justify-center gap-4">
+                    <Button 
+                      size="lg" 
+                      className="apple-button-primary h-14 px-8 text-lg"
+                      onClick={() => setCurrentStep(1)}
+                    >
+                      <Search className="h-5 w-5 mr-2" />
+                      Find Your Space
+                    </Button>
+                    {user ? (
+                      <Button 
+                        size="lg" 
+                        variant="outline"
+                        className="apple-button-secondary h-14 px-8 text-lg"
+                        onClick={() => setAiSpaceListingModalOpen(true)}
+                      >
+                        <Sparkles className="h-5 w-5 mr-2" />
+                        List Your Space
+                      </Button>
+                    ) : (
+                      <Button 
+                        size="lg" 
+                        variant="outline"
+                        className="apple-button-secondary h-14 px-8 text-lg"
+                        onClick={() => setAuthModalOpen(true)}
+                      >
+                        <Sparkles className="h-5 w-5 mr-2" />
+                        List Your Space
+                      </Button>
+                    )}
                   </div>
                 </div>
               </div>
