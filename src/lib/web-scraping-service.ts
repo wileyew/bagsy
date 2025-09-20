@@ -32,14 +32,116 @@ class WebScrapingService {
   private baseUrl = 'https://api.scrapingbee.com/v1/';
   private apiKey: string;
   private debug = createComponentDebugger('WebScrapingService');
+  private isServiceAvailable = true; // Track if ScrapingBee is available
   
   constructor() {
     this.apiKey = import.meta.env.VITE_SCRAPINGBEE_API_KEY || '';
     this.debug.logApiKey('ScrapingBee', !!this.apiKey);
     this.debug.info('Service initialized', { 
       hasApiKey: !!this.apiKey,
-      baseUrl: this.baseUrl 
+      baseUrl: this.baseUrl,
+      apiKeyLength: this.apiKey.length,
+      apiKeyPrefix: this.apiKey.substring(0, 8) + '...' // Show first 8 chars for debugging
     });
+    
+    // Validate API key format
+    if (this.apiKey && this.apiKey.length < 20) {
+      this.debug.warn('ScrapingBee API key appears to be too short', { 
+        length: this.apiKey.length,
+        expectedLength: '>20 characters'
+      });
+    }
+  }
+
+  /**
+   * Test ScrapingBee API connection
+   */
+  async testConnection(): Promise<{ success: boolean; error?: string; responseTime?: number; details?: string }> {
+    const startTime = Date.now();
+    
+    try {
+      this.debug.info('Testing ScrapingBee API connection');
+      
+      if (!this.apiKey) {
+        return { 
+          success: false, 
+          error: 'No API key provided',
+          details: 'Please set VITE_SCRAPINGBEE_API_KEY environment variable'
+        };
+      }
+      
+      // Test with a simple URL
+      const testUrl = 'https://httpbin.org/html';
+      const scrapingBeeUrl = new URL(this.baseUrl);
+      scrapingBeeUrl.searchParams.set('api_key', this.apiKey);
+      scrapingBeeUrl.searchParams.set('url', testUrl);
+      scrapingBeeUrl.searchParams.set('render_js', 'false'); // No JS needed for test
+      
+      this.debug.debug('Testing ScrapingBee with URL', { 
+        testUrl,
+        scrapingBeeUrl: scrapingBeeUrl.toString()
+      });
+      
+      const response = await fetch(scrapingBeeUrl.toString(), {
+        method: 'GET',
+        signal: AbortSignal.timeout(10000) // 10 second timeout for test
+      });
+      
+      const responseTime = Date.now() - startTime;
+      
+      if (!response.ok) {
+        const errorText = await response.text().catch(() => 'Unknown error');
+        this.debug.error('ScrapingBee test failed', { 
+          status: response.status, 
+          statusText: response.statusText,
+          errorText,
+          responseTime
+        });
+        return { 
+          success: false, 
+          error: `HTTP ${response.status}: ${response.statusText}`,
+          details: errorText,
+          responseTime
+        };
+      }
+      
+      const html = await response.text();
+      
+      this.debug.info('ScrapingBee test successful', { 
+        responseTime,
+        htmlLength: html.length,
+        status: response.status
+      });
+      
+      return { success: true, responseTime };
+      
+    } catch (error) {
+      const responseTime = Date.now() - startTime;
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      
+      this.debug.error('ScrapingBee test error', { 
+        error: errorMessage,
+        responseTime
+      });
+      
+      // Provide specific guidance based on error type
+      let details = '';
+      if (errorMessage.includes('ERR_NAME_NOT_RESOLVED') || errorMessage.includes('fetch failed')) {
+        details = 'DNS resolution failed. This could be due to:\n• Network connectivity issues\n• Firewall/proxy blocking\n• ScrapingBee service outage\n• DNS server problems';
+        this.isServiceAvailable = false;
+      } else if (errorMessage.includes('timeout')) {
+        details = 'Request timed out. The ScrapingBee service may be slow or overloaded.';
+      } else if (errorMessage.includes('CORS')) {
+        details = 'CORS error. This might be a browser security restriction.';
+      }
+      
+      return { 
+        success: false, 
+        error: errorMessage, 
+        details,
+        responseTime 
+      };
+    }
   }
 
   async scrapeMarketData(
@@ -211,10 +313,38 @@ class WebScrapingService {
   private async fetchPage(url: string): Promise<string> {
     const startTime = this.debug.timeStart('fetchPage');
     
+    // If ScrapingBee service is known to be unavailable, skip the attempt
+    if (!this.isServiceAvailable) {
+      this.debug.warn('ScrapingBee service marked as unavailable, skipping fetch attempt');
+      throw new Error('ScrapingBee service is currently unavailable. Using mock data instead.');
+    }
+    
     try {
       this.debug.apiCall('fetchPage', 'GET', url);
       
-      const response = await fetch(`${this.baseUrl}?api_key=${this.apiKey}&url=${encodeURIComponent(url)}&render_js=true`);
+      // Construct the ScrapingBee API URL properly
+      const scrapingBeeUrl = new URL(this.baseUrl);
+      scrapingBeeUrl.searchParams.set('api_key', this.apiKey);
+      scrapingBeeUrl.searchParams.set('url', url);
+      scrapingBeeUrl.searchParams.set('render_js', 'true');
+      scrapingBeeUrl.searchParams.set('premium_proxy', 'true'); // Use premium proxy for better reliability
+      scrapingBeeUrl.searchParams.set('country_code', 'us'); // Set country for better results
+      
+      this.debug.debug('ScrapingBee URL constructed', { 
+        originalUrl: url,
+        scrapingBeeUrl: scrapingBeeUrl.toString(),
+        hasApiKey: !!this.apiKey
+      });
+      
+      const response = await fetch(scrapingBeeUrl.toString(), {
+        method: 'GET',
+        headers: {
+          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+        },
+        // Add timeout to prevent hanging requests
+        signal: AbortSignal.timeout(30000) // 30 second timeout
+      });
       
       this.debug.apiResponse('fetchPage', 'GET', url, response.status, {
         statusText: response.statusText,
@@ -222,7 +352,14 @@ class WebScrapingService {
       });
       
       if (!response.ok) {
-        throw new Error(`Scraping failed: ${response.statusText}`);
+        const errorText = await response.text().catch(() => 'Unknown error');
+        this.debug.error('ScrapingBee API error', { 
+          status: response.status, 
+          statusText: response.statusText,
+          errorText,
+          url: scrapingBeeUrl.toString()
+        });
+        throw new Error(`ScrapingBee API error: ${response.status} ${response.statusText} - ${errorText}`);
       }
 
       const html = await response.text();
@@ -240,6 +377,24 @@ class WebScrapingService {
         success: false,
         error: error instanceof Error ? error.message : String(error)
       });
+      
+      // Handle specific error types and mark service as unavailable if needed
+      if (error instanceof Error) {
+        if (error.name === 'AbortError') {
+          throw new Error('ScrapingBee request timed out after 30 seconds');
+        } else if (error.message.includes('ERR_NAME_NOT_RESOLVED') || error.message.includes('fetch failed')) {
+          // Mark service as unavailable to prevent repeated attempts
+          this.isServiceAvailable = false;
+          this.debug.warn('ScrapingBee service unavailable - marking as down', { 
+            error: error.message,
+            originalUrl: url
+          });
+          throw new Error('ScrapingBee API endpoint not reachable (DNS resolution failed). Service may be down or blocked. Using mock data instead.');
+        } else if (error.message.includes('CORS')) {
+          throw new Error('CORS error with ScrapingBee API. This might be a browser security restriction.');
+        }
+      }
+      
       throw error;
     }
   }

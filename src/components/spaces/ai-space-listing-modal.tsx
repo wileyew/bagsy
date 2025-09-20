@@ -651,9 +651,26 @@ export function AISpaceListingModal({ open, onOpenChange }: AISpaceListingModalP
         address: formData.address,
         zipCode: formData.zipCode,
         selectedSpaceTypes: formData.selectedSpaceTypes,
+        customSpaceType: formData.customSpaceType,
         enableWebScraping: formData.enableWebScraping,
         enablePricingOptimization: formData.enablePricingOptimization,
+        enableSmartScheduling: formData.enableSmartScheduling,
+        enableMarketingContent: formData.enableMarketingContent,
+        enablePredictiveAnalytics: formData.enablePredictiveAnalytics,
         currentLocation: currentLocation,
+        userPreferences: {
+          priceRange: { min: 0, max: 100 }, // Default range, could be enhanced with user input
+          amenities: [], // Could be enhanced with user preferences
+          accessibility: [], // Could be enhanced with user preferences
+          restrictions: [], // Could be enhanced with user preferences
+        },
+        additionalInfo: {
+          availability: 'Flexible', // Could be enhanced with user input
+          accessHours: '24/7', // Could be enhanced with user input
+          specialFeatures: [], // Could be enhanced with user input
+          restrictions: [], // Could be enhanced with user input
+          nearbyAmenities: [], // Could be enhanced with user input
+        },
       });
       
       const timeoutPromise = new Promise((_, reject) => 
@@ -1293,6 +1310,43 @@ export function AISpaceListingModal({ open, onOpenChange }: AISpaceListingModalP
                     <p><strong>Debug Info:</strong></p>
                     <p>Photo URLs count: {formData.photoUrls.length}</p>
                     <p>Photo URLs: {JSON.stringify(formData.photoUrls)}</p>
+                    <div className="mt-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={async () => {
+                          try {
+                            const result = await webScrapingService.testConnection();
+                            console.log('ScrapingBee Test Result:', result);
+                            
+                            if (result.success) {
+                              toast({
+                                title: "✅ ScrapingBee Test Passed",
+                                description: `Connection successful (${result.responseTime}ms)`,
+                                variant: "default"
+                              });
+                            } else {
+                              toast({
+                                title: "❌ ScrapingBee Test Failed",
+                                description: `${result.error}${result.details ? `\n\n${result.details}` : ''}`,
+                                variant: "destructive"
+                              });
+                            }
+                          } catch (error) {
+                            console.error('ScrapingBee test error:', error);
+                            toast({
+                              title: "❌ ScrapingBee Test Error",
+                              description: error instanceof Error ? error.message : String(error),
+                              variant: "destructive"
+                            });
+                          }
+                        }}
+                        className="w-full text-xs"
+                      >
+                        Test ScrapingBee Connection
+                      </Button>
+                    </div>
                   </div>
                 )}
               </div>

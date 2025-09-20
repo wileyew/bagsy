@@ -2,8 +2,12 @@ export interface LocationContext {
   address?: string;
   zipCode?: string;
   selectedSpaceTypes?: string[];
+  customSpaceType?: string;
   enableWebScraping?: boolean;
   enablePricingOptimization?: boolean;
+  enableSmartScheduling?: boolean;
+  enableMarketingContent?: boolean;
+  enablePredictiveAnalytics?: boolean;
   currentLocation?: {
     latitude: number;
     longitude: number;
@@ -13,6 +17,19 @@ export interface LocationContext {
     zipCode: string;
     country: string;
     accuracy: number;
+  };
+  userPreferences?: {
+    priceRange?: { min: number; max: number };
+    amenities?: string[];
+    accessibility?: string[];
+    restrictions?: string[];
+  };
+  additionalInfo?: {
+    availability?: string;
+    accessHours?: string;
+    specialFeatures?: string[];
+    restrictions?: string[];
+    nearbyAmenities?: string[];
   };
 }
 
@@ -54,8 +71,14 @@ class AIService {
       location: location.address ? `${location.address}, ${location.zipCode}` : 'Not specified',
       geolocation: location.currentLocation ? `${location.currentLocation.latitude}, ${location.currentLocation.longitude}` : 'Not available',
       selectedSpaceTypes: location.selectedSpaceTypes || [],
+      customSpaceType: location.customSpaceType || 'Not specified',
       webScrapingEnabled: location.enableWebScraping || false,
-      pricingOptimizationEnabled: location.enablePricingOptimization || false
+      pricingOptimizationEnabled: location.enablePricingOptimization || false,
+      smartSchedulingEnabled: location.enableSmartScheduling || false,
+      marketingContentEnabled: location.enableMarketingContent || false,
+      predictiveAnalyticsEnabled: location.enablePredictiveAnalytics || false,
+      userPreferences: location.userPreferences || 'Not specified',
+      additionalInfo: location.additionalInfo || 'Not specified'
     });
     console.log('📸 Photo URLs:', photoUrls);
     
@@ -86,48 +109,121 @@ class AIService {
           content: [
             {
               type: 'text',
-              text: `Analyze these photos of a space for rent and generate a comprehensive listing.
+              text: `Analyze these photos of a space for rent and generate a comprehensive listing using ALL available information.
 
-              CONTEXT:
-              ${location.address && location.zipCode ? `Location: ${location.address}, ${location.zipCode}` : 'Location: Not specified'}
-              ${location.currentLocation ? `Precise Location: ${location.currentLocation.latitude}, ${location.currentLocation.longitude} (${location.currentLocation.address})` : 'Precise Location: Not available'}
-              ${location.selectedSpaceTypes && location.selectedSpaceTypes.length > 0 ? `Selected Space Types: ${location.selectedSpaceTypes.join(', ')}` : 'No specific space types selected'}
-              ${location.enableWebScraping ? 'Market Research: Enabled - consider competitive pricing and market positioning' : 'Market Research: Disabled'}
-              ${location.enablePricingOptimization ? 'Pricing Optimization: Enabled - suggest optimal pricing strategy' : 'Pricing Optimization: Disabled'}
+              USER PROVIDED INFORMATION:
+              ${location.address && location.zipCode ? `📍 Location: ${location.address}, ${location.zipCode}` : '📍 Location: Not specified'}
+              ${location.currentLocation ? `📍 Precise Location: ${location.currentLocation.latitude}, ${location.currentLocation.longitude} (${location.currentLocation.address})` : '📍 Precise Location: Not available'}
+              ${location.selectedSpaceTypes && location.selectedSpaceTypes.length > 0 ? `🏷️ Selected Space Types: ${location.selectedSpaceTypes.join(', ')}` : '🏷️ No specific space types selected'}
+              ${location.customSpaceType ? `🏷️ Custom Space Type: ${location.customSpaceType}` : ''}
+              
+              AI FEATURES ENABLED:
+              ${location.enableWebScraping ? '🔍 Market Research: Enabled - consider competitive pricing and market positioning' : '🔍 Market Research: Disabled'}
+              ${location.enablePricingOptimization ? '💰 Pricing Optimization: Enabled - suggest optimal pricing strategy' : '💰 Pricing Optimization: Disabled'}
+              ${location.enableSmartScheduling ? '📅 Smart Scheduling: Enabled - consider optimal availability windows' : '📅 Smart Scheduling: Disabled'}
+              ${location.enableMarketingContent ? '📢 Marketing Content: Enabled - create compelling marketing copy' : '📢 Marketing Content: Disabled'}
+              ${location.enablePredictiveAnalytics ? '📊 Predictive Analytics: Enabled - consider market trends and forecasting' : '📊 Predictive Analytics: Disabled'}
+
+              ${location.userPreferences ? `
+              USER PREFERENCES:
+              ${location.userPreferences.priceRange ? `💰 Price Range: $${location.userPreferences.priceRange.min}-$${location.userPreferences.priceRange.max}/hour` : ''}
+              ${location.userPreferences.amenities && location.userPreferences.amenities.length > 0 ? `🏠 Desired Amenities: ${location.userPreferences.amenities.join(', ')}` : ''}
+              ${location.userPreferences.accessibility && location.userPreferences.accessibility.length > 0 ? `♿ Accessibility: ${location.userPreferences.accessibility.join(', ')}` : ''}
+              ${location.userPreferences.restrictions && location.userPreferences.restrictions.length > 0 ? `🚫 Restrictions: ${location.userPreferences.restrictions.join(', ')}` : ''}
+              ` : ''}
+
+              ${location.additionalInfo ? `
+              ADDITIONAL SPACE INFORMATION:
+              ${location.additionalInfo.availability ? `📅 Availability: ${location.additionalInfo.availability}` : ''}
+              ${location.additionalInfo.accessHours ? `🕐 Access Hours: ${location.additionalInfo.accessHours}` : ''}
+              ${location.additionalInfo.specialFeatures && location.additionalInfo.specialFeatures.length > 0 ? `⭐ Special Features: ${location.additionalInfo.specialFeatures.join(', ')}` : ''}
+              ${location.additionalInfo.restrictions && location.additionalInfo.restrictions.length > 0 ? `🚫 Space Restrictions: ${location.additionalInfo.restrictions.join(', ')}` : ''}
+              ${location.additionalInfo.nearbyAmenities && location.additionalInfo.nearbyAmenities.length > 0 ? `🏪 Nearby Amenities: ${location.additionalInfo.nearbyAmenities.join(', ')}` : ''}
+              ` : ''}
 
               ANALYSIS REQUIREMENTS:
               ${location.enableWebScraping ? `
-              - Focus on space type identification and market positioning
-              - Provide detailed description highlighting competitive advantages
-              - Include specific dimensions and features that differentiate this space
-              - Suggest pricing that can be enhanced with market data
+              🔍 MARKET RESEARCH MODE:
+              - Focus on space type identification and competitive market positioning
+              - Provide detailed description highlighting competitive advantages over similar listings
+              - Include specific dimensions and features that differentiate this space from competitors
+              - Suggest pricing that can be enhanced with market data analysis
               - Emphasize unique selling points for market competition
+              - Consider location-specific market conditions and demand patterns
               ` : `
-              - Identify the primary space type from the photos
-              - Provide a compelling description based on visual features
-              - Estimate dimensions based on what's visible
-              - Suggest competitive pricing for the area
+              📸 STANDARD ANALYSIS MODE:
+              - Identify the primary space type from the photos and user selections
+              - Provide a compelling description based on visual features and user preferences
+              - Estimate dimensions based on what's visible and user-provided information
+              - Suggest competitive pricing for the area based on location and space type
               `}
-              
-              1. Space type: Choose the MOST APPROPRIATE type from: garage, driveway, warehouse, parking_spot, storage_unit, outdoor_space, rv_storage, other
-              2. Title: Create a compelling, SEO-friendly title (max 60 characters) that highlights key benefits
-              3. Description: Write a detailed, marketing-focused description (2-3 sentences) that emphasizes unique features and benefits
-              4. Dimensions: Estimate realistic dimensions based on what you can see in the photos
-              5. Pricing: Suggest competitive hourly price based on:
-                 - Space type and quality
-                 - Location (if provided)
-                 - Market conditions
-                 - Space features and amenities
-              6. Features: List 3-5 key selling points and amenities
 
-              PRICING GUIDELINES:
-              - Garage: $5-15/hour (urban areas higher)
+              ${location.enableMarketingContent ? `
+              📢 MARKETING CONTENT MODE:
+              - Create SEO-optimized title with relevant keywords
+              - Write compelling description that highlights unique value propositions
+              - Emphasize benefits over features in the description
+              - Include location-specific advantages and nearby amenities
+              - Use persuasive language that encourages bookings
+              ` : ''}
+
+              ${location.enablePricingOptimization ? `
+              💰 PRICING OPTIMIZATION MODE:
+              - Analyze location-based pricing factors
+              - Consider space type rarity and demand in the area
+              - Factor in user's price range preferences
+              - Suggest pricing that maximizes revenue while remaining competitive
+              - Consider peak hours, seasonal trends, and market positioning
+              ` : ''}
+
+              COMPREHENSIVE ANALYSIS TASKS:
+              1. Space Type: Choose the MOST APPROPRIATE type from: garage, driveway, warehouse, parking_spot, storage_unit, outdoor_space, rv_storage, other
+                 ${location.customSpaceType ? `   - If "other" is selected, consider the custom space type: "${location.customSpaceType}"` : ''}
+                 ${location.selectedSpaceTypes && location.selectedSpaceTypes.length > 0 ? `   - Prioritize from user's selected types: ${location.selectedSpaceTypes.join(', ')}` : ''}
+              
+              2. Title: Create a compelling, SEO-friendly title (max 60 characters) that:
+                 - Highlights key benefits and unique features
+                 - Includes location if provided
+                 - Uses relevant keywords for search optimization
+                 - Appeals to the target market for this space type
+              
+              3. Description: Write a detailed, marketing-focused description (2-3 sentences) that:
+                 - Emphasizes unique features and benefits
+                 - Mentions location advantages and nearby amenities
+                 - Addresses user preferences and requirements
+                 - Uses persuasive language to encourage bookings
+                 - Includes any special features or restrictions mentioned
+              
+              4. Dimensions: Estimate realistic dimensions based on:
+                 - What you can see in the photos
+                 - Space type standards
+                 - User-provided information about the space
+                 - Location and space type typical sizing
+              
+              5. Pricing: Suggest competitive hourly price based on:
+                 - Space type and quality visible in photos
+                 - Location (if provided) and local market conditions
+                 - User's price range preferences
+                 - Space features and amenities
+                 - Market positioning and competitive advantages
+                 - Demand patterns for this space type in the area
+              
+              6. Features: List 3-5 key selling points and amenities that:
+                 - Are visible in the photos or mentioned by the user
+                 - Address common needs for this space type
+                 - Highlight competitive advantages
+                 - Include location-specific benefits
+                 - Consider user preferences and requirements
+
+              PRICING GUIDELINES (adjust based on location and user preferences):
+              - Garage: $5-15/hour (urban areas higher, consider user price range)
               - Driveway: $3-8/hour
               - Warehouse: $20-50/hour
               - Parking Spot: $2-6/hour
               - Storage Unit: $8-25/hour
               - Outdoor Space: $4-12/hour
               - RV Storage: $10-30/hour
+              ${location.customSpaceType ? `- Custom (${location.customSpaceType}): Research similar space types for pricing` : ''}
 
               IMPORTANT: Return ONLY valid JSON in this exact format:
               {
@@ -248,7 +344,7 @@ class AIService {
     // Simulate API delay
     await new Promise(resolve => setTimeout(resolve, 2000));
     
-    // Mock AI analysis based on address patterns (if location provided)
+    // Mock AI analysis based on address patterns and user preferences
     const hasLocation = location.address && location.zipCode;
     const isUrban = hasLocation && (
       location.address.toLowerCase().includes('san francisco') || 
@@ -258,22 +354,122 @@ class AIService {
       location.address.toLowerCase().includes('downtown')
     );
     
-    const basePrice = isUrban ? 8 : 6; // Default to middle price if no location
-    const spaceType = isUrban ? 'garage' : 'storage_unit';
+    // Use user's selected space types if available
+    const userSpaceTypes = location.selectedSpaceTypes && location.selectedSpaceTypes.length > 0 
+      ? location.selectedSpaceTypes 
+      : [];
+    const customSpaceType = location.customSpaceType;
+    
+    // Determine space type based on user input and location
+    let spaceType = 'garage'; // default
+    if (userSpaceTypes.length > 0) {
+      spaceType = userSpaceTypes[0]; // Use first selected type
+    } else if (customSpaceType) {
+      spaceType = 'other';
+    } else {
+      spaceType = isUrban ? 'garage' : 'storage_unit';
+    }
+    
+    // Adjust pricing based on user preferences and location
+    let basePrice = isUrban ? 8 : 6;
+    if (location.userPreferences?.priceRange) {
+      // Use middle of user's price range if provided
+      basePrice = (location.userPreferences.priceRange.min + location.userPreferences.priceRange.max) / 2;
+    }
+    
+    // Create title based on user preferences and location
+    let title = 'Versatile Storage Space Available';
+    if (hasLocation) {
+      const locationName = location.address.split(',')[0];
+      if (customSpaceType) {
+        title = `${customSpaceType} Space in ${locationName}`;
+      } else if (userSpaceTypes.length > 0) {
+        const spaceTypeLabel = userSpaceTypes[0].replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase());
+        title = `${isUrban ? 'Premium' : 'Convenient'} ${spaceTypeLabel} in ${locationName}`;
+      } else {
+        title = `${isUrban ? 'Spacious' : 'Convenient'} ${isUrban ? 'Garage' : 'Storage Unit'} in ${locationName}`;
+      }
+    } else if (customSpaceType) {
+      title = `${customSpaceType} Space Available`;
+    } else if (userSpaceTypes.length > 0) {
+      const spaceTypeLabel = userSpaceTypes[0].replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase());
+      title = `Quality ${spaceTypeLabel} Available`;
+    }
+    
+    // Create description based on user preferences and features
+    let description = 'Flexible storage space perfect for your needs.';
+    if (hasLocation) {
+      const locationName = location.address.split(',')[0];
+      if (customSpaceType) {
+        description = `Perfect ${customSpaceType.toLowerCase()} space in ${locationName}. Secure and easily accessible with convenient loading access. Ideal for your specific storage needs.`;
+      } else {
+        description = `Perfect ${isUrban ? 'covered storage space' : 'storage unit'} in a ${isUrban ? 'prime urban location' : 'convenient location'}. ${isUrban ? 'Secure and easily accessible' : 'Easy access and well-maintained'}. Ideal for ${isUrban ? 'short-term storage or vehicle parking' : 'storage needs'}.`;
+      }
+    } else if (customSpaceType) {
+      description = `Perfect ${customSpaceType.toLowerCase()} space for your needs. Secure and easily accessible with convenient loading access. Ideal for your specific requirements.`;
+    }
+    
+    // Add AI feature-specific enhancements to description
+    if (location.enableMarketingContent) {
+      description += ' Professional marketing content optimized for maximum visibility and bookings.';
+    }
+    if (location.enableWebScraping) {
+      description += ' Competitive pricing based on market research and local demand patterns.';
+    }
+    if (location.enablePricingOptimization) {
+      description += ' Optimized pricing strategy for maximum revenue potential.';
+    }
+    
+    // Determine dimensions based on space type
+    let dimensions = 'Standard size';
+    switch (spaceType) {
+      case 'garage':
+        dimensions = isUrban ? '20x12 feet' : '18x10 feet';
+        break;
+      case 'warehouse':
+        dimensions = '50x30 feet';
+        break;
+      case 'storage_unit':
+        dimensions = '15x10 feet';
+        break;
+      case 'parking_spot':
+        dimensions = '9x18 feet';
+        break;
+      case 'outdoor_space':
+        dimensions = '30x20 feet';
+        break;
+      case 'rv_storage':
+        dimensions = '40x12 feet';
+        break;
+      default:
+        dimensions = customSpaceType ? 'Custom dimensions' : '20x12 feet';
+    }
+    
+    // Create features based on user preferences and space type
+    let features = ['Convenient location', 'Easy access'];
+    if (location.userPreferences?.amenities && location.userPreferences.amenities.length > 0) {
+      features = [...features, ...location.userPreferences.amenities.slice(0, 3)];
+    } else {
+      features = isUrban 
+        ? ['Secure access', 'Well-lit', 'Near public transit', 'Easy loading']
+        : ['Easy access', 'Well-maintained', 'Secure', 'Ample space'];
+    }
+    
+    // Add AI feature-specific features
+    if (location.enableSmartScheduling) {
+      features.push('Smart scheduling available');
+    }
+    if (location.enablePredictiveAnalytics) {
+      features.push('Analytics insights included');
+    }
     
     return {
       spaceType,
-      title: hasLocation 
-        ? `${isUrban ? 'Spacious' : 'Convenient'} ${isUrban ? 'Garage' : 'Storage Unit'} in ${location.address.split(',')[0]}`
-        : 'Versatile Storage Space Available',
-      description: hasLocation
-        ? `Perfect ${isUrban ? 'covered storage space' : 'storage unit'} in a ${isUrban ? 'prime urban location' : 'convenient location'}. ${isUrban ? 'Secure and easily accessible' : 'Easy access and well-maintained'}. Ideal for ${isUrban ? 'short-term storage or vehicle parking' : 'storage needs'}.`
-        : 'Flexible storage space perfect for your needs. Secure and easily accessible with convenient loading access. Ideal for short-term or long-term storage solutions.',
-      dimensions: isUrban ? '20x12 feet' : '15x10 feet',
+      title,
+      description,
+      dimensions,
       pricePerHour: basePrice,
-      features: isUrban 
-        ? ['Secure access', 'Well-lit', 'Near public transit', 'Easy loading']
-        : ['Easy access', 'Well-maintained', 'Secure', 'Ample space']
+      features: features.slice(0, 5) // Limit to 5 features
     };
   }
 
