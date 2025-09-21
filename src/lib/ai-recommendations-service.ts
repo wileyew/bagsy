@@ -1,4 +1,5 @@
 import { createComponentDebugger } from "./debug-utils";
+import { openaiRequestManager } from './openai-request-manager';
 
 const debug = createComponentDebugger('AIRecommendationsService');
 
@@ -198,6 +199,20 @@ class AIRecommendationsService {
   // Private helper methods
 
   private async aiGenerateRecommendations(userProfile: UserProfile): Promise<PersonalizedRecommendations> {
+    // Check if requests are allowed using centralized manager
+    const requestCheck = openaiRequestManager.canMakeRequest();
+    if (!requestCheck.allowed) {
+      debug.warn('OpenAI request blocked for recommendations:', requestCheck.reason);
+      return this.getMockRecommendations(userProfile);
+    }
+
+    // Reserve request slot using centralized manager
+    const reserved = openaiRequestManager.reserveRequest();
+    if (!reserved) {
+      debug.warn('Failed to reserve OpenAI request slot for recommendations');
+      return this.getMockRecommendations(userProfile);
+    }
+
     const prompt = `Generate personalized AI recommendations for a space rental platform user:
 
 USER PROFILE:

@@ -1,3 +1,5 @@
+import { openaiRequestManager } from './openai-request-manager';
+
 export interface LocationContext {
   address?: string;
   zipCode?: string;
@@ -45,9 +47,6 @@ interface PhotoAnalysisResult {
 class AIService {
   private baseUrl = 'https://api.openai.com/v1';
   private apiKey: string;
-  private requestCount = 0;
-  private maxRequests = 2;
-  private isBlocked = false;
   
   // Alternative API configurations (commented out for future use)
   // private geminiApiKey: string;
@@ -60,42 +59,13 @@ class AIService {
     // this.claudeApiKey = import.meta.env.VITE_CLAUDE_API_KEY || '';
     console.log('AI Service initialized. API Key present:', !!this.apiKey);
     console.log('API Key length:', this.apiKey.length);
-    console.log(`🚫 OpenAI request limit: ${this.maxRequests} requests maximum`);
   }
 
   /**
-   * Check if OpenAI requests are allowed (within limit)
-   */
-  private canMakeRequest(): { allowed: boolean; reason?: string } {
-    if (this.isBlocked) {
-      return { 
-        allowed: false, 
-        reason: `OpenAI requests blocked. Maximum limit of ${this.maxRequests} requests reached.` 
-      };
-    }
-    
-    if (this.requestCount >= this.maxRequests) {
-      this.isBlocked = true;
-      console.warn(`🚫 OpenAI request limit reached (${this.maxRequests}). Blocking further requests.`);
-      return { 
-        allowed: false, 
-        reason: `Maximum limit of ${this.maxRequests} OpenAI requests reached. Please refresh the page to reset.` 
-      };
-    }
-    
-    return { allowed: true };
-  }
-
-  /**
-   * Get current request status
+   * Get current request status from centralized manager
    */
   getRequestStatus(): { count: number; maxRequests: number; isBlocked: boolean; remaining: number } {
-    return {
-      count: this.requestCount,
-      maxRequests: this.maxRequests,
-      isBlocked: this.isBlocked,
-      remaining: Math.max(0, this.maxRequests - this.requestCount)
-    };
+    return openaiRequestManager.getRequestStatus();
   }
 
   async analyzeSpacePhotos(
@@ -121,8 +91,8 @@ class AIService {
     });
     console.log('📸 Photo URLs:', photoUrls);
     
-    // Check if requests are allowed
-    const requestCheck = this.canMakeRequest();
+    // Check if requests are allowed using centralized manager
+    const requestCheck = openaiRequestManager.canMakeRequest();
     if (!requestCheck.allowed) {
       console.warn('🚫 OpenAI request blocked:', requestCheck.reason);
       console.log('🔄 Falling back to mock analysis');
@@ -132,7 +102,12 @@ class AIService {
     // If API key is available, use real analysis
     if (this.apiKey) {
       console.log('✅ API key found - proceeding with real OpenAI analysis');
-      console.log(`📊 Request count: ${this.requestCount + 1}/${this.maxRequests}`);
+      // Reserve request slot using centralized manager
+      const reserved = openaiRequestManager.reserveRequest();
+      if (!reserved) {
+        console.warn('🚫 Failed to reserve OpenAI request slot');
+        return await this.mockAnalysis(photoUrls, location);
+      }
       return await this.realAnalysis(photoUrls, location);
     } else {
       console.error('❌ No OpenAI API key found!');
@@ -147,11 +122,8 @@ class AIService {
   ): Promise<PhotoAnalysisResult> {
     const startTime = Date.now();
     
-    // Increment request counter
-    this.requestCount++;
     console.log('🚀 Making real API call to OpenAI...');
     console.log('🌐 API URL:', `${this.baseUrl}/chat/completions`);
-    console.log(`📊 Request #${this.requestCount}/${this.maxRequests}`);
     
     const requestBody = {
       model: 'gpt-4o',
@@ -705,8 +677,8 @@ class AIService {
       hasMarketData: !!marketData
     });
 
-    // Check if requests are allowed
-    const requestCheck = this.canMakeRequest();
+    // Check if requests are allowed using centralized manager
+    const requestCheck = openaiRequestManager.canMakeRequest();
     if (!requestCheck.allowed) {
       console.warn('🚫 OpenAI pricing optimization blocked:', requestCheck.reason);
       console.log('🔄 Using fallback pricing optimization');
@@ -720,10 +692,14 @@ class AIService {
 
     const startTime = Date.now();
     
-    // Increment request counter
-    this.requestCount++;
+    // Reserve request slot using centralized manager
+    const reserved = openaiRequestManager.reserveRequest();
+    if (!reserved) {
+      console.warn('🚫 Failed to reserve OpenAI request slot for pricing optimization');
+      return this.getFallbackPricingOptimization(basePrice, spaceType, location);
+    }
+    
     console.log('🚀 Making OpenAI API call for pricing optimization...');
-    console.log(`📊 Request #${this.requestCount}/${this.maxRequests}`);
 
     const prompt = `You are a pricing optimization expert for space rental platforms. Analyze the following data and provide optimal pricing recommendations.
 
