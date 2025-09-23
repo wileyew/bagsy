@@ -363,19 +363,6 @@ class SmartSchedulingService {
   }
 
   private async aiSuggestAvailability(space: any, patterns: any): Promise<AvailabilityWindow[]> {
-    // Check if requests are allowed using centralized manager
-    const requestCheck = openaiRequestManager.canMakeRequest();
-    if (!requestCheck.allowed) {
-      debug.warn('OpenAI request blocked for availability suggestions:', requestCheck.reason);
-      return this.fallbackAvailabilitySuggestions(patterns);
-    }
-
-    // Reserve request slot using centralized manager
-    const reserved = openaiRequestManager.reserveRequest();
-    if (!reserved) {
-      debug.warn('Failed to reserve OpenAI request slot for availability suggestions');
-      return this.fallbackAvailabilitySuggestions(patterns);
-    }
 
     const prompt = `Analyze the following booking patterns for a ${space.space_type} space and suggest optimal availability windows:
 
@@ -442,19 +429,6 @@ Return as JSON array with fields: dayOfWeek, startHour, endHour, demandLevel, su
   }
 
   private async aiPredictDemand(location: string, spaceType: string, demandData: any): Promise<DemandForecast[]> {
-    // Check if requests are allowed using centralized manager
-    const requestCheck = openaiRequestManager.canMakeRequest();
-    if (!requestCheck.allowed) {
-      debug.warn('OpenAI request blocked for demand prediction:', requestCheck.reason);
-      return this.fallbackDemandPrediction(demandData);
-    }
-
-    // Reserve request slot using centralized manager
-    const reserved = openaiRequestManager.reserveRequest();
-    if (!reserved) {
-      debug.warn('Failed to reserve OpenAI request slot for demand prediction');
-      return this.fallbackDemandPrediction(demandData);
-    }
 
     const prompt = `Predict demand patterns for a ${spaceType} space in ${location}:
 

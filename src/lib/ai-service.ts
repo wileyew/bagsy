@@ -91,24 +91,16 @@ class AIService {
     });
     console.log('📸 Photo URLs:', photoUrls);
     
-    // Check if requests are allowed using centralized manager
-    const requestCheck = openaiRequestManager.canMakeRequest();
-    if (!requestCheck.allowed) {
-      console.warn('🚫 OpenAI request blocked:', requestCheck.reason);
-      console.log('🔄 Falling back to mock analysis');
-      return await this.mockAnalysis(photoUrls, location);
-    }
-    
-    // If API key is available, use real analysis
+    // If API key is available, use real analysis with retry logic
     if (this.apiKey) {
       console.log('✅ API key found - proceeding with real OpenAI analysis');
-      // Reserve request slot using centralized manager
-      const reserved = openaiRequestManager.reserveRequest();
-      if (!reserved) {
-        console.warn('🚫 Failed to reserve OpenAI request slot');
+      try {
+        return await this.realAnalysis(photoUrls, location);
+      } catch (error) {
+        console.warn('🚫 OpenAI analysis failed:', error instanceof Error ? error.message : String(error));
+        console.log('🔄 Falling back to mock analysis');
         return await this.mockAnalysis(photoUrls, location);
       }
-      return await this.realAnalysis(photoUrls, location);
     } else {
       console.error('❌ No OpenAI API key found!');
       console.error('🔧 To enable AI analysis, set VITE_OPENAI_API_KEY in your environment variables');
@@ -670,28 +662,12 @@ class AIService {
       hasMarketData: !!marketData
     });
 
-    // Check if requests are allowed using centralized manager
-    const requestCheck = openaiRequestManager.canMakeRequest();
-    if (!requestCheck.allowed) {
-      console.warn('🚫 OpenAI pricing optimization blocked:', requestCheck.reason);
-      console.log('🔄 Using fallback pricing optimization');
-      return this.getFallbackPricingOptimization(basePrice, spaceType, location);
-    }
-
     if (!this.apiKey) {
       console.warn('⚠️ No OpenAI API key - using fallback pricing optimization');
       return this.getFallbackPricingOptimization(basePrice, spaceType, location);
     }
 
     const startTime = Date.now();
-    
-    // Reserve request slot using centralized manager
-    const reserved = openaiRequestManager.reserveRequest();
-    if (!reserved) {
-      console.warn('🚫 Failed to reserve OpenAI request slot for pricing optimization');
-      return this.getFallbackPricingOptimization(basePrice, spaceType, location);
-    }
-    
     console.log('🚀 Making OpenAI API call for pricing optimization...');
 
     const prompt = `You are a pricing optimization expert for space rental platforms. Analyze the following data and provide optimal pricing recommendations.

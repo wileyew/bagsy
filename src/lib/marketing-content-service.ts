@@ -241,19 +241,6 @@ class MarketingContentService {
   // Private AI generation methods
 
   private async aiGenerateSEOContent(spaceData: any, marketData: any): Promise<SEOContent> {
-    // Check if requests are allowed using centralized manager
-    const requestCheck = openaiRequestManager.canMakeRequest();
-    if (!requestCheck.allowed) {
-      debug.warn('OpenAI request blocked for SEO content:', requestCheck.reason);
-      return this.fallbackSEOContent(spaceData);
-    }
-
-    // Reserve request slot using centralized manager
-    const reserved = openaiRequestManager.reserveRequest();
-    if (!reserved) {
-      debug.warn('Failed to reserve OpenAI request slot for SEO content');
-      return this.fallbackSEOContent(spaceData);
-    }
 
     const prompt = `Generate SEO-optimized content for a space rental listing:
 
@@ -314,19 +301,6 @@ Return as JSON with fields: title, metaDescription, keywords, optimizedTitle, op
   }
 
   private async aiGenerateSocialContent(spaceData: any, platform: string): Promise<SocialMediaContent> {
-    // Check if requests are allowed using centralized manager
-    const requestCheck = openaiRequestManager.canMakeRequest();
-    if (!requestCheck.allowed) {
-      debug.warn('OpenAI request blocked for social content:', requestCheck.reason);
-      return this.fallbackSocialContent(spaceData, platform);
-    }
-
-    // Reserve request slot using centralized manager
-    const reserved = openaiRequestManager.reserveRequest();
-    if (!reserved) {
-      debug.warn('Failed to reserve OpenAI request slot for social content');
-      return this.fallbackSocialContent(spaceData, platform);
-    }
 
     const platformPrompts = {
       facebook: 'Create a Facebook post for a space rental listing',
@@ -393,19 +367,6 @@ Return as JSON with fields: content, hashtags, imageSuggestions, engagementScore
   }
 
   private async aiGenerateEmailCampaign(spaceData: any, campaignType: string, audience: string): Promise<EmailCampaign> {
-    // Check if requests are allowed using centralized manager
-    const requestCheck = openaiRequestManager.canMakeRequest();
-    if (!requestCheck.allowed) {
-      debug.warn('OpenAI request blocked for email campaign:', requestCheck.reason);
-      return this.fallbackEmailCampaign(spaceData, campaignType, audience);
-    }
-
-    // Reserve request slot using centralized manager
-    const reserved = openaiRequestManager.reserveRequest();
-    if (!reserved) {
-      debug.warn('Failed to reserve OpenAI request slot for email campaign');
-      return this.fallbackEmailCampaign(spaceData, campaignType, audience);
-    }
 
     const prompt = `Create an email marketing campaign for a space rental listing:
 
@@ -471,19 +432,6 @@ Return as JSON with fields: subject, previewText, content, callToAction, targetA
   }
 
   private async aiOptimizeListing(listingData: any): Promise<OptimizationSuggestions> {
-    // Check if requests are allowed using centralized manager
-    const requestCheck = openaiRequestManager.canMakeRequest();
-    if (!requestCheck.allowed) {
-      debug.warn('OpenAI request blocked for listing optimization:', requestCheck.reason);
-      return this.fallbackListingOptimization(listingData);
-    }
-
-    // Reserve request slot using centralized manager
-    const reserved = openaiRequestManager.reserveRequest();
-    if (!reserved) {
-      debug.warn('Failed to reserve OpenAI request slot for listing optimization');
-      return this.fallbackListingOptimization(listingData);
-    }
 
     const prompt = `Analyze and optimize this space rental listing:
 
@@ -538,7 +486,7 @@ Return as JSON with fields: titleImprovements, descriptionImprovements, keywordS
 
   // Fallback methods
 
-  private fallbackSEOContent(spaceData: any, marketData: any): SEOContent {
+  private fallbackSEOContent(spaceData: any, marketData?: any): SEOContent {
     return {
       title: `${spaceData.space_type} Rental in ${spaceData.address.split(',')[0]} - $${spaceData.price_per_hour}/hour`,
       metaDescription: `Rent a ${spaceData.space_type} in ${spaceData.address}. ${spaceData.description.substring(0, 120)}...`,
@@ -642,6 +590,10 @@ Return as JSON with fields: titleImprovements, descriptionImprovements, keywordS
       ],
       overallScore: 70
     };
+  }
+
+  private fallbackListingOptimization(listingData: any): OptimizationSuggestions {
+    return this.fallbackOptimization(listingData);
   }
 }
 

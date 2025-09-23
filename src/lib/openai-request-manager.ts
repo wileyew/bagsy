@@ -73,13 +73,27 @@ class OpenAIRequestManager {
 
   /**
    * Execute a request with retry logic
+   * Only retries if the request was successfully reserved (doesn't count against limit)
    */
   async executeWithRetry<T>(
     requestFn: () => Promise<T>,
     context: string = 'OpenAI API call'
   ): Promise<T> {
+    // First, check if we can make a request and reserve the slot
+    const requestCheck = this.canMakeRequest();
+    if (!requestCheck.allowed) {
+      throw new Error(`Request blocked: ${requestCheck.reason}`);
+    }
+    
+    // Reserve the request slot
+    const reserved = this.reserveRequest();
+    if (!reserved) {
+      throw new Error('Failed to reserve request slot');
+    }
+    
     let lastError: Error | null = null;
     
+    // Now execute with retries (but only for network/API errors, not quota errors)
     for (let attempt = 1; attempt <= this.retryConfig.maxAttempts; attempt++) {
       try {
         console.log(`🔄 ${context} - Attempt ${attempt}/${this.retryConfig.maxAttempts}`);
@@ -95,6 +109,12 @@ class OpenAIRequestManager {
         lastError = error instanceof Error ? error : new Error(String(error));
         
         console.warn(`❌ ${context} failed on attempt ${attempt}:`, lastError.message);
+        
+        // Check if this is a quota/rate limit error - don't retry these
+        if (this.isQuotaError(lastError)) {
+          console.log(`🚫 ${context} - Quota/rate limit error detected, not retrying`);
+          break;
+        }
         
         // Don't retry on the last attempt
         if (attempt === this.retryConfig.maxAttempts) {
@@ -115,6 +135,18 @@ class OpenAIRequestManager {
     
     // If we get here, all attempts failed
     throw lastError || new Error(`${context} failed after ${this.retryConfig.maxAttempts} attempts`);
+  }
+
+  /**
+   * Check if an error is a quota/rate limit error that shouldn't be retried
+   */
+  private isQuotaError(error: Error): boolean {
+    const message = error.message.toLowerCase();
+    return message.includes('quota') || 
+           message.includes('rate limit') || 
+           message.includes('too many requests') ||
+           message.includes('429') ||
+           message.includes('blocked');
   }
 
   /**

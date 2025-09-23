@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Retry Mechanism Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .test-container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .test-button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .test-button:hover {
+            background: #0056b3;
+        }
+        .test-button:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
+        }
+        .console-output {
+            background: #1e1e1e;
+            color: #00ff00;
+            padding: 15px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            max-height: 400px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            margin-top: 10px;
+        }
+        .status {
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .status.info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+    </style>
+</head>
+<body>
+    <h1>🧪 OpenAI Retry Mechanism Test</h1>
+    
+    <div class="test-container">
+        <h2>Test Controls</h2>
+        <button class="test-button" onclick="runBasicTests()">Run Basic Tests</button>
+        <button class="test-button" onclick="runQuotaErrorTest()">Test Quota Error Handling</button>
+        <button class="test-button" onclick="runNetworkErrorTest()">Test Network Error Retry</button>
+        <button class="test-button" onclick="runRequestLimitTest()">Test Request Limits</button>
+        <button class="test-button" onclick="clearConsole()">Clear Console</button>
+        <button class="test-button" onclick="resetManager()">Reset Request Manager</button>
+    </div>
+
+    <div class="test-container">
+        <h2>Request Manager Status</h2>
+        <div id="status-display" class="status info">Ready to test</div>
+        <button class="test-button" onclick="updateStatus()">Refresh Status</button>
+    </div>
+
+    <div class="test-container">
+        <h2>Console Output</h2>
+        <div id="console-output" class="console-output">Ready to run tests...\n</div>
+    </div>
+
+    <script type="module">
+        // Mock the request manager for testing
+        class MockOpenAIRequestManager {
+            constructor() {
+                this.requestCount = 0;
+                this.maxRequests = 2;
+                this.isBlocked = false;
+                this.retryConfig = {
+                    maxAttempts: 2,
+                    baseDelay: 1000,
+                    maxDelay: 5000,
+                    backoffFactor: 2
+                };
+                this.log('🚫 OpenAI Request Manager initialized with limit: 2 requests maximum, 2 retry attempts per request');
+            }
+
+            canMakeRequest() {
+                if (this.isBlocked) {
+                    return { 
+                        allowed: false, 
+                        reason: `OpenAI requests blocked. Maximum limit of ${this.maxRequests} requests reached.` 
+                    };
+                }
+                
+                if (this.requestCount >= this.maxRequests) {
+                    this.isBlocked = true;
+                    this.log(`🚫 OpenAI request limit reached (${this.maxRequests}). Blocking further requests.`);
+                    return { 
+                        allowed: false, 
+                        reason: `Maximum limit of ${this.maxRequests} OpenAI requests reached. Please refresh the page to reset.` 
+                    };
+                }
+                
+                return { allowed: true };
+            }
+
+            reserveRequest() {
+                const check = this.canMakeRequest();
+                if (!check.allowed) {
+                    return false;
+                }
+                
+                this.requestCount++;
+                this.log(`📊 OpenAI Request reserved: ${this.requestCount}/${this.maxRequests}`);
+                return true;
+            }
+
+            async executeWithRetry(requestFn, context = 'OpenAI API call') {
+                // First, check if we can make a request and reserve the slot
+                const requestCheck = this.canMakeRequest();
+                if (!requestCheck.allowed) {
+                    throw new Error(`Request blocked: ${requestCheck.reason}`);
+                }
+                
+                // Reserve the request slot
+                const reserved = this.reserveRequest();
+                if (!reserved) {
+                    throw new Error('Failed to reserve request slot');
+                }
+                
+                let lastError = null;
+                
+                // Now execute with retries (but only for network/API errors, not quota errors)
+                for (let attempt = 1; attempt <= this.retryConfig.maxAttempts; attempt++) {
+                    try {
+                        this.log(`🔄 ${context} - Attempt ${attempt}/${this.retryConfig.maxAttempts}`);
+                        
+                        const result = await requestFn();
+                        
+                        if (attempt > 1) {
+                            this.log(`✅ ${context} succeeded on attempt ${attempt}`);
+                        }
+                        
+                        return result;
+                    } catch (error) {
+                        lastError = error instanceof Error ? error : new Error(String(error));
+                        
+                        this.log(`❌ ${context} failed on attempt ${attempt}: ${lastError.message}`);
+                        
+                        // Check if this is a quota/rate limit error - don't retry these
+                        if (this.isQuotaError(lastError)) {
+                            this.log(`🚫 ${context} - Quota/rate limit error detected, not retrying`);
+                            break;
+                        }
+                        
+                        // Don't retry on the last attempt
+                        if (attempt === this.retryConfig.maxAttempts) {
+                            this.log(`💥 ${context} failed after ${this.retryConfig.maxAttempts} attempts`);
+                            break;
+                        }
+                        
+                        // Calculate delay with exponential backoff
+                        const delay = Math.min(
+                            this.retryConfig.baseDelay * Math.pow(this.retryConfig.backoffFactor, attempt - 1),
+                            this.retryConfig.maxDelay
+                        );
+                        
+                        this.log(`⏳ ${context} - Waiting ${delay}ms before retry...`);
+                        await this.sleep(delay);
+                    }
+                }
+                
+                // If we get here, all attempts failed
+                throw lastError || new Error(`${context} failed after ${this.retryConfig.maxAttempts} attempts`);
+            }
+
+            isQuotaError(error) {
+                const message = error.message.toLowerCase();
+                return message.includes('quota') || 
+                       message.includes('rate limit') || 
+                       message.includes('too many requests') ||
+                       message.includes('429') ||
+                       message.includes('blocked');
+            }
+
+            sleep(ms) {
+                return new Promise(resolve => setTimeout(resolve, ms));
+            }
+
+            getRequestStatus() {
+                return {
+                    count: this.requestCount,
+                    maxRequests: this.maxRequests,
+                    isBlocked: this.isBlocked,
+                    remaining: Math.max(0, this.maxRequests - this.requestCount)
+                };
+            }
+
+            reset() {
+                this.requestCount = 0;
+                this.isBlocked = false;
+                this.log('🔄 OpenAI Request Manager reset');
+            }
+
+            log(message) {
+                const timestamp = new Date().toLocaleTimeString();
+                const consoleOutput = document.getElementById('console-output');
+                consoleOutput.textContent += `[${timestamp}] ${message}\n`;
+                consoleOutput.scrollTop = consoleOutput.scrollHeight;
+                console.log(message);
+            }
+        }
+
+        // Create global instance
+        window.openaiRequestManager = new MockOpenAIRequestManager();
+
+        // Test functions
+        window.runBasicTests = async function() {
+            openaiRequestManager.log('🧪 Running Basic Retry Tests\n');
+            
+            try {
+                // Test 1: Successful request
+                openaiRequestManager.log('Test 1: Successful request');
+                const result1 = await openaiRequestManager.executeWithRetry(async () => {
+                    return 'success';
+                }, 'Test 1');
+                openaiRequestManager.log(`✅ Test 1 result: ${result1}\n`);
+                
+                // Test 2: Network error with retry
+                openaiRequestManager.log('Test 2: Network error with retry');
+                let attemptCount = 0;
+                const result2 = await openaiRequestManager.executeWithRetry(async () => {
+                    attemptCount++;
+                    if (attemptCount === 1) {
+                        throw new Error('Network connection failed');
+                    }
+                    return 'success after retry';
+                }, 'Test 2');
+                openaiRequestManager.log(`✅ Test 2 result: ${result2}\n`);
+                
+                updateStatus('Basic tests completed successfully', 'success');
+                
+            } catch (error) {
+                openaiRequestManager.log(`❌ Basic tests failed: ${error.message}\n`);
+                updateStatus('Basic tests failed', 'error');
+            }
+        };
+
+        window.runQuotaErrorTest = async function() {
+            openaiRequestManager.log('🧪 Running Quota Error Test\n');
+            
+            try {
+                await openaiRequestManager.executeWithRetry(async () => {
+                    throw new Error('Rate limit exceeded - 429');
+                }, 'Quota Test');
+                openaiRequestManager.log('❌ Quota test should have failed\n');
+                updateStatus('Quota test failed - should not succeed', 'error');
+            } catch (error) {
+                openaiRequestManager.log(`✅ Quota error properly detected and not retried: ${error.message}\n`);
+                updateStatus('Quota error test passed', 'success');
+            }
+        };
+
+        window.runNetworkErrorTest = async function() {
+            openaiRequestManager.log('🧪 Running Network Error Test\n');
+            
+            try {
+                let attemptCount = 0;
+                const result = await openaiRequestManager.executeWithRetry(async () => {
+                    attemptCount++;
+                    if (attemptCount === 1) {
+                        throw new Error('Network timeout');
+                    }
+                    return 'success after retry';
+                }, 'Network Test');
+                openaiRequestManager.log(`✅ Network error test passed: ${result}\n`);
+                updateStatus('Network error retry test passed', 'success');
+            } catch (error) {
+                openaiRequestManager.log(`❌ Network error test failed: ${error.message}\n`);
+                updateStatus('Network error test failed', 'error');
+            }
+        };
+
+        window.runRequestLimitTest = async function() {
+            openaiRequestManager.log('🧪 Running Request Limit Test\n');
+            
+            try {
+                // Try to exceed the request limit
+                for (let i = 1; i <= 4; i++) {
+                    try {
+                        const result = await openaiRequestManager.executeWithRetry(async () => {
+                            return `request ${i}`;
+                        }, `Request ${i}`);
+                        openaiRequestManager.log(`✅ Request ${i} succeeded: ${result}`);
+                    } catch (error) {
+                        openaiRequestManager.log(`❌ Request ${i} blocked: ${error.message}`);
+                    }
+                }
+                
+                updateStatus('Request limit test completed', 'info');
+                
+            } catch (error) {
+                openaiRequestManager.log(`❌ Request limit test failed: ${error.message}\n`);
+                updateStatus('Request limit test failed', 'error');
+            }
+        };
+
+        window.clearConsole = function() {
+            document.getElementById('console-output').textContent = '';
+            openaiRequestManager.log('Console cleared');
+        };
+
+        window.resetManager = function() {
+            openaiRequestManager.reset();
+            updateStatus('Request manager reset', 'info');
+        };
+
+        window.updateStatus = function(message = null, type = 'info') {
+            const statusDisplay = document.getElementById('status-display');
+            if (message) {
+                statusDisplay.textContent = message;
+                statusDisplay.className = `status ${type}`;
+            } else {
+                const status = openaiRequestManager.getRequestStatus();
+                statusDisplay.textContent = `Requests: ${status.count}/${status.maxRequests}, Remaining: ${status.remaining}, Blocked: ${status.isBlocked}`;
+                statusDisplay.className = 'status info';
+            }
+        };
+
+        // Initialize
+        updateStatus();
+    </script>
+</body>
+</html>
