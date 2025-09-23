@@ -987,6 +987,14 @@ export function AISpaceListingModal({ open, onOpenChange }: AISpaceListingModalP
     });
 
     setLoading(true);
+    
+    // Show loading toast
+    const loadingToast = toast({
+      title: "⏳ Submitting Your Space...",
+      description: "Please wait while we submit your space listing to our platform.",
+      duration: 0, // Don't auto-dismiss
+    });
+    
     try {
       // Insert space into database
       const spaceData = {
@@ -1050,9 +1058,12 @@ export function AISpaceListingModal({ open, onOpenChange }: AISpaceListingModalP
         allowAIAgent: formData.allowAIAgent
       });
 
+      // Dismiss loading toast and show success message
+      loadingToast.dismiss();
       toast({
-        title: "Space listed successfully!",
-        description: "Your space is now available for booking.",
+        title: "🎉 Space Successfully Listed!",
+        description: "Your space has been submitted and is now available for booking. You can view and manage it from your dashboard.",
+        duration: 5000,
       });
 
       // Reset form and close modal
@@ -1095,10 +1106,15 @@ export function AISpaceListingModal({ open, onOpenChange }: AISpaceListingModalP
         }
       });
       
+      // Dismiss loading toast and show error message
+      loadingToast.dismiss();
       toast({
-        title: "Failed to list space",
-        description: error instanceof Error ? error.message : "Something went wrong. Please try again.",
+        title: "❌ Submission Failed",
+        description: error instanceof Error 
+          ? `Failed to submit your space listing: ${error.message}` 
+          : "There was an issue submitting your space listing. Please check your internet connection and try again.",
         variant: "destructive",
+        duration: 7000,
       });
     } finally {
       setLoading(false);
@@ -2428,7 +2444,14 @@ export function AISpaceListingModal({ open, onOpenChange }: AISpaceListingModalP
                   disabled={loading}
                   className="flex-1 apple-button-primary h-12"
                 >
-                  {loading ? "Listing Space..." : "List My Space"}
+                  {loading ? (
+                    <div className="flex items-center gap-2">
+                      <LoadingDots />
+                      Submitting...
+                    </div>
+                  ) : (
+                    "List My Space"
+                  )}
                 </Button>
               </div>
             </>
