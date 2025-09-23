@@ -293,7 +293,8 @@ Return as JSON with fields: title, metaDescription, keywords, optimizedTitle, op
         throw new Error('No SEO content from OpenAI');
       }
 
-      return JSON.parse(content);
+      const cleanedContent = this.extractJSONFromContent(content);
+      return JSON.parse(cleanedContent);
     }, 'OpenAI SEO Content Generation').catch((error) => {
       debug.error('AI SEO content generation failed after retries', error);
       throw error;
@@ -352,7 +353,8 @@ Return as JSON with fields: content, hashtags, imageSuggestions, engagementScore
         throw new Error('No social content from OpenAI');
       }
 
-      const result = JSON.parse(content);
+      const cleanedContent = this.extractJSONFromContent(content);
+      const result = JSON.parse(cleanedContent);
       return {
         platform: platform as any,
         content: result.content,
@@ -416,7 +418,8 @@ Return as JSON with fields: subject, previewText, content, callToAction, targetA
         throw new Error('No email campaign from OpenAI');
       }
 
-      const result = JSON.parse(content);
+      const cleanedContent = this.extractJSONFromContent(content);
+      const result = JSON.parse(cleanedContent);
       return {
         subject: result.subject,
         previewText: result.previewText,
@@ -477,11 +480,51 @@ Return as JSON with fields: titleImprovements, descriptionImprovements, keywordS
         throw new Error('No optimization suggestions from OpenAI');
       }
 
-      return JSON.parse(content);
+      const cleanedContent = this.extractJSONFromContent(content);
+      return JSON.parse(cleanedContent);
     }, 'OpenAI Listing Optimization').catch((error) => {
       debug.error('AI listing optimization failed after retries', error);
       throw error;
     });
+  }
+
+  // Utility methods
+
+  private extractJSONFromContent(content: string): string {
+    debug.debug('Extracting JSON from OpenAI response content', { 
+      contentLength: content.length,
+      contentPreview: content.substring(0, 100) + '...'
+    });
+    
+    // Remove markdown code blocks if present
+    let cleanedContent = content.trim();
+    
+    // Handle ```json ... ``` blocks
+    if (cleanedContent.startsWith('```json')) {
+      cleanedContent = cleanedContent.replace(/^```json\s*/, '').replace(/\s*```$/, '');
+    } else if (cleanedContent.startsWith('```')) {
+      cleanedContent = cleanedContent.replace(/^```\s*/, '').replace(/\s*```$/, '');
+    }
+    
+    // Try to find JSON object in the content
+    const jsonMatch = cleanedContent.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      debug.debug('Found JSON object in content');
+      return jsonMatch[0];
+    }
+    
+    // Try to find JSON array
+    const arrayMatch = cleanedContent.match(/\[[\s\S]*\]/);
+    if (arrayMatch) {
+      debug.debug('Found JSON array in content');
+      return arrayMatch[0];
+    }
+    
+    // If no JSON structure found, return the cleaned content
+    debug.warn('No JSON structure found, returning cleaned content', { 
+      cleanedContent: cleanedContent.substring(0, 200) + '...'
+    });
+    return cleanedContent;
   }
 
   // Fallback methods

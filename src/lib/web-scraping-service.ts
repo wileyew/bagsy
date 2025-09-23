@@ -41,14 +41,30 @@ class WebScrapingService {
       hasApiKey: !!this.apiKey,
       baseUrl: this.baseUrl,
       apiKeyLength: this.apiKey.length,
-      apiKeyPrefix: this.apiKey.substring(0, 8) + '...' // Show first 8 chars for debugging
+      apiKeyPrefix: this.apiKey.substring(0, 8) + '...', // Show first 8 chars for debugging
+      environment: import.meta.env.MODE
     });
     
     // Validate API key format
-    if (this.apiKey && this.apiKey.length < 20) {
+    if (!this.apiKey) {
+      this.debug.warn('ScrapingBee API key not found', { 
+        suggestion: 'Set VITE_SCRAPINGBEE_API_KEY in .env.local file'
+      });
+    } else if (this.apiKey.length < 50) {
       this.debug.warn('ScrapingBee API key appears to be too short', { 
         length: this.apiKey.length,
-        expectedLength: '>20 characters'
+        expectedLength: '50+ characters',
+        suggestion: 'Check if the API key is complete'
+      });
+    } else if (this.apiKey.length > 70) {
+      this.debug.warn('ScrapingBee API key appears to be too long', { 
+        length: this.apiKey.length,
+        expectedLength: '50-70 characters',
+        suggestion: 'Check for extra characters or line breaks'
+      });
+    } else {
+      this.debug.info('ScrapingBee API key format looks correct', { 
+        length: this.apiKey.length
       });
     }
   }
@@ -76,6 +92,7 @@ class WebScrapingService {
       scrapingBeeUrl.searchParams.set('api_key', this.apiKey);
       scrapingBeeUrl.searchParams.set('url', testUrl);
       scrapingBeeUrl.searchParams.set('render_js', 'false'); // No JS needed for test
+      scrapingBeeUrl.searchParams.set('premium_proxy', 'false'); // Use free proxy for test
       
       this.debug.debug('Testing ScrapingBee with URL', { 
         testUrl,
@@ -357,9 +374,25 @@ class WebScrapingService {
           status: response.status, 
           statusText: response.statusText,
           errorText,
-          url: scrapingBeeUrl.toString()
+          url: scrapingBeeUrl.toString(),
+          apiKeyLength: this.apiKey.length,
+          apiKeyPrefix: this.apiKey.substring(0, 8) + '...'
         });
-        throw new Error(`ScrapingBee API error: ${response.status} ${response.statusText} - ${errorText}`);
+        
+        // Handle specific error codes
+        if (response.status === 500) {
+          this.debug.error('ScrapingBee server error (500) - marking service as unavailable');
+          this.isServiceAvailable = false;
+          throw new Error('ScrapingBee service is experiencing server issues (500 error). Using mock data instead.');
+        } else if (response.status === 401) {
+          throw new Error('ScrapingBee API key is invalid or expired. Please check your API key configuration.');
+        } else if (response.status === 403) {
+          throw new Error('ScrapingBee API access forbidden. Check your subscription status and usage limits.');
+        } else if (response.status === 429) {
+          throw new Error('ScrapingBee API rate limit exceeded. Please wait before making more requests.');
+        } else {
+          throw new Error(`ScrapingBee API error: ${response.status} ${response.statusText} - ${errorText}`);
+        }
       }
 
       const html = await response.text();

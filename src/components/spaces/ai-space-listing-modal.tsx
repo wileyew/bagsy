@@ -968,25 +968,55 @@ export function AISpaceListingModal({ open, onOpenChange }: AISpaceListingModalP
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    debug.info('🎯 Form submit handler called', {
+      timestamp: new Date().toISOString(),
+      hasEvent: !!e,
+      eventType: e.type,
+      hasUser: !!user,
+      hasEditableData: !!editableData,
+      currentStep: step,
+      loading: loading
+    });
+
     if (!user || !editableData) {
-      debug.warn('Submit blocked - missing user or editable data', { 
+      debug.warn('❌ Submit blocked - missing user or editable data', { 
         hasUser: !!user, 
-        hasEditableData: !!editableData 
+        hasEditableData: !!editableData,
+        userId: user?.id,
+        editableDataKeys: editableData ? Object.keys(editableData) : []
+      });
+      
+      toast({
+        title: "❌ Submission Failed",
+        description: !user ? "Please log in to submit your listing." : "Please complete the listing information first.",
+        variant: "destructive",
+        duration: 5000,
       });
       return;
     }
 
-    debug.userAction('Form submission started', { 
+    debug.userAction('✅ Form submission started', { 
       editableData, 
       formData: {
         address: formData.address,
         zipCode: formData.zipCode,
         allowAIAgent: formData.allowAIAgent,
         photoCount: formData.photoUrls.length
+      },
+      user: {
+        id: user.id,
+        email: user.email
       }
     });
 
+    if (loading) {
+      debug.warn('⚠️ Submit called while already loading - preventing duplicate submission');
+      return;
+    }
+
     setLoading(true);
+    debug.info('🔄 Loading state set to true');
     
     // Show loading toast
     const loadingToast = toast({
@@ -995,7 +1025,43 @@ export function AISpaceListingModal({ open, onOpenChange }: AISpaceListingModalP
       duration: 0, // Don't auto-dismiss
     });
     
+    debug.info('📢 Loading toast shown');
+    
     try {
+      // Pre-submission debugging
+      debug.info('🔍 Pre-submission checks', {
+        hasUser: !!user,
+        userId: user?.id,
+        hasEditableData: !!editableData,
+        editableDataKeys: editableData ? Object.keys(editableData) : [],
+        hasFormData: !!formData,
+        formDataKeys: formData ? Object.keys(formData) : [],
+        supabaseUrl: import.meta.env.VITE_SUPABASE_URL,
+        supabaseKeyExists: !!import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY
+      });
+
+      // Test Supabase connection first
+      debug.info('🔌 Testing Supabase connection...');
+      try {
+        const { data: authData, error: authError } = await supabase.auth.getUser();
+        debug.info('🔐 Supabase auth check', { 
+          hasUser: !!authData.user, 
+          userId: authData.user?.id,
+          authError: authError?.message 
+        });
+        
+        if (authError) {
+          throw new Error(`Authentication error: ${authError.message}`);
+        }
+        
+        if (!authData.user) {
+          throw new Error('No authenticated user found');
+        }
+      } catch (authCheckError) {
+        debug.error('❌ Supabase connection/auth check failed', authCheckError);
+        throw authCheckError;
+      }
+
       // Insert space into database
       // Validate required fields before submission
       if (!editableData.title?.trim()) {
@@ -1046,11 +1112,32 @@ export function AISpaceListingModal({ open, onOpenChange }: AISpaceListingModalP
         validTypes: ['garage', 'driveway', 'parking_lot', 'warehouse', 'storage_unit']
       });
 
-      const { data: space, error: spaceError } = await supabase
+      debug.info('🚀 Starting Supabase insert operation...');
+      const insertStartTime = Date.now();
+
+      // Add timeout wrapper for the Supabase call
+      const supabasePromise = supabase
         .from('spaces')
         .insert(spaceData)
         .select()
         .single();
+
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => {
+          reject(new Error('Supabase insert operation timed out after 30 seconds'));
+        }, 30000);
+      });
+
+      debug.info('⏱️ Waiting for Supabase response...');
+      const result = await Promise.race([supabasePromise, timeoutPromise]);
+      const { data: space, error: spaceError } = result as { data: { id: string } | null; error: { code?: string; message: string } | null };
+      
+      const insertDuration = Date.now() - insertStartTime;
+      debug.info(`✅ Supabase insert completed in ${insertDuration}ms`, { 
+        success: !spaceError, 
+        spaceId: space?.id,
+        error: spaceError?.message 
+      });
 
       if (spaceError) {
         debug.error('Space insertion failed', {
@@ -1072,29 +1159,59 @@ export function AISpaceListingModal({ open, onOpenChange }: AISpaceListingModalP
         }
       }
 
+      if (!space?.id) {
+        throw new Error('Space was created but no ID was returned');
+      }
+
       debug.info('Space inserted successfully', { spaceId: space.id });
 
       // Insert photos
-      debug.info('Inserting photos', { photoCount: formData.photoUrls.length });
+      debug.info('📸 Starting photo insertion', { photoCount: formData.photoUrls.length });
       
-      for (let i = 0; i < formData.photoUrls.length; i++) {
-        const photoData = {
-          space_id: space.id,
-          photo_url: formData.photoUrls[i],
-          display_order: i + 1,
-        };
+      if (formData.photoUrls.length > 0) {
+        for (let i = 0; i < formData.photoUrls.length; i++) {
+          const photoStartTime = Date.now();
+          debug.info(`📷 Inserting photo ${i + 1}/${formData.photoUrls.length}`, { 
+            photoIndex: i, 
+            photoUrl: formData.photoUrls[i] 
+          });
 
-        debug.debug('Inserting photo', { photoIndex: i, photoData });
+          const photoData = {
+            space_id: space.id,
+            photo_url: formData.photoUrls[i],
+            display_order: i + 1,
+          };
 
-        const { error: photoError } = await supabase
-          .from('space_photos')
-          .insert(photoData);
+          try {
+            const { error: photoError } = await supabase
+              .from('space_photos')
+              .insert(photoData);
 
-        if (photoError) {
-          debug.error('Photo insertion failed', { photoIndex: i, photoError });
-        } else {
-          debug.debug('Photo inserted successfully', { photoIndex: i });
+            const photoDuration = Date.now() - photoStartTime;
+            
+            if (photoError) {
+              debug.error('❌ Photo insertion failed', { 
+                photoIndex: i, 
+                photoError: photoError.message,
+                photoData,
+                duration: photoDuration 
+              });
+            } else {
+              debug.info(`✅ Photo ${i + 1} inserted successfully`, { 
+                photoIndex: i,
+                duration: photoDuration 
+              });
+            }
+          } catch (photoInsertError) {
+            debug.error('❌ Photo insertion exception', { 
+              photoIndex: i, 
+              error: photoInsertError instanceof Error ? photoInsertError.message : String(photoInsertError),
+              duration: Date.now() - photoStartTime
+            });
+          }
         }
+      } else {
+        debug.info('📸 No photos to insert');
       }
 
       debug.info('Space listing completed successfully', {
@@ -1162,6 +1279,7 @@ export function AISpaceListingModal({ open, onOpenChange }: AISpaceListingModalP
         duration: 7000,
       });
     } finally {
+      debug.info('🏁 Submission process completed - setting loading to false');
       setLoading(false);
     }
   };

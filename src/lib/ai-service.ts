@@ -539,7 +539,8 @@ class AIService {
     }
 
     try {
-      const analysis = JSON.parse(content);
+      const cleanedContent = this.extractJSONFromContent(content);
+      const analysis = JSON.parse(cleanedContent);
       return {
         spaceType: analysis.spaceType || 'garage',
         title: analysis.title || 'Space Available',
@@ -612,7 +613,8 @@ class AIService {
     }
 
     try {
-      const analysis = JSON.parse(content);
+      const cleanedContent = this.extractJSONFromContent(content);
+      const analysis = JSON.parse(cleanedContent);
       return {
         spaceType: analysis.spaceType || 'garage',
         title: analysis.title || 'Space Available',
@@ -734,7 +736,8 @@ class AIService {
 
       console.log('📝 Raw pricing optimization response:', content);
 
-      const optimization = JSON.parse(content);
+      const cleanedContent = this.extractJSONFromContent(content);
+      const optimization = JSON.parse(cleanedContent);
       console.log('✅ Parsed pricing optimization:', optimization);
 
       return {
