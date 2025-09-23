@@ -939,9 +939,13 @@ export function AISpaceListingModal({ open, onOpenChange }: AISpaceListingModalP
   }, [formData.photoUrls, formData.address, formData.zipCode, formData.enableWebScraping, formData.enablePricingOptimization, formData.enableSmartScheduling, formData.enableMarketingContent, formData.enablePredictiveAnalytics, formData.selectedSpaceTypes, formData.customSpaceType, currentLocation, debug, toast, performWebScraping, performPricingOptimization, updateRequestStatus]);
 
   // Re-run AI analysis when location is added and we have existing AI data
+  const hasRerunAnalysis = useRef(false);
   useEffect(() => {
-    if (aiGeneratedData && formData.address && formData.zipCode && !analyzing && !loading && step === 'review') {
+    if (aiGeneratedData && formData.address && formData.zipCode && !analyzing && !loading && step === 'review' && !hasRerunAnalysis.current) {
       debug.info('Location added after AI analysis - re-running analysis for better results');
+      
+      // Mark that we've initiated a re-run to prevent infinite loops
+      hasRerunAnalysis.current = true;
       
       // Show a toast to inform the user
       toast({
@@ -954,7 +958,8 @@ export function AISpaceListingModal({ open, onOpenChange }: AISpaceListingModalP
         analyzePhotosWithAI();
       }, 1000); // Small delay to let the toast show
     }
-  }, [formData.address, formData.zipCode, aiGeneratedData, analyzing, loading, debug, toast, analyzePhotosWithAI, step]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [formData.address, formData.zipCode, aiGeneratedData, analyzing, loading, debug, toast, step]);
 
   const handleEditableChange = (field: keyof AIGeneratedData, value: string | number) => {
     if (!editableData) return;
@@ -1072,6 +1077,9 @@ export function AISpaceListingModal({ open, onOpenChange }: AISpaceListingModalP
       setMarketAnalysis(null);
       setStep('upload');
       
+      // Reset the re-run analysis flag
+      hasRerunAnalysis.current = false;
+      
       // Clear the file input element
       clearFileInput();
       
@@ -1136,6 +1144,9 @@ export function AISpaceListingModal({ open, onOpenChange }: AISpaceListingModalP
     setEditableData(null);
     setMarketAnalysis(null);
     setStep('upload');
+    
+    // Reset the re-run analysis flag
+    hasRerunAnalysis.current = false;
     
     // Clear the file input element to prevent issues with subsequent uploads
     clearFileInput();

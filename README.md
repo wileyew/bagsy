@@ -1,254 +1,272 @@
-# Bagsy - AI-Powered Space Booking
+# 🏠 Bagsy - AI-Powered Space Booking Platform
 
-## Project info
+> **Find, list, and book the perfect storage space in seconds with AI-enhanced features.**
 
-**URL**: https://lovable.dev/projects/a1c84b9e-3a02-49d9-9270-d0dd10c9a3ac
+[![Vite](https://img.shields.io/badge/Vite-5.x-646CFF?style=flat-square&logo=vite)](https://vitejs.dev/)
+[![React](https://img.shields.io/badge/React-18-61DAFB?style=flat-square&logo=react)](https://reactjs.org/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178C6?style=flat-square&logo=typescript)](https://www.typescriptlang.org/)
+[![Supabase](https://img.shields.io/badge/Supabase-Database-3ECF8E?style=flat-square&logo=supabase)](https://supabase.com/)
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-3.x-06B6D4?style=flat-square&logo=tailwindcss)](https://tailwindcss.com/)
 
-## How can I edit this code?
+## 🎯 **Overview**
 
-There are several ways of editing your application.
+Bagsy is a modern, AI-powered platform that revolutionizes space rental by connecting property owners with people who need storage space. Whether it's a garage, driveway, warehouse, or custom space, Bagsy uses advanced AI to optimize listings, pricing, and user experience.
 
-**Use Lovable**
+### **Key Features**
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/a1c84b9e-3a02-49d9-9270-d0dd10c9a3ac) and start prompting.
+- 🤖 **AI-Powered Analysis**: Automatic photo analysis and listing generation
+- 💰 **Smart Pricing**: Dynamic pricing optimization based on market data
+- 📅 **Smart Scheduling**: Optimal availability windows and demand prediction
+- 📢 **Marketing Content**: AI-generated SEO content and social media posts
+- 🔍 **Market Research**: Web scraping for competitive analysis
+- 📊 **Analytics**: Predictive insights and performance optimization
+- 🔐 **Secure Authentication**: Google OAuth integration
+- 📱 **Responsive Design**: Mobile-first, modern UI
 
-Changes made via Lovable will be committed automatically to this repo.
+## 🏗️ **Architecture**
 
-**Use your preferred IDE**
+### **Tech Stack**
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+| Layer | Technology | Purpose |
+|-------|------------|---------|
+| **Frontend** | React 18 + TypeScript | Modern, type-safe UI |
+| **Build Tool** | Vite 5.x | Fast development and building |
+| **Styling** | Tailwind CSS + shadcn/ui | Consistent, responsive design |
+| **Backend** | Supabase | Database, auth, storage, real-time |
+| **AI Services** | OpenAI GPT-4o | Photo analysis, content generation |
+| **Deployment** | AWS Amplify | Scalable cloud hosting |
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+## 🚀 **Quick Start**
 
-Follow these steps:
+### **Prerequisites**
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+- Node.js 18+ and npm
+- Supabase account and project
+- OpenAI API key (optional - falls back to mock data)
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+### **Installation**
 
-# Step 3: Install the necessary dependencies.
-npm i
+1. **Clone the repository**
+   ```bash
+   git clone <repository-url>
+   cd bagsy
+   ```
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
+2. **Install dependencies**
+   ```bash
+   npm install
+   ```
+
+3. **Set up environment variables**
+   ```bash
+   cp .env.example .env.local
+   ```
+   
+   Configure your `.env.local`:
+   ```env
+   VITE_SUPABASE_URL=your_supabase_url
+   VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+   VITE_OPENAI_API_KEY=your_openai_api_key
+   VITE_SCRAPINGBEE_API_KEY=your_scrapingbee_key
+   ```
+
+4. **Start development server**
+   ```bash
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+5. **Open in browser**
+   ```
+   http://localhost:8080
+   ```
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+## 📁 **Project Structure**
 
-**Use GitHub Codespaces**
-
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
-
-## What technologies are used for this project?
-
-This project is built with:
-
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
-- Supabase (Authentication & Database)
-- Google OAuth Integration
-
-## Key Features
-
-### AI-Powered Space Listing
-- **Photo Analysis**: AI automatically analyzes uploaded photos to generate listing details
-- **Market Research**: Web scraping integration to gather competitive pricing data
-- **Smart Pricing**: AI suggests optimal pricing based on market analysis
-- **Manual Override**: Users can disable AI features and enter details manually
-
-### AI Agent Negotiation
-- **Automated Negotiations**: AI agent handles price discussions with potential renters
-- **24/7 Availability**: Never miss negotiation opportunities
-- **Data-Driven Decisions**: Uses market data for intelligent counter-offers
-- **User Control**: Full control over AI agent settings and decisions
-
-### Market Research & Web Scraping
-- **Competitor Analysis**: Automatically searches other platforms for similar listings
-- **Pricing Insights**: Provides market averages and pricing recommendations
-- **Location Intelligence**: Location-specific pricing and feature suggestions
-- **Competitive Advantages**: Identifies unique selling points for your space
-
-## Authentication Features
-
-The app now includes a complete authentication system with:
-
-- **Email/Password Authentication**: Sign up and sign in with email and password
-- **Google OAuth**: One-click sign in with Google accounts
-- **Password Reset**: Forgot password functionality with email reset
-- **User Profiles**: Automatic profile creation and management
-- **Session Management**: Persistent login sessions
-- **Apple-Style UI**: Beautiful, minimal authentication modals
-
-## Environment Variables
-
-Create a `.env` file in the root directory with the following variables:
-
-```env
-# Supabase Configuration
-VITE_SUPABASE_URL=your_supabase_url_here
-VITE_SUPABASE_ANON_KEY=your_supabase_anon_key_here
-
-# OpenAI API Key for AI Analysis
-VITE_OPENAI_API_KEY=your_openai_api_key_here
-
-# Web Scraping API Key (ScrapingBee or similar)
-VITE_SCRAPINGBEE_API_KEY=your_scrapingbee_api_key_here
-
-# Optional: Alternative AI Providers
-# VITE_GEMINI_API_KEY=your_gemini_api_key_here
-# VITE_CLAUDE_API_KEY=your_claude_api_key_here
-
-# Debug Configuration
-VITE_DEBUG=true
+```
+bagsy/
+├── src/
+│   ├── components/          # Reusable UI components
+│   │   ├── auth/           # Authentication components
+│   │   ├── spaces/         # Space listing components
+│   │   └── ui/             # shadcn/ui components
+│   ├── contexts/           # React Context providers
+│   ├── hooks/              # Custom React hooks
+│   ├── integrations/       # External service integrations
+│   │   └── supabase/       # Supabase client & types
+│   ├── lib/                # Core services and utilities
+│   │   ├── ai-service.ts   # Main AI service
+│   │   ├── openai-request-manager.ts  # Request management
+│   │   └── *.ts           # Other AI services
+│   ├── pages/              # Route components
+│   └── types/              # TypeScript definitions
+├── supabase/
+│   ├── migrations/         # Database migrations
+│   └── config.toml         # Supabase configuration
+├── public/                 # Static assets
+└── dist/                   # Build output
 ```
 
-## Debugging & Development
+## 🧠 **AI Features**
 
-### Debug Panel
+### **1. Photo Analysis**
+- Automatic space type detection
+- Dimension estimation
+- Feature extraction
+- Pricing suggestions
 
-The application includes a comprehensive debugging system that helps developers understand what's happening behind the scenes.
+### **2. Smart Pricing**
+- Market-based optimization
+- Demand pattern analysis
+- Competitive positioning
+- Revenue maximization
 
-#### Features
-- **Real-time Logging**: See all debug messages as they happen
-- **Component Filtering**: Filter logs by specific components
-- **Level Filtering**: Filter by log level (error, warn, info, debug)
-- **Search**: Search through log messages and data
-- **Export**: Copy or download logs for analysis
-- **Performance Monitoring**: Track operation timing and performance
+### **3. Smart Scheduling**
+- Optimal availability windows
+- Demand forecasting
+- Peak hour identification
+- Dynamic pricing adjustments
 
-#### How to Use
-1. **Enable Debug Mode**: Set `VITE_DEBUG=true` in your environment variables
-2. **Open Debug Panel**: Click the 🐛 button in the top-right corner (development only)
-3. **Filter Logs**: Use the filters tab to narrow down what you want to see
-4. **Export Data**: Use the Copy/Download buttons to save logs for analysis
+### **4. Marketing Content**
+- SEO-optimized titles and descriptions
+- Social media content generation
+- Email campaign templates
+- Listing optimization suggestions
 
-#### Debug Components
+### **5. Market Research**
+- Competitor analysis
+- Price trend monitoring
+- Market positioning
+- Competitive advantages
 
-**AISpaceListingModal**
-- Form data changes and validation
-- File upload progress and errors
-- AI analysis steps and results
-- Web scraping progress and market data
-- Database operations and errors
-- User interactions and state changes
+## 🔧 **Development**
 
-**WebScrapingService**
-- API calls and responses
-- Scraping progress for each source
-- Market analysis calculations
-- Error handling and fallbacks
-- Performance timing
+### **Available Scripts**
 
-**AI Service**
-- Photo analysis requests and responses
-- API key validation
-- Error handling and timeouts
-- Analysis result processing
+```bash
+# Development
+npm run dev          # Start development server
+npm run build        # Build for production
+npm run preview      # Preview production build
+npm run lint         # Run ESLint
+```
 
-#### Debug Levels
+### **AI Service Development**
 
-- **Error**: Critical issues that prevent functionality
-- **Warn**: Potential issues or fallback scenarios
-- **Info**: Important state changes and user actions
-- **Debug**: Detailed technical information
+When adding new AI features:
 
-#### Performance Monitoring
+1. **Create service in `src/lib/`**
+2. **Use the request manager pattern**:
+   ```typescript
+   import { openaiRequestManager } from './openai-request-manager';
+   
+   async myAIFeature(): Promise<Result> {
+     try {
+       return await openaiRequestManager.executeWithRetry(async () => {
+         // Your AI API call here
+         const response = await fetch(/* ... */);
+         return processResponse(response);
+       }, 'My AI Feature');
+     } catch (error) {
+       // Fallback to mock data
+       return this.fallbackMethod();
+     }
+   }
+   ```
+3. **Add comprehensive fallback data**
+4. **Include detailed logging**
+5. **Test with and without API keys**
 
-The debug system automatically tracks:
-- API call durations
-- File upload times
-- AI analysis processing time
-- Web scraping operation duration
-- Database operation performance
+## 🚀 **Deployment**
 
-### Authentication Flow
+### **AWS Amplify**
 
-1. **Sign Up**: Users can create accounts with email/password or Google
-2. **Sign In**: Existing users can sign in with their credentials
-3. **Profile Creation**: User profiles are automatically created in the database
-4. **Session Persistence**: Users stay logged in across browser sessions
-5. **User Menu**: Signed-in users see a profile menu with options
+1. **Connect repository** to Amplify
+2. **Set environment variables** in Amplify console
+3. **Configure build settings** (already in `amplify.yml`)
+4. **Deploy** automatically on push to main
 
-### Supabase Configuration
+### **Environment Variables**
 
-The app is pre-configured with Supabase authentication. The database includes:
-- User authentication tables
-- User profiles table
-- Bookings and spaces tables
-- Proper relationships and constraints
+| Variable | Description | Required |
+|----------|-------------|----------|
+| `VITE_SUPABASE_URL` | Supabase project URL | ✅ |
+| `VITE_SUPABASE_ANON_KEY` | Supabase anonymous key | ✅ |
+| `VITE_OPENAI_API_KEY` | OpenAI API key | ❌ (falls back to mock) |
+| `VITE_SCRAPINGBEE_API_KEY` | Web scraping service key | ❌ (falls back to mock) |
 
-### Google OAuth Setup
+## 🧪 **Testing**
 
-Google OAuth is now enabled in the authentication modal. To make it fully functional:
+### **Current Testing Strategy**
 
-1. **Configure Google OAuth** in your Supabase dashboard:
-   - Go to Authentication → Providers → Google
-   - Enable the Google provider
-   - Add your Google OAuth credentials
+- **Manual Testing**: Browser console test suite
+- **AI Service Testing**: Built-in retry mechanism testing
+- **Fallback Testing**: Mock data verification
+- **Integration Testing**: End-to-end user flows
 
-2. **Set up Google Cloud Console**:
-   - Create OAuth 2.0 credentials
-   - Add redirect URIs: `https://uwbkdjmmwmpnxjeuzogo.supabase.co/auth/v1/callback`
-   - For production: `https://bagsy.space/auth/callback`
-   - For development: `http://localhost:8080/auth/callback`
+### **Test the AI Features**
 
-3. **Test the integration**:
-   - Click "Sign In" → "Continue with Google"
-   - Complete the OAuth flow
-   - User profile will be automatically created
+```javascript
+// In browser console
+retryTestSuite.runAllTests()  // Test retry mechanism
+```
 
-### Space Listing Feature
+## 📈 **Performance**
 
-Users can now list their spaces for rent with a comprehensive form:
+### **Optimizations**
 
-**Features:**
-- **Space Information**: Title, description, type, dimensions
-- **Location**: Address and ZIP code
-- **Pricing**: Hourly and daily rates
-- **Availability**: Date ranges for availability
-- **Photo Upload**: Optional photo with show/hide toggle
-- **Apple-Style UI**: Beautiful, intuitive interface
+- **Request Limiting**: Maximum 2 AI requests per session
+- **Retry Logic**: Smart exponential backoff
+- **Fallback System**: Instant mock data when API fails
+- **Bundle Optimization**: Tree-shaking and code splitting
+- **Caching**: Efficient data caching strategies
 
-**Space Types Available:**
-- Garage (Covered storage space)
-- Driveway (Open parking space)
-- Warehouse (Large commercial space)
-- Parking Spot (Single parking space)
-- Storage Unit (Indoor storage unit)
-- Outdoor Space (Open outdoor area)
+## 🤝 **Contributing**
 
-**Setup Required:**
-1. **Create Storage Bucket**: Follow `STORAGE_SETUP.md` guide
-2. **Configure Storage Policies**: Set up proper access controls
-3. **Test Photo Upload**: Verify file upload functionality
+### **Development Guidelines**
 
-**Database Storage:**
-- Spaces stored in `spaces` table with owner relationship
-- Photos stored in `space_photos` table with display order
-- Automatic user association and profile creation
+1. **Follow TypeScript strict mode**
+2. **Use the centralized request manager** for AI calls
+3. **Implement comprehensive fallbacks**
+4. **Add detailed logging** for debugging
+5. **Test with and without API keys**
+6. **Follow existing code patterns**
 
-## How can I deploy this project?
+## 📞 **Support & Troubleshooting**
 
-Simply open [Lovable](https://lovable.dev/projects/a1c84b9e-3a02-49d9-9270-d0dd10c9a3ac) and click on Share -> Publish.
+### **Common Issues**
 
-## Can I connect a custom domain to my Lovable project?
+#### **Build Failures**
+```bash
+npm run build  # Check for TypeScript errors
+npm run lint   # Fix linting issues
+```
 
-Yes, you can!
+#### **AI Services Not Working**
+1. Check API keys in environment variables
+2. Verify fallback data is working
+3. Check browser console for errors
+4. Test retry mechanism: `retryTestSuite.runAllTests()`
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+#### **Database Issues**
+1. Check Supabase connection
+2. Verify migrations are applied
+3. Check RLS policies
+4. Review database logs
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+## 📄 **License**
+
+This project is licensed under the MIT License.
+
+## 🙏 **Acknowledgments**
+
+- **OpenAI** for GPT-4o API
+- **Supabase** for backend infrastructure
+- **shadcn/ui** for beautiful components
+- **Tailwind CSS** for utility-first styling
+- **Vite** for fast development experience
+
+---
+
+**Built with ❤️ using modern web technologies and AI**
+
+For more detailed development guidelines, see [CLAUDE.md](CLAUDE.md)
