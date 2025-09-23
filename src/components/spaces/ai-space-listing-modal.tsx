@@ -997,24 +997,54 @@ export function AISpaceListingModal({ open, onOpenChange }: AISpaceListingModalP
     
     try {
       // Insert space into database
+      // Validate required fields before submission
+      if (!editableData.title?.trim()) {
+        throw new Error('Title is required');
+      }
+      if (!formData.address?.trim()) {
+        throw new Error('Address is required');
+      }
+      if (!formData.zipCode?.trim()) {
+        throw new Error('ZIP code is required');
+      }
+      if (!editableData.pricePerHour || editableData.pricePerHour <= 0) {
+        throw new Error('Valid hourly price is required');
+      }
+
+      // Map space type to valid database values
+      const validSpaceTypes = ['garage', 'driveway', 'parking_lot', 'warehouse', 'storage_unit'];
+      let spaceType = editableData.spaceType;
+      
+      // If it's a custom type or not in valid list, default to 'storage_unit'
+      if (editableData.spaceType === 'other' && formData.customSpaceType) {
+        spaceType = 'storage_unit'; // Default fallback for custom types
+      } else if (!validSpaceTypes.includes(editableData.spaceType)) {
+        spaceType = 'storage_unit'; // Fallback for invalid types
+      }
+
       const spaceData = {
-        title: editableData.title,
-        description: editableData.description,
-        space_type: editableData.spaceType === 'other' && formData.customSpaceType 
-          ? formData.customSpaceType 
-          : editableData.spaceType,
-        address: formData.address,
-        zip_code: formData.zipCode,
-        price_per_hour: editableData.pricePerHour,
-        price_per_day: editableData.pricePerDay,
-        dimensions: editableData.dimensions,
+        title: editableData.title.trim(),
+        description: editableData.description?.trim() || null,
+        space_type: spaceType,
+        address: formData.address.trim(),
+        zip_code: formData.zipCode.trim() || '94110', // Default ZIP if empty
+        price_per_hour: Number(editableData.pricePerHour),
+        price_per_day: editableData.pricePerDay ? Number(editableData.pricePerDay) : null,
+        dimensions: editableData.dimensions?.trim() || null,
         owner_id: user.id,
         is_active: true,
-        allow_ai_agent: formData.allowAIAgent,
-        space_types: formData.selectedSpaceTypes.length > 0 ? formData.selectedSpaceTypes : [editableData.spaceType],
+        // Remove columns that don't exist in current schema
+        // allow_ai_agent: formData.allowAIAgent,
+        // space_types: formData.selectedSpaceTypes.length > 0 ? formData.selectedSpaceTypes : [editableData.spaceType],
       };
 
       debug.debug('Inserting space into database', spaceData);
+      debug.debug('User ID:', user.id);
+      debug.debug('Space type validation:', { 
+        original: editableData.spaceType, 
+        mapped: spaceType,
+        validTypes: ['garage', 'driveway', 'parking_lot', 'warehouse', 'storage_unit']
+      });
 
       const { data: space, error: spaceError } = await supabase
         .from('spaces')
@@ -1023,8 +1053,23 @@ export function AISpaceListingModal({ open, onOpenChange }: AISpaceListingModalP
         .single();
 
       if (spaceError) {
-        debug.error('Space insertion failed', spaceError);
-        throw spaceError;
+        debug.error('Space insertion failed', {
+          error: spaceError,
+          spaceData,
+          user: user.id,
+          spaceType: spaceType
+        });
+        
+        // Provide more specific error messages
+        if (spaceError.code === '23502') {
+          throw new Error('Missing required field: ' + spaceError.message);
+        } else if (spaceError.code === '23514') {
+          throw new Error('Invalid space type. Please select a valid space type.');
+        } else if (spaceError.code === '23503') {
+          throw new Error('Invalid user ID. Please log in again.');
+        } else {
+          throw new Error(`Database error: ${spaceError.message}`);
+        }
       }
 
       debug.info('Space inserted successfully', { spaceId: space.id });
