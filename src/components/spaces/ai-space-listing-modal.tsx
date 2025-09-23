@@ -194,7 +194,7 @@ export function AISpaceListingModal({ open, onOpenChange }: AISpaceListingModalP
   };
 
   const generateAIRecommendations = async () => {
-    if (!user || formData.selectedSpaceTypes.length === 0) return;
+    if (!user) return;
     
     setRecommendationsLoading(true);
     try {
@@ -204,7 +204,7 @@ export function AISpaceListingModal({ open, onOpenChange }: AISpaceListingModalP
       const userProfile = {
         userId: user.id,
         preferences: {
-          spaceTypes: formData.selectedSpaceTypes,
+          spaceTypes: formData.selectedSpaceTypes.length > 0 ? formData.selectedSpaceTypes : ['general'],
           priceRange: { min: 0, max: 100 },
           locations: formData.address ? [formData.address] : [],
           amenities: []
@@ -218,9 +218,11 @@ export function AISpaceListingModal({ open, onOpenChange }: AISpaceListingModalP
         }
       };
 
-      // Get recommendations for the selected space types
+      // Get recommendations for the selected space types or general recommendations
       const recommendations: AIRecommendation[] = [];
-      for (const spaceType of formData.selectedSpaceTypes) {
+      const spaceTypesToAnalyze = formData.selectedSpaceTypes.length > 0 ? formData.selectedSpaceTypes : ['general'];
+      
+      for (const spaceType of spaceTypesToAnalyze) {
         const spaceRecommendations = await aiRecommendationsService.getSpaceTypeRecommendations(spaceType, userProfile);
         recommendations.push(...spaceRecommendations);
       }
@@ -1449,7 +1451,7 @@ export function AISpaceListingModal({ open, onOpenChange }: AISpaceListingModalP
               <div className="space-y-4">
                 <div className="p-3 border border-muted-foreground/25 rounded-lg bg-gray-50">
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2">
                       <div className={`w-3 h-3 rounded-full ${requestStatus.isBlocked ? 'bg-red-500' : requestStatus.remaining <= 1 ? 'bg-yellow-500' : 'bg-green-500'}`}></div>
                       <span className="text-sm font-medium text-gray-700">
                         OpenAI Requests: {requestStatus.count}/{requestStatus.maxRequests}
@@ -1472,96 +1474,97 @@ export function AISpaceListingModal({ open, onOpenChange }: AISpaceListingModalP
               </div>
 
               {/* Personalized AI Recommendations */}
-              {formData.selectedSpaceTypes.length > 0 && (
-                <div className="space-y-4">
-                  <div className="p-4 border border-muted-foreground/25 rounded-lg bg-gradient-to-r from-purple-50 to-blue-50">
-                    <div className="flex items-center justify-between mb-4">
-                      <div className="flex items-center gap-2">
-                        <Sparkles className="h-5 w-5 text-purple-600" />
-                        <h3 className="text-lg font-semibold text-purple-800">AI Recommendations</h3>
-                      </div>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={generateAIRecommendations}
-                        disabled={recommendationsLoading}
-                        className="apple-button-secondary"
-                      >
-                        {recommendationsLoading ? (
-                          <>
-                            <LoadingDots />
-                            <span className="ml-2">Generating...</span>
-                          </>
-                        ) : (
-                          <>
-                            <Sparkles className="h-4 w-4 mr-2" />
-                            Get Recommendations
-                          </>
-                        )}
-                      </Button>
+              <div className="space-y-4">
+                <div className="p-4 border border-muted-foreground/25 rounded-lg bg-gradient-to-r from-purple-50 to-blue-50">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-2">
+                      <Sparkles className="h-5 w-5 text-purple-600" />
+                      <h3 className="text-lg font-semibold text-purple-800">AI Recommendations</h3>
                     </div>
-                    
-                    <p className="text-sm text-purple-700 mb-4">
-                      Based on your selected space types, our AI will recommend the most beneficial features for your listing.
-                    </p>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={generateAIRecommendations}
+                      disabled={recommendationsLoading}
+                      className="apple-button-secondary"
+                    >
+                      {recommendationsLoading ? (
+                        <>
+                          <LoadingDots />
+                          <span className="ml-2">Generating...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Sparkles className="h-4 w-4 mr-2" />
+                          Get Recommendations
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                  
+                  <p className="text-sm text-purple-700 mb-4">
+                    {formData.selectedSpaceTypes.length > 0 
+                      ? "Based on your selected space types, our AI will recommend the most beneficial features for your listing."
+                      : "Our AI will analyze your space and recommend the most beneficial features for your listing. Select space types above for more personalized recommendations."
+                    }
+                  </p>
 
-                    {aiRecommendations.length > 0 ? (
-                      <div className="space-y-3">
-                        <p className="text-sm font-medium text-purple-800">
-                          ✅ {aiRecommendations.length} personalized recommendations generated
-                        </p>
-                              <div className="space-y-2">
-                          {aiRecommendations.slice(0, 3).map((recommendation) => (
-                            <div key={recommendation.id} className="p-3 bg-white rounded-lg border border-purple-200">
-                              <div className="flex items-start justify-between">
-                                <div className="flex-1">
-                                  <h4 className="font-medium text-gray-900">{recommendation.title}</h4>
-                                  <p className="text-sm text-gray-600 mt-1">{recommendation.description}</p>
-                                  <div className="flex items-center gap-2 mt-2">
-                                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                                      recommendation.estimatedImpact === 'high' 
-                                        ? 'bg-green-100 text-green-800'
-                                        : recommendation.estimatedImpact === 'medium'
-                                        ? 'bg-yellow-100 text-yellow-800'
-                                        : 'bg-gray-100 text-gray-800'
-                                    }`}>
-                                      {recommendation.estimatedImpact} impact
-                                    </span>
-                                    <span className="text-xs text-gray-500">
-                                      {Math.round(recommendation.confidence * 100)}% confidence
-                                    </span>
-                                  </div>
+                  {aiRecommendations.length > 0 ? (
+                    <div className="space-y-3">
+                      <p className="text-sm font-medium text-purple-800">
+                        ✅ {aiRecommendations.length} personalized recommendations generated
+                      </p>
+                      <div className="space-y-2">
+                        {aiRecommendations.slice(0, 3).map((recommendation) => (
+                          <div key={recommendation.id} className="p-3 bg-white rounded-lg border border-purple-200">
+                            <div className="flex items-start justify-between">
+                              <div className="flex-1">
+                                <h4 className="font-medium text-gray-900">{recommendation.title}</h4>
+                                <p className="text-sm text-gray-600 mt-1">{recommendation.description}</p>
+                                <div className="flex items-center gap-2 mt-2">
+                                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                    recommendation.estimatedImpact === 'high' 
+                                      ? 'bg-green-100 text-green-800'
+                                      : recommendation.estimatedImpact === 'medium'
+                                      ? 'bg-yellow-100 text-yellow-800'
+                                      : 'bg-gray-100 text-gray-800'
+                                  }`}>
+                                    {recommendation.estimatedImpact} impact
+                                  </span>
+                                  <span className="text-xs text-gray-500">
+                                    {Math.round(recommendation.confidence * 100)}% confidence
+                                  </span>
                                 </div>
-                                <Button
-                                  type="button"
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => applyRecommendation(recommendation)}
-                                  className="ml-3 apple-button-secondary"
-                                >
-                                  Apply
-                                </Button>
                               </div>
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() => applyRecommendation(recommendation)}
+                                className="ml-3 apple-button-secondary"
+                              >
+                                Apply
+                              </Button>
                             </div>
-                          ))}
-                        </div>
-                        {aiRecommendations.length > 3 && (
-                          <p className="text-xs text-purple-600">
-                            +{aiRecommendations.length - 3} more recommendations available
-                          </p>
-                        )}
-                                </div>
-                    ) : (
-                      <div className="text-center py-4">
-                        <p className="text-sm text-purple-600">
-                          Click "Get Recommendations" to receive personalized AI suggestions for your space.
-                        </p>
-                              </div>
-                    )}
+                          </div>
+                        ))}
                       </div>
+                      {aiRecommendations.length > 3 && (
+                        <p className="text-xs text-purple-600">
+                          +{aiRecommendations.length - 3} more recommendations available
+                        </p>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="text-center py-4">
+                      <p className="text-sm text-purple-600">
+                        Click "Get Recommendations" to receive personalized AI suggestions for your space.
+                      </p>
+                    </div>
+                  )}
                 </div>
-              )}
+              </div>
 
               {/* AI Analysis Toggle */}
               <div className="space-y-4">
@@ -1640,7 +1643,7 @@ export function AISpaceListingModal({ open, onOpenChange }: AISpaceListingModalP
                           ? "⚠️ Please upload at least one photo to enable AI analysis"
                           : requestStatus.isBlocked
                             ? "⚠️ OpenAI request limit reached - will use mock data for analysis"
-                            : formData.address && formData.zipCode 
+                      : formData.address && formData.zipCode 
                               ? `✅ Ready for AI analysis - Location provided${formData.enableWebScraping ? ' + market research' : ''}${formData.enablePricingOptimization ? ' + pricing optimization' : ''}`
                               : `✅ Ready for AI analysis - No location provided${formData.enableWebScraping ? ' + market research' : ''}${formData.enablePricingOptimization ? ' + pricing optimization' : ''}`
                     }

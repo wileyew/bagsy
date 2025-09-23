@@ -280,7 +280,8 @@ Generate:
 
 Return as JSON with fields: title, metaDescription, keywords, optimizedTitle, optimizedDescription, seoScore`;
 
-    try {
+    // Use the centralized request manager with retry logic
+    return await openaiRequestManager.executeWithRetry(async () => {
       const response = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
         headers: {
@@ -306,10 +307,10 @@ Return as JSON with fields: title, metaDescription, keywords, optimizedTitle, op
       }
 
       return JSON.parse(content);
-    } catch (error) {
-      debug.error('AI SEO content generation failed', error);
+    }, 'OpenAI SEO Content Generation').catch((error) => {
+      debug.error('AI SEO content generation failed after retries', error);
       throw error;
-    }
+    });
   }
 
   private async aiGenerateSocialContent(spaceData: any, platform: string): Promise<SocialMediaContent> {
@@ -351,7 +352,8 @@ Generate:
 
 Return as JSON with fields: content, hashtags, imageSuggestions, engagementScore`;
 
-    try {
+    // Use the centralized request manager with retry logic
+    return await openaiRequestManager.executeWithRetry(async () => {
       const response = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
         headers: {
@@ -384,10 +386,10 @@ Return as JSON with fields: content, hashtags, imageSuggestions, engagementScore
         imageSuggestions: result.imageSuggestions,
         engagementScore: result.engagementScore
       };
-    } catch (error) {
-      debug.error('AI social content generation failed', error);
+    }, `OpenAI Social Content Generation (${platform})`).catch((error) => {
+      debug.error('AI social content generation failed after retries', error);
       throw error;
-    }
+    });
   }
 
   private async aiGenerateEmailCampaign(spaceData: any, campaignType: string, audience: string): Promise<EmailCampaign> {
@@ -427,7 +429,8 @@ Generate:
 
 Return as JSON with fields: subject, previewText, content, callToAction, targetAudience, expectedOpenRate`;
 
-    try {
+    // Use the centralized request manager with retry logic
+    return await openaiRequestManager.executeWithRetry(async () => {
       const response = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
         headers: {
@@ -461,10 +464,10 @@ Return as JSON with fields: subject, previewText, content, callToAction, targetA
         targetAudience: audience,
         expectedOpenRate: result.expectedOpenRate
       };
-    } catch (error) {
-      debug.error('AI email campaign generation failed', error);
+    }, `OpenAI Email Campaign Generation (${campaignType})`).catch((error) => {
+      debug.error('AI email campaign generation failed after retries', error);
       throw error;
-    }
+    });
   }
 
   private async aiOptimizeListing(listingData: any): Promise<OptimizationSuggestions> {
@@ -500,7 +503,8 @@ Provide optimization suggestions:
 
 Return as JSON with fields: titleImprovements, descriptionImprovements, keywordSuggestions, imageSuggestions, overallScore`;
 
-    try {
+    // Use the centralized request manager with retry logic
+    return await openaiRequestManager.executeWithRetry(async () => {
       const response = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
         headers: {
@@ -526,10 +530,10 @@ Return as JSON with fields: titleImprovements, descriptionImprovements, keywordS
       }
 
       return JSON.parse(content);
-    } catch (error) {
-      debug.error('AI listing optimization failed', error);
+    }, 'OpenAI Listing Optimization').catch((error) => {
+      debug.error('AI listing optimization failed after retries', error);
       throw error;
-    }
+    });
   }
 
   // Fallback methods

@@ -400,7 +400,8 @@ Suggest 5-7 optimal availability windows with:
 
 Return as JSON array with fields: dayOfWeek, startHour, endHour, demandLevel, suggestedPrice, confidence`;
 
-    try {
+    // Use the centralized request manager with retry logic
+    return await openaiRequestManager.executeWithRetry(async () => {
       const response = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
         headers: {
@@ -434,10 +435,10 @@ Return as JSON array with fields: dayOfWeek, startHour, endHour, demandLevel, su
         suggestedPrice: space.price_per_hour * suggestion.suggestedPrice,
         confidence: suggestion.confidence
       }));
-    } catch (error) {
-      debug.error('AI availability suggestion failed', error);
+    }, 'OpenAI Availability Suggestions').catch((error) => {
+      debug.error('AI availability suggestion failed after retries', error);
       return this.fallbackAvailabilitySuggestions(patterns);
-    }
+    });
   }
 
   private async aiPredictDemand(location: string, spaceType: string, demandData: any): Promise<DemandForecast[]> {
@@ -471,7 +472,8 @@ Predict demand for the next 7 days with:
 
 Return as JSON array with fields: date, expectedDemand, optimalPrice, confidence, factors`;
 
-    try {
+    // Use the centralized request manager with retry logic
+    return await openaiRequestManager.executeWithRetry(async () => {
       const response = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
         headers: {
@@ -497,10 +499,10 @@ Return as JSON array with fields: date, expectedDemand, optimalPrice, confidence
       }
 
       return JSON.parse(content);
-    } catch (error) {
-      debug.error('AI demand prediction failed', error);
+    }, 'OpenAI Demand Prediction').catch((error) => {
+      debug.error('AI demand prediction failed after retries', error);
       return this.fallbackDemandPrediction(demandData);
-    }
+    });
   }
 
   private fallbackAvailabilitySuggestions(patterns: any): AvailabilityWindow[] {

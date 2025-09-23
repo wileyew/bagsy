@@ -1,16 +1,30 @@
 /**
  * Centralized OpenAI Request Manager
  * Manages request limits across all AI services to prevent exceeding API quotas
+ * Includes retry logic with exponential backoff for failed requests
  */
+
+interface RetryConfig {
+  maxAttempts: number;
+  baseDelay: number;
+  maxDelay: number;
+  backoffFactor: number;
+}
 
 class OpenAIRequestManager {
   private static instance: OpenAIRequestManager;
   private requestCount = 0;
   private maxRequests = 2;
   private isBlocked = false;
+  private retryConfig: RetryConfig = {
+    maxAttempts: 2,
+    baseDelay: 1000, // 1 second
+    maxDelay: 5000,  // 5 seconds
+    backoffFactor: 2
+  };
 
   private constructor() {
-    console.log(`🚫 OpenAI Request Manager initialized with limit: ${this.maxRequests} requests maximum`);
+    console.log(`🚫 OpenAI Request Manager initialized with limit: ${this.maxRequests} requests maximum, ${this.retryConfig.maxAttempts} retry attempts per request`);
   }
 
   static getInstance(): OpenAIRequestManager {
@@ -55,6 +69,59 @@ class OpenAIRequestManager {
     this.requestCount++;
     console.log(`📊 OpenAI Request reserved: ${this.requestCount}/${this.maxRequests}`);
     return true;
+  }
+
+  /**
+   * Execute a request with retry logic
+   */
+  async executeWithRetry<T>(
+    requestFn: () => Promise<T>,
+    context: string = 'OpenAI API call'
+  ): Promise<T> {
+    let lastError: Error | null = null;
+    
+    for (let attempt = 1; attempt <= this.retryConfig.maxAttempts; attempt++) {
+      try {
+        console.log(`🔄 ${context} - Attempt ${attempt}/${this.retryConfig.maxAttempts}`);
+        
+        const result = await requestFn();
+        
+        if (attempt > 1) {
+          console.log(`✅ ${context} succeeded on attempt ${attempt}`);
+        }
+        
+        return result;
+      } catch (error) {
+        lastError = error instanceof Error ? error : new Error(String(error));
+        
+        console.warn(`❌ ${context} failed on attempt ${attempt}:`, lastError.message);
+        
+        // Don't retry on the last attempt
+        if (attempt === this.retryConfig.maxAttempts) {
+          console.error(`💥 ${context} failed after ${this.retryConfig.maxAttempts} attempts`);
+          break;
+        }
+        
+        // Calculate delay with exponential backoff
+        const delay = Math.min(
+          this.retryConfig.baseDelay * Math.pow(this.retryConfig.backoffFactor, attempt - 1),
+          this.retryConfig.maxDelay
+        );
+        
+        console.log(`⏳ ${context} - Waiting ${delay}ms before retry...`);
+        await this.sleep(delay);
+      }
+    }
+    
+    // If we get here, all attempts failed
+    throw lastError || new Error(`${context} failed after ${this.retryConfig.maxAttempts} attempts`);
+  }
+
+  /**
+   * Sleep utility for delays
+   */
+  private sleep(ms: number): Promise<void> {
+    return new Promise(resolve => setTimeout(resolve, ms));
   }
 
   /**

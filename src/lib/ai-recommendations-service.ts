@@ -241,7 +241,8 @@ Generate 3-5 personalized recommendations with:
 
 Return as JSON with fields: recommendations, topRecommendation, summary`;
 
-    try {
+    // Use the centralized request manager with retry logic
+    return await openaiRequestManager.executeWithRetry(async () => {
       const response = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
         headers: {
@@ -275,10 +276,10 @@ Return as JSON with fields: recommendations, topRecommendation, summary`;
         summary: result.summary,
         generatedAt: new Date().toISOString()
       };
-    } catch (error) {
-      debug.error('AI recommendation generation failed', error);
+    }, 'OpenAI Recommendations Generation').catch((error) => {
+      debug.error('AI recommendation generation failed after retries', error);
       throw error;
-    }
+    });
   }
 
   private fallbackRecommendations(userProfile: UserProfile): PersonalizedRecommendations {
@@ -371,30 +372,30 @@ Return as JSON with fields: recommendations, topRecommendation, summary`;
   }
 
   private shouldRecommendPricing(spaceType: string, userProfile: Partial<UserProfile>): boolean {
-    // Recommend pricing optimization for high-value space types
+    // Recommend pricing optimization for high-value space types or general recommendations
     const highValueTypes = ['warehouse', 'rv_storage', 'storage_unit'];
-    return highValueTypes.includes(spaceType) || userProfile.behaviorPatterns?.priceSensitivity === 'high';
+    return spaceType === 'general' || highValueTypes.includes(spaceType) || userProfile.behaviorPatterns?.priceSensitivity === 'high';
   }
 
   private shouldRecommendMarketing(spaceType: string, userProfile: Partial<UserProfile>): boolean {
-    // Recommend marketing for competitive areas
-    return userProfile.preferences?.locations.length > 0 || userProfile.behaviorPatterns?.frequency === 'high';
+    // Recommend marketing for competitive areas or general recommendations
+    return spaceType === 'general' || userProfile.preferences?.locations.length > 0 || userProfile.behaviorPatterns?.frequency === 'high';
   }
 
   private shouldRecommendScheduling(spaceType: string, userProfile: Partial<UserProfile>): boolean {
-    // Recommend scheduling for space types with predictable demand
+    // Recommend scheduling for space types with predictable demand or general recommendations
     const predictableTypes = ['garage', 'driveway', 'parking_spot'];
-    return predictableTypes.includes(spaceType);
+    return spaceType === 'general' || predictableTypes.includes(spaceType);
   }
 
   private shouldRecommendWebScraping(spaceType: string, userProfile: Partial<UserProfile>): boolean {
-    // Recommend web scraping for competitive markets
-    return userProfile.preferences?.locations.length > 0;
+    // Recommend web scraping for competitive markets or general recommendations
+    return spaceType === 'general' || userProfile.preferences?.locations.length > 0;
   }
 
   private shouldRecommendAnalytics(spaceType: string, userProfile: Partial<UserProfile>): boolean {
-    // Recommend analytics for users with booking history
-    return (userProfile.bookingHistory?.length || 0) > 0;
+    // Recommend analytics for users with booking history or general recommendations
+    return spaceType === 'general' || (userProfile.bookingHistory?.length || 0) > 0;
   }
 }
 

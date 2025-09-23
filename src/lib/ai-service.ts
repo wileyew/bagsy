@@ -279,7 +279,8 @@ class AIService {
       promptLength: requestBody.messages[0].content[0].text.length
     });
 
-    try {
+    // Use the centralized request manager with retry logic
+    return await openaiRequestManager.executeWithRetry(async () => {
       const response = await fetch(`${this.baseUrl}/chat/completions`, {
         method: 'POST',
         headers: {
@@ -349,15 +350,7 @@ class AIService {
         console.log('🎯 Fallback Analysis Result:', fallbackResult);
         return fallbackResult;
       }
-    } catch (error) {
-      const responseTime = Date.now() - startTime;
-      console.error('💥 OpenAI API call failed:', {
-        error: error instanceof Error ? error.message : String(error),
-        responseTime: `${responseTime}ms`,
-        photoCount: photoUrls.length
-      });
-      throw error;
-    }
+    }, 'OpenAI Space Analysis');
   }
 
   private async mockAnalysis(
@@ -732,7 +725,8 @@ class AIService {
       
       Do not include any text before or after the JSON. Return only the JSON object.`;
 
-    try {
+    // Use the centralized request manager with retry logic
+    return await openaiRequestManager.executeWithRetry(async () => {
       const response = await fetch(`${this.baseUrl}/chat/completions`, {
         method: 'POST',
         headers: {
@@ -773,10 +767,10 @@ class AIService {
         recommendations: optimization.recommendations || ['Consider peak hour pricing'],
         marketFactors: optimization.marketFactors || { demandLevel: 'Medium' }
       };
-    } catch (error) {
-      console.error('💥 Pricing optimization failed:', error);
+    }, 'OpenAI Pricing Optimization').catch((error) => {
+      console.error('💥 Pricing optimization failed after retries:', error);
       return this.getFallbackPricingOptimization(basePrice, spaceType, location);
-    }
+    });
   }
 
   private getFallbackPricingOptimization(
