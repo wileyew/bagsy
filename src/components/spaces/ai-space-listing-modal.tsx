@@ -10,6 +10,7 @@ import { Upload, X, MapPin, Sparkles, CheckCircle, Edit3, HelpCircle, ExternalLi
 import { useAuthContext } from "@/contexts/auth-context";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { useUserListingsCount } from "@/hooks/use-user-listings-count";
 import { LoadingDots } from "@/components/ui/loading-dots";
 import { aiService, LocationContext } from "@/lib/ai-service";
 import { webScrapingService } from "@/lib/web-scraping-service";
@@ -125,6 +126,7 @@ export function AISpaceListingModal({ open, onOpenChange }: AISpaceListingModalP
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { user } = useAuthContext();
   const { toast } = useToast();
+  const { listingsCount } = useUserListingsCount();
 
   // Debug form data changes
   useEffect(() => {
@@ -996,6 +998,53 @@ export function AISpaceListingModal({ open, onOpenChange }: AISpaceListingModalP
       return;
     }
 
+    // Check listing limit
+    if (listingsCount >= 5) {
+      debug.warn('❌ Submit blocked - listing limit reached', { 
+        listingsCount,
+        limit: 5
+      });
+      
+      const handleSalesEmail = () => {
+        const subject = encodeURIComponent("Listing Limit Reached - Sales Inquiry");
+        const body = encodeURIComponent(`Hi Bagsy Sales Team,
+
+I've reached the free listing limit (5 listings) and would like to discuss options for listing more spaces.
+
+Current listings: ${listingsCount}
+User ID: ${user.id}
+Email: ${user.email}
+
+Thank you!`);
+        
+        window.open(`mailto:sales@bagsy.space?subject=${subject}&body=${body}`);
+      };
+
+      toast({
+        title: "🚫 Listing Limit Reached",
+        description: "You've reached the free limit of 5 listings. Contact sales to discuss premium options.",
+        variant: "destructive",
+        duration: 8000,
+      });
+      
+      // Show additional toast with action
+      setTimeout(() => {
+        toast({
+          title: "💼 Contact Sales",
+          description: "Click to email our sales team about premium listing options.",
+          action: (
+            <button 
+              onClick={handleSalesEmail}
+              className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-8 px-3"
+            >
+              Email Sales
+            </button>
+          )
+        });
+      }, 1000);
+      return;
+    }
+
     debug.userAction('✅ Form submission started', { 
       editableData, 
       formData: {
@@ -1226,14 +1275,23 @@ export function AISpaceListingModal({ open, onOpenChange }: AISpaceListingModalP
         title: "🎉 Space Successfully Listed!",
         description: "Your space has been submitted and is now available for booking. You can view and manage it from your dashboard.",
         duration: 5000,
-        action: {
-          label: "View My Listings",
-          onClick: () => {
-            // Navigate to my listings page
-            window.location.href = '/my-listings';
-          }
-        }
       });
+      
+      // Show additional toast with action
+      setTimeout(() => {
+        toast({
+          title: "📋 View Your Listings",
+          description: "Click to go to your listings dashboard and manage your space.",
+          action: (
+            <button 
+              onClick={() => window.location.href = '/my-listings'}
+              className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-8 px-3"
+            >
+              View Listings
+            </button>
+          )
+        });
+      }, 1000);
 
       // Reset form and close modal
       debug.info('Resetting form and closing modal');

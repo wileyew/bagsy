@@ -18,7 +18,10 @@ import {
   Plus,
   Settings,
   BarChart3,
-  Users
+  Users,
+  Mail,
+  HelpCircle,
+  ExternalLink
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
@@ -199,6 +202,35 @@ const MyListings: React.FC = () => {
     });
   };
 
+  const handleSupportEmail = () => {
+    const subject = encodeURIComponent("Missing Listing - Need Help");
+    const body = encodeURIComponent(`Hi Bagsy Support Team,
+
+I believe I posted a listing but it's not showing up in my listings page. Could you please help me check?
+
+User ID: ${user?.id}
+Email: ${user?.email}
+
+Thank you!`);
+    
+    window.open(`mailto:support@bagsy.space?subject=${subject}&body=${body}`);
+  };
+
+  const handleSalesEmail = () => {
+    const subject = encodeURIComponent("Interested in More Listings - Sales Inquiry");
+    const body = encodeURIComponent(`Hi Bagsy Sales Team,
+
+I'm interested in listing more than 5 spaces and would like to discuss partnership or premium options.
+
+Current listings: ${listings.length}
+User ID: ${user?.id}
+Email: ${user?.email}
+
+Thank you!`);
+    
+    window.open(`mailto:sales@bagsy.space?subject=${subject}&body=${body}`);
+  };
+
   if (!user) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -259,16 +291,44 @@ const MyListings: React.FC = () => {
             <p className="mt-2 text-gray-600">
               Manage your space listings and track their performance
             </p>
+            {listings.length >= 4 && (
+              <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                <div className="flex items-center space-x-2">
+                  <AlertCircle className="h-4 w-4 text-blue-600" />
+                  <span className="text-sm text-blue-800">
+                    You're using {listings.length}/5 free listings. 
+                    <button 
+                      onClick={handleSalesEmail}
+                      className="ml-1 underline hover:no-underline"
+                    >
+                      Contact sales for more
+                    </button>
+                  </span>
+                </div>
+              </div>
+            )}
           </div>
           <div className="mt-4 sm:mt-0 flex space-x-3">
-            <Button
-              onClick={() => navigate('/')}
-              variant="outline"
-              className="flex items-center space-x-2"
-            >
-              <Plus className="h-4 w-4" />
-              <span>List New Space</span>
-            </Button>
+            {listings.length < 5 ? (
+              <Button
+                onClick={() => navigate('/')}
+                variant="outline"
+                className="flex items-center space-x-2"
+              >
+                <Plus className="h-4 w-4" />
+                <span>List New Space</span>
+              </Button>
+            ) : (
+              <Button
+                onClick={handleSalesEmail}
+                variant="outline"
+                className="flex items-center space-x-2"
+              >
+                <Mail className="h-4 w-4" />
+                <span>Contact Sales</span>
+                <ExternalLink className="h-3 w-3" />
+              </Button>
+            )}
             <Button
               onClick={() => navigate('/analytics')}
               variant="outline"
@@ -362,16 +422,37 @@ const MyListings: React.FC = () => {
         ) : listings.length === 0 ? (
           <Card>
             <CardContent className="pt-6">
-              <div className="text-center space-y-4">
+              <div className="text-center space-y-6">
                 <MapPin className="h-12 w-12 text-gray-400 mx-auto" />
-                <h3 className="text-lg font-semibold text-gray-900">No Listings Yet</h3>
-                <p className="text-gray-600">
-                  You haven't created any space listings yet. Create your first listing to get started.
-                </p>
-                <Button onClick={() => navigate('/')} className="flex items-center space-x-2 mx-auto">
-                  <Plus className="h-4 w-4" />
-                  <span>Create First Listing</span>
-                </Button>
+                <div className="space-y-2">
+                  <h3 className="text-lg font-semibold text-gray-900">No Listings Yet</h3>
+                  <p className="text-gray-600">
+                    You haven't created any space listings yet. Create your first listing to get started.
+                  </p>
+                </div>
+                
+                <div className="space-y-3">
+                  <Button onClick={() => navigate('/')} className="flex items-center space-x-2 mx-auto">
+                    <Plus className="h-4 w-4" />
+                    <span>Create First Listing</span>
+                  </Button>
+                  
+                  <div className="text-sm text-gray-500">or</div>
+                  
+                  <div className="space-y-2">
+                    <p className="text-sm text-gray-600">Think you already posted a listing?</p>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={handleSupportEmail}
+                      className="flex items-center space-x-2 mx-auto"
+                    >
+                      <Mail className="h-4 w-4" />
+                      <span>Contact Support</span>
+                      <ExternalLink className="h-3 w-3" />
+                    </Button>
+                  </div>
+                </div>
               </div>
             </CardContent>
           </Card>
