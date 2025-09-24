@@ -7,6 +7,7 @@ import { AuthProvider } from "@/contexts/auth-context";
 import Index from "./pages/Index";
 import AuthCallback from "./pages/AuthCallback";
 import AIAgentHelp from "./pages/AIAgentHelp";
+import MyListings from "./pages/MyListings";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -22,6 +23,7 @@ const App = () => (
             <Route path="/" element={<Index />} />
             <Route path="/auth/callback" element={<AuthCallback />} />
             <Route path="/ai-agent-help" element={<AIAgentHelp />} />
+            <Route path="/my-listings" element={<MyListings />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

@@ -9,14 +9,18 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { User, Settings, LogOut, BookOpen, Plus } from "lucide-react";
+import { User, Settings, LogOut, BookOpen, Plus, MapPin } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
+import { useNavigate } from "react-router-dom";
+import { useUserListingsCount } from "@/hooks/use-user-listings-count";
 
 export function UserMenu() {
   const { user, signOut } = useAuth();
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [isSigningOut, setIsSigningOut] = useState(false);
+  const { hasListings, listingsCount, loading: listingsLoading } = useUserListingsCount();
 
   if (!user) return null;
 
@@ -82,6 +86,20 @@ export function UserMenu() {
           <User className="mr-2 h-4 w-4" />
           <span>Profile</span>
         </DropdownMenuItem>
+        {hasListings && (
+          <DropdownMenuItem 
+            className="cursor-pointer"
+            onClick={() => navigate('/my-listings')}
+          >
+            <MapPin className="mr-2 h-4 w-4" />
+            <span>My Listings</span>
+            {listingsCount > 0 && (
+              <span className="ml-auto text-xs text-muted-foreground">
+                {listingsCount}
+              </span>
+            )}
+          </DropdownMenuItem>
+        )}
         <DropdownMenuItem className="cursor-pointer">
           <BookOpen className="mr-2 h-4 w-4" />
           <span>My Bookings</span>

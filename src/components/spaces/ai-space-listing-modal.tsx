@@ -1226,6 +1226,13 @@ export function AISpaceListingModal({ open, onOpenChange }: AISpaceListingModalP
         title: "🎉 Space Successfully Listed!",
         description: "Your space has been submitted and is now available for booking. You can view and manage it from your dashboard.",
         duration: 5000,
+        action: {
+          label: "View My Listings",
+          onClick: () => {
+            // Navigate to my listings page
+            window.location.href = '/my-listings';
+          }
+        }
       });
 
       // Reset form and close modal

@@ -13,12 +13,16 @@ import { BagsyLogo } from "@/components/ui/bagsy-logo";
 import { useAuthContext } from "@/contexts/auth-context";
 import { useToast } from "@/hooks/use-toast";
 import DebugPanel from "@/components/debug/DebugPanel";
+import { useNavigate } from "react-router-dom";
+import { useUserListingsCount } from "@/hooks/use-user-listings-count";
 
 const Index = () => {
   const [currentStep, setCurrentStep] = useState(0);
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [aiSpaceListingModalOpen, setAiSpaceListingModalOpen] = useState(false);
   const [debugPanelOpen, setDebugPanelOpen] = useState(false);
+  const navigate = useNavigate();
+  const { hasListings } = useUserListingsCount();
   const [formData, setFormData] = useState({
     spaceType: "",
     location: "",
@@ -326,6 +330,16 @@ const Index = () => {
                     <Sparkles className="h-4 w-4 mr-2" />
                     List Your Space with AI
                   </Button>
+                  {hasListings && (
+                    <Button 
+                      variant="outline"
+                      size="lg" 
+                      onClick={() => navigate('/my-listings')}
+                    >
+                      <MapPin className="h-4 w-4 mr-2" />
+                      My Listings
+                    </Button>
+                  )}
                   <UserMenu />
                 </>
               ) : (
