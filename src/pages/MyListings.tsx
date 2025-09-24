@@ -98,50 +98,133 @@ const MyListings: React.FC = () => {
       setLoading(true);
       setError(null);
 
-      // Fetch spaces with related data
+      console.log('🔍 Fetching listings for user:', user.id);
+
+      // First, let's check if there are any spaces
       const { data: spacesData, error: spacesError } = await supabase
         .from('spaces')
-        .select(`
-          *,
-          space_photos (
-            id,
-            photo_url,
-            display_order
-          ),
-          bookings (
-            id,
-            start_time,
-            end_time,
-            total_price,
-            status,
-            renter_id,
-            created_at
-          )
-        `)
+        .select('*')
         .eq('owner_id', user.id)
         .order('created_at', { ascending: false });
+
+      console.log('📊 Spaces data:', spacesData);
+      console.log('❌ Spaces error:', spacesError);
 
       if (spacesError) {
         throw spacesError;
       }
 
-      // Fetch negotiations for each space
-      const listingsWithNegotiations = await Promise.all(
+      // Now fetch photos for each space separately to debug
+      const listingsWithPhotos = await Promise.all(
         (spacesData || []).map(async (space) => {
-          const { data: negotiationsData } = await supabase
-            .from('negotiations')
+          console.log(`🖼️ Fetching photos for space ${space.id}:`);
+          
+          // Try to fetch photos with different approaches to debug RLS issues
+          let photosData = null;
+          let photosError = null;
+
+          // First attempt: Direct query
+          const { data: directPhotos, error: directError } = await supabase
+            .from('space_photos')
             .select('*')
-            .eq('booking_id', space.bookings?.[0]?.id || '')
-            .order('created_at', { ascending: false });
+            .eq('space_id', space.id)
+            .order('display_order', { ascending: true });
+
+          if (directError) {
+            console.log(`❌ Direct photo query failed for space ${space.id}:`, directError);
+            
+            // Second attempt: Try with RLS bypass (if user is owner)
+            if (space.owner_id === user.id) {
+              console.log(`🔄 Trying RLS bypass for space ${space.id}...`);
+              
+              // Use service role key for owner's photos (this would need to be implemented server-side)
+              // For now, let's try a different approach
+              const { data: ownerPhotos, error: ownerError } = await supabase
+                .from('space_photos')
+                .select('*')
+                .eq('space_id', space.id)
+                .order('display_order', { ascending: true });
+
+              if (ownerError) {
+                console.log(`❌ Owner photo query also failed for space ${space.id}:`, ownerError);
+              } else {
+                photosData = ownerPhotos;
+                console.log(`✅ Owner photo query succeeded for space ${space.id}:`, ownerPhotos);
+              }
+            }
+          } else {
+            photosData = directPhotos;
+            console.log(`✅ Direct photo query succeeded for space ${space.id}:`, directPhotos);
+          }
+
+          console.log(`📸 Final photos for space ${space.id}:`, photosData);
+          
+          // Debug photo URLs
+          if (photosData && photosData.length > 0) {
+            photosData.forEach((photo, index) => {
+              console.log(`🖼️ Photo ${index + 1} URL:`, photo.photo_url);
+            });
+          } else {
+            console.log(`⚠️ No photos found for space ${space.id}`);
+          }
 
           return {
             ...space,
+            photos: photosData || [],
+          };
+        })
+      );
+
+      // Fetch bookings for each space
+      const listingsWithBookings = await Promise.all(
+        listingsWithPhotos.map(async (listing) => {
+          const { data: bookingsData, error: bookingsError } = await supabase
+            .from('bookings')
+            .select('*')
+            .eq('space_id', listing.id)
+            .order('created_at', { ascending: false });
+
+          if (bookingsError) {
+            console.error('❌ Bookings error:', bookingsError);
+          }
+
+          return {
+            ...listing,
+            bookings: bookingsData || [],
+          };
+        })
+      );
+
+      // Fetch negotiations for each space (through bookings)
+      const finalListings = await Promise.all(
+        listingsWithBookings.map(async (listing) => {
+          // Get all negotiations for all bookings of this space
+          const bookingIds = listing.bookings.map(booking => booking.id);
+          
+          if (bookingIds.length === 0) {
+            return {
+              ...listing,
+              negotiations: []
+            };
+          }
+
+          const { data: negotiationsData } = await supabase
+            .from('negotiations')
+            .select('*')
+            .in('booking_id', bookingIds)
+            .order('created_at', { ascending: false });
+
+          console.log(`💬 Negotiations for space ${listing.id}:`, negotiationsData);
+
+          return {
+            ...listing,
             negotiations: negotiationsData || []
           };
         })
       );
 
-      setListings(listingsWithNegotiations);
+      console.log('📋 Final listings data:', finalListings);
+      setListings(finalListings);
     } catch (error) {
       console.error('Error fetching listings:', error);
       setError(error instanceof Error ? error.message : 'Failed to fetch listings');
@@ -246,6 +329,58 @@ Thank you!`);
   const closeDetailedView = () => {
     setShowDetailedView(false);
     setSelectedListing(null);
+  };
+
+  const testPhotoFetching = async () => {
+    if (!user) return;
+
+    console.log('🧪 Testing photo fetching...');
+    
+    try {
+      // Test direct photo query
+      const { data: allPhotos, error: allPhotosError } = await supabase
+        .from('space_photos')
+        .select('*')
+        .limit(10);
+
+      console.log('📸 All photos in database:', allPhotos);
+      console.log('❌ All photos error:', allPhotosError);
+
+      // Test user's spaces
+      const { data: userSpaces, error: userSpacesError } = await supabase
+        .from('spaces')
+        .select('id, title, owner_id')
+        .eq('owner_id', user.id);
+
+      console.log('🏠 User spaces:', userSpaces);
+      console.log('❌ User spaces error:', userSpacesError);
+
+      if (userSpaces && userSpaces.length > 0) {
+        // Test photos for each user space
+        for (const space of userSpaces) {
+          const { data: spacePhotos, error: spacePhotosError } = await supabase
+            .from('space_photos')
+            .select('*')
+            .eq('space_id', space.id);
+
+          console.log(`🖼️ Photos for space ${space.id} (${space.title}):`, spacePhotos);
+          console.log(`❌ Photos error for space ${space.id}:`, spacePhotosError);
+        }
+      }
+
+      toast({
+        title: "Photo Test Complete",
+        description: "Check the console for detailed photo fetching results.",
+      });
+
+    } catch (error) {
+      console.error('❌ Photo test error:', error);
+      toast({
+        title: "Photo Test Failed",
+        description: "Check the console for error details.",
+        variant: "destructive",
+      });
+    }
   };
 
   if (!user) {
@@ -354,6 +489,17 @@ Thank you!`);
               <BarChart3 className="h-4 w-4" />
               <span>Analytics</span>
             </Button>
+            {import.meta.env.DEV && (
+              <Button
+                onClick={testPhotoFetching}
+                variant="outline"
+                size="sm"
+                className="flex items-center space-x-2"
+              >
+                <Image className="h-4 w-4" />
+                <span>Test Photos</span>
+              </Button>
+            )}
           </div>
         </div>
 
@@ -479,17 +625,35 @@ Thank you!`);
               const listingStatus = getListingStatus(listing);
               const primaryPhoto = listing.photos?.[0];
 
+              // Debug photo data
+              console.log(`🏠 Listing ${listing.id} photos:`, listing.photos);
+              console.log(`🖼️ Primary photo for ${listing.id}:`, primaryPhoto);
+
               return (
                 <Card key={listing.id} className="overflow-hidden hover:shadow-lg transition-shadow">
-                  {primaryPhoto && (
-                    <div className="aspect-video bg-gray-200">
+                  <div className="aspect-video bg-gray-200">
+                    {primaryPhoto ? (
                       <img
                         src={primaryPhoto.photo_url}
                         alt={listing.title}
                         className="w-full h-full object-cover"
+                        onError={(e) => {
+                          console.error(`❌ Image failed to load for listing ${listing.id}:`, primaryPhoto.photo_url);
+                          e.currentTarget.style.display = 'none';
+                        }}
+                        onLoad={() => {
+                          console.log(`✅ Image loaded successfully for listing ${listing.id}:`, primaryPhoto.photo_url);
+                        }}
                       />
-                    </div>
-                  )}
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center bg-gray-100">
+                        <div className="text-center text-gray-400">
+                          <Image className="h-12 w-12 mx-auto mb-2" />
+                          <p className="text-sm">No photo available</p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
                   
                   <CardHeader className="pb-3">
                     <div className="flex items-start justify-between">
