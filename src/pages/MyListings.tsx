@@ -21,7 +21,12 @@ import {
   Users,
   Mail,
   HelpCircle,
-  ExternalLink
+  ExternalLink,
+  Image,
+  ChevronRight,
+  Star,
+  User,
+  Calendar as CalendarIcon
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
@@ -77,6 +82,8 @@ const MyListings: React.FC = () => {
   const [listings, setListings] = useState<SpaceListing[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [selectedListing, setSelectedListing] = useState<SpaceListing | null>(null);
+  const [showDetailedView, setShowDetailedView] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -229,6 +236,16 @@ Email: ${user?.email}
 Thank you!`);
     
     window.open(`mailto:sales@bagsy.space?subject=${subject}&body=${body}`);
+  };
+
+  const handleViewDetails = (listing: SpaceListing) => {
+    setSelectedListing(listing);
+    setShowDetailedView(true);
+  };
+
+  const closeDetailedView = () => {
+    setShowDetailedView(false);
+    setSelectedListing(null);
   };
 
   if (!user) {
@@ -547,10 +564,10 @@ Thank you!`);
                           size="sm"
                           variant="outline"
                           className="flex-1"
-                          onClick={() => navigate(`/listings/${listing.id}`)}
+                          onClick={() => handleViewDetails(listing)}
                         >
                           <Eye className="h-4 w-4 mr-1" />
-                          View
+                          View Details
                         </Button>
                         <Button
                           size="sm"
@@ -570,6 +587,241 @@ Thank you!`);
           </div>
         )}
       </div>
+
+      {/* Detailed Listing View Modal */}
+      {showDetailedView && selectedListing && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              {/* Header */}
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-2xl font-bold text-gray-900">Listing Details</h2>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={closeDetailedView}
+                  className="apple-button-secondary"
+                >
+                  Close
+                </Button>
+              </div>
+
+              {/* Photo Gallery */}
+              {selectedListing.photos && selectedListing.photos.length > 0 && (
+                <div className="mb-6">
+                  <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
+                    <Image className="h-5 w-5" />
+                    Photos ({selectedListing.photos.length})
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {selectedListing.photos.map((photo, index) => (
+                      <div key={photo.id} className="aspect-video bg-gray-200 rounded-lg overflow-hidden">
+                        <img
+                          src={photo.photo_url}
+                          alt={`${selectedListing.title} - Photo ${index + 1}`}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Basic Information */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg">{selectedListing.title}</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div>
+                      <h4 className="font-medium text-gray-900 mb-2">Description</h4>
+                      <p className="text-gray-600">{selectedListing.description || 'No description provided'}</p>
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <span className="text-sm font-medium text-gray-500">Space Type</span>
+                        <p className="text-sm capitalize">{selectedListing.space_type.replace('_', ' ')}</p>
+                      </div>
+                      <div>
+                        <span className="text-sm font-medium text-gray-500">Dimensions</span>
+                        <p className="text-sm">{selectedListing.dimensions || 'Not specified'}</p>
+                      </div>
+                    </div>
+
+                    <div>
+                      <span className="text-sm font-medium text-gray-500">Location</span>
+                      <p className="text-sm flex items-center gap-1">
+                        <MapPin className="h-4 w-4" />
+                        {selectedListing.address}, {selectedListing.zip_code}
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg">Pricing & Status</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <span className="text-sm font-medium text-gray-500">Hourly Rate</span>
+                        <p className="text-lg font-semibold">{formatPrice(selectedListing.price_per_hour)}</p>
+                      </div>
+                      <div>
+                        <span className="text-sm font-medium text-gray-500">Daily Rate</span>
+                        <p className="text-lg font-semibold">
+                          {selectedListing.price_per_day ? formatPrice(selectedListing.price_per_day) : 'Not set'}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium text-gray-500">Status</span>
+                      <Badge variant={getListingStatus(selectedListing).color as any} className="flex items-center space-x-1">
+                        {getStatusIcon(getListingStatus(selectedListing).status)}
+                        <span>{getListingStatus(selectedListing).label}</span>
+                      </Badge>
+                    </div>
+
+                    <div>
+                      <span className="text-sm font-medium text-gray-500">Listed</span>
+                      <p className="text-sm">{formatDate(selectedListing.created_at)}</p>
+                    </div>
+
+                    <div>
+                      <span className="text-sm font-medium text-gray-500">Last Updated</span>
+                      <p className="text-sm">{formatDate(selectedListing.updated_at)}</p>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Comments from Potential Buyers */}
+              {selectedListing.negotiations && selectedListing.negotiations.length > 0 && (
+                <Card className="mb-6">
+                  <CardHeader>
+                    <CardTitle className="text-lg flex items-center gap-2">
+                      <MessageCircle className="h-5 w-5" />
+                      Comments & Negotiations ({selectedListing.negotiations.length})
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      {selectedListing.negotiations.map((negotiation) => (
+                        <div key={negotiation.id} className="border border-gray-200 rounded-lg p-4">
+                          <div className="flex items-start justify-between mb-2">
+                            <div className="flex items-center gap-2">
+                              <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center">
+                                <User className="h-4 w-4 text-gray-600" />
+                              </div>
+                              <div>
+                                <p className="text-sm font-medium">
+                                  {negotiation.ai_generated ? 'AI Agent' : 'Potential Renter'}
+                                </p>
+                                <p className="text-xs text-gray-500">{formatDate(negotiation.created_at)}</p>
+                              </div>
+                            </div>
+                            <Badge variant={
+                              negotiation.status === 'accepted' ? 'default' :
+                              negotiation.status === 'rejected' ? 'destructive' :
+                              negotiation.status === 'countered' ? 'secondary' : 'outline'
+                            }>
+                              {negotiation.status}
+                            </Badge>
+                          </div>
+                          
+                          <div className="mb-2">
+                            <span className="text-sm font-medium text-gray-700">Offer: </span>
+                            <span className="text-sm font-semibold text-green-600">
+                              {formatPrice(negotiation.offer_price)}/hour
+                            </span>
+                          </div>
+                          
+                          {negotiation.message && (
+                            <p className="text-sm text-gray-600 bg-gray-50 p-3 rounded">
+                              "{negotiation.message}"
+                            </p>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Bookings */}
+              {selectedListing.bookings && selectedListing.bookings.length > 0 && (
+                <Card className="mb-6">
+                  <CardHeader>
+                    <CardTitle className="text-lg flex items-center gap-2">
+                      <CalendarIcon className="h-5 w-5" />
+                      Bookings ({selectedListing.bookings.length})
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3">
+                      {selectedListing.bookings.map((booking) => (
+                        <div key={booking.id} className="border border-gray-200 rounded-lg p-4">
+                          <div className="flex items-center justify-between mb-2">
+                            <div className="flex items-center gap-2">
+                              <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                                <User className="h-4 w-4 text-blue-600" />
+                              </div>
+                              <div>
+                                <p className="text-sm font-medium">Booking #{booking.id.slice(0, 8)}</p>
+                                <p className="text-xs text-gray-500">{formatDate(booking.created_at)}</p>
+                              </div>
+                            </div>
+                            <Badge variant={
+                              booking.status === 'confirmed' ? 'default' :
+                              booking.status === 'completed' ? 'secondary' :
+                              booking.status === 'cancelled' ? 'destructive' : 'outline'
+                            }>
+                              {booking.status}
+                            </Badge>
+                          </div>
+                          
+                          <div className="grid grid-cols-2 gap-4 text-sm">
+                            <div>
+                              <span className="text-gray-500">Duration:</span>
+                              <p>{formatDate(booking.start_time)} - {formatDate(booking.end_time)}</p>
+                            </div>
+                            <div>
+                              <span className="text-gray-500">Total Price:</span>
+                              <p className="font-semibold">{formatPrice(booking.total_price)}</p>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Action Buttons */}
+              <div className="flex space-x-3 pt-6 border-t">
+                <Button
+                  variant="outline"
+                  onClick={() => navigate(`/listings/${selectedListing.id}/edit`)}
+                  className="flex items-center gap-2"
+                >
+                  <Settings className="h-4 w-4" />
+                  Edit Listing
+                </Button>
+                <Button
+                  onClick={closeDetailedView}
+                  className="apple-button-primary"
+                >
+                  Close
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

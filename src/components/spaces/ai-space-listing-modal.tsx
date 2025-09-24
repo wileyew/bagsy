@@ -6,7 +6,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Card, CardContent } from "@/components/ui/card";
-import { Upload, X, MapPin, Sparkles, CheckCircle, Edit3, HelpCircle, ExternalLink, ArrowRight } from "lucide-react";
+import { Upload, X, MapPin, Sparkles, CheckCircle, Edit3, HelpCircle, ExternalLink, ArrowRight, Calendar, Plus } from "lucide-react";
 import { useAuthContext } from "@/contexts/auth-context";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -42,6 +42,13 @@ interface SpaceFormData {
   enablePredictiveAnalytics: boolean;
   customSpaceType?: string;
   selectedSpaceTypes: string[];
+  availabilityWindows: Array<{
+    dayOfWeek: number;
+    startTime: string;
+    endTime: string;
+  }>;
+  isRecurring: boolean;
+  recurringPattern?: 'weekly' | 'monthly';
 }
 
 interface AIGeneratedData {
@@ -107,6 +114,9 @@ export function AISpaceListingModal({ open, onOpenChange }: AISpaceListingModalP
     enablePredictiveAnalytics: false,
     customSpaceType: "",
     selectedSpaceTypes: [],
+    availabilityWindows: [],
+    isRecurring: false,
+    recurringPattern: 'weekly',
   });
   
   const [aiGeneratedData, setAiGeneratedData] = useState<AIGeneratedData | null>(null);
@@ -310,6 +320,42 @@ export function AISpaceListingModal({ open, onOpenChange }: AISpaceListingModalP
       return { ...prev, selectedSpaceTypes: newSelectedTypes };
     });
   };
+
+  const addAvailabilityWindow = () => {
+    setFormData(prev => ({
+      ...prev,
+      availabilityWindows: [
+        ...prev.availabilityWindows,
+        { dayOfWeek: 1, startTime: '09:00', endTime: '17:00' }
+      ]
+    }));
+  };
+
+  const removeAvailabilityWindow = (index: number) => {
+    setFormData(prev => ({
+      ...prev,
+      availabilityWindows: prev.availabilityWindows.filter((_, i) => i !== index)
+    }));
+  };
+
+  const updateAvailabilityWindow = (index: number, field: 'dayOfWeek' | 'startTime' | 'endTime', value: string | number) => {
+    setFormData(prev => ({
+      ...prev,
+      availabilityWindows: prev.availabilityWindows.map((window, i) => 
+        i === index ? { ...window, [field]: value } : window
+      )
+    }));
+  };
+
+  const daysOfWeek = [
+    { value: 1, label: 'Monday' },
+    { value: 2, label: 'Tuesday' },
+    { value: 3, label: 'Wednesday' },
+    { value: 4, label: 'Thursday' },
+    { value: 5, label: 'Friday' },
+    { value: 6, label: 'Saturday' },
+    { value: 0, label: 'Sunday' },
+  ];
 
   const handleFileUpload = async (files: FileList) => {
     if (!files.length) return;
@@ -1309,6 +1355,9 @@ Thank you!`);
         enablePredictiveAnalytics: false,
         customSpaceType: "",
         selectedSpaceTypes: [],
+        availabilityWindows: [],
+        isRecurring: false,
+        recurringPattern: 'weekly',
       });
       setAiGeneratedData(null);
       setEditableData(null);
@@ -1383,6 +1432,9 @@ Thank you!`);
       enablePredictiveAnalytics: false,
       customSpaceType: "",
       selectedSpaceTypes: [],
+      availabilityWindows: [],
+      isRecurring: false,
+      recurringPattern: 'weekly',
     });
     setAiGeneratedData(null);
     setEditableData(null);
@@ -2264,6 +2316,109 @@ Thank you!`);
                     </div>
                   </div>
                 </div>
+
+                {/* Availability Windows */}
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium flex items-center gap-2">
+                      <Calendar className="h-4 w-4" />
+                      Availability Windows
+                    </Label>
+                    <p className="text-xs text-muted-foreground">
+                      Set when your space is available for booking. You can add multiple time windows for different days.
+                    </p>
+                    
+                    <div className="space-y-3">
+                      {formData.availabilityWindows.map((window, index) => (
+                        <div key={index} className="flex items-center gap-3 p-3 border border-muted-foreground/25 rounded-lg bg-muted/30">
+                          <select
+                            value={window.dayOfWeek}
+                            onChange={(e) => updateAvailabilityWindow(index, 'dayOfWeek', parseInt(e.target.value))}
+                            className="apple-input h-10 w-32"
+                          >
+                            {daysOfWeek.map((day) => (
+                              <option key={day.value} value={day.value}>
+                                {day.label}
+                              </option>
+                            ))}
+                          </select>
+                          
+                          <Input
+                            type="time"
+                            value={window.startTime}
+                            onChange={(e) => updateAvailabilityWindow(index, 'startTime', e.target.value)}
+                            className="apple-input h-10 w-24"
+                          />
+                          
+                          <span className="text-sm text-muted-foreground">to</span>
+                          
+                          <Input
+                            type="time"
+                            value={window.endTime}
+                            onChange={(e) => updateAvailabilityWindow(index, 'endTime', e.target.value)}
+                            className="apple-input h-10 w-24"
+                          />
+                          
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => removeAvailabilityWindow(index)}
+                            className="apple-button-secondary h-10 w-10 p-0"
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      ))}
+                      
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={addAvailabilityWindow}
+                        className="apple-button-secondary flex items-center gap-2"
+                      >
+                        <Plus className="h-4 w-4" />
+                        Add Time Window
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Recurring Options */}
+                <div className="space-y-4">
+                  <div className="p-4 border border-muted-foreground/25 rounded-lg bg-muted/30">
+                    <div className="flex items-start space-x-3">
+                      <Checkbox
+                        id="isRecurring"
+                        checked={formData.isRecurring}
+                        onCheckedChange={(checked) => handleInputChange("isRecurring", checked as boolean)}
+                        className="mt-1"
+                      />
+                      <div className="space-y-2">
+                        <Label htmlFor="isRecurring" className="text-sm font-medium cursor-pointer">
+                          Make this a recurring listing
+                        </Label>
+                        <p className="text-xs text-muted-foreground">
+                          Automatically renew this listing based on your selected pattern
+                        </p>
+                        
+                        {formData.isRecurring && (
+                          <div className="mt-3 space-y-2">
+                            <Label className="text-xs font-medium">Recurring Pattern</Label>
+                            <select
+                              value={formData.recurringPattern}
+                              onChange={(e) => handleInputChange("recurringPattern", e.target.value as 'weekly' | 'monthly')}
+                              className="apple-input h-10 w-32"
+                            >
+                              <option value="weekly">Weekly</option>
+                              <option value="monthly">Monthly</option>
+                            </select>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
 
               <Button
@@ -2596,6 +2751,27 @@ Thank you!`);
                     <div>
                       <span className="font-medium">Location:</span> {formData.address}, {formData.zipCode}
                     </div>
+
+                    {/* Availability Windows */}
+                    {formData.availabilityWindows.length > 0 && (
+                      <div>
+                        <span className="font-medium">Availability:</span>
+                        <div className="mt-2 space-y-1">
+                          {formData.availabilityWindows.map((window, index) => (
+                            <div key={index} className="text-sm text-gray-600">
+                              {daysOfWeek.find(d => d.value === window.dayOfWeek)?.label}: {window.startTime} - {window.endTime}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Recurring Information */}
+                    {formData.isRecurring && (
+                      <div>
+                        <span className="font-medium">Recurring:</span> Yes ({formData.recurringPattern})
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               </div>
