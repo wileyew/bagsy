@@ -112,24 +112,25 @@ class AIRecommendationsService {
       });
     }
 
+    // TODO: Re-enable marketing content recommendations in future
     // Marketing content recommendation
-    if (this.shouldRecommendMarketing(spaceType, userProfile)) {
-      recommendations.push({
-        id: 'marketing-content',
-        title: 'AI-Generated Marketing Content',
-        description: 'Create compelling SEO-optimized listings, social media posts, and email campaigns automatically.',
-        features: [
-          'SEO-optimized titles and descriptions',
-          'Social media marketing posts',
-          'Email campaign templates',
-          'Listing optimization suggestions'
-        ],
-        reasoning: 'Your location has high competition. Professional marketing content can improve visibility by 40-60%.',
-        confidence: 0.78,
-        estimatedImpact: 'high',
-        category: 'marketing'
-      });
-    }
+    // if (this.shouldRecommendMarketing(spaceType, userProfile)) {
+    //   recommendations.push({
+    //     id: 'marketing-content',
+    //     title: 'AI-Generated Marketing Content',
+    //     description: 'Create compelling SEO-optimized listings, social media posts, and email campaigns automatically.',
+    //     features: [
+    //       'SEO-optimized titles and descriptions',
+    //       'Social media marketing posts',
+    //       'Email campaign templates',
+    //       'Listing optimization suggestions'
+    //     ],
+    //     reasoning: 'Your location has high competition. Professional marketing content can improve visibility by 40-60%.',
+    //     confidence: 0.78,
+    //     estimatedImpact: 'high',
+    //     category: 'marketing'
+    //   });
+    // }
 
     // Smart scheduling recommendation
     if (this.shouldRecommendScheduling(spaceType, userProfile)) {
@@ -213,10 +214,11 @@ USER PROFILE:
 
 AVAILABLE AI FEATURES:
 1. Pricing Optimization - Dynamic pricing based on demand
-2. Marketing Content - AI-generated SEO content and social media posts
-3. Smart Scheduling - Optimal availability windows
-4. Web Scraping - Market research and competitor analysis
-5. Predictive Analytics - Revenue forecasting and insights
+2. Smart Scheduling - Optimal availability windows
+3. Web Scraping - Market research and competitor analysis
+4. Predictive Analytics - Revenue forecasting and insights
+// TODO: Re-enable marketing content in future
+// 2. Marketing Content - AI-generated SEO content and social media posts
 
 Generate 3-5 personalized recommendations with:
 - Title and description
@@ -326,21 +328,22 @@ Return as JSON with fields: recommendations, topRecommendation, summary`;
         estimatedImpact: 'high',
         category: 'pricing'
       },
-      {
-        id: 'marketing-content',
-        title: 'AI-Generated Marketing Content',
-        description: 'Create compelling SEO-optimized listings and social media content.',
-        features: [
-          'SEO-optimized titles and descriptions',
-          'Social media marketing posts',
-          'Email campaign templates',
-          'Listing optimization suggestions'
-        ],
-        reasoning: 'Professional marketing content can improve your listing visibility.',
-        confidence: 0.70,
-        estimatedImpact: 'medium',
-        category: 'marketing'
-      }
+      // TODO: Re-enable marketing content recommendations in future
+      // {
+      //   id: 'marketing-content',
+      //   title: 'AI-Generated Marketing Content',
+      //   description: 'Create compelling SEO-optimized listings and social media content.',
+      //   features: [
+      //     'SEO-optimized titles and descriptions',
+      //     'Social media marketing posts',
+      //     'Email campaign templates',
+      //     'Listing optimization suggestions'
+      //   ],
+      //   reasoning: 'Professional marketing content can improve your listing visibility.',
+      //   confidence: 0.70,
+      //   estimatedImpact: 'medium',
+      //   category: 'marketing'
+      // }
     ];
 
     return {
@@ -381,21 +384,25 @@ Return as JSON with fields: recommendations, topRecommendation, summary`;
       };
     }
 
-    return {
-      id: 'marketing-content',
-      title: 'AI-Generated Marketing Content',
-      description: 'Create professional marketing content to attract more renters.',
-      features: [
-        'SEO-optimized listings',
-        'Social media content',
-        'Email campaigns',
-        'Listing optimization'
-      ],
-      reasoning: 'Professional marketing content can help you stand out from competitors.',
-      confidence: 0.75,
-      estimatedImpact: 'medium',
-      category: 'marketing'
-    };
+    // TODO: Re-enable marketing content recommendations in future
+    // return {
+    //   id: 'marketing-content',
+    //   title: 'AI-Generated Marketing Content',
+    //   description: 'Create professional marketing content to attract more renters.',
+    //   features: [
+    //     'SEO-optimized listings',
+    //     'Social media content',
+    //     'Email campaigns',
+    //     'Listing optimization'
+    //   ],
+    //   reasoning: 'Professional marketing content can help you stand out from competitors.',
+    //   confidence: 0.75,
+    //   estimatedImpact: 'medium',
+    //   category: 'marketing'
+    // };
+    
+    // Return null to disable marketing content recommendations
+    return null;
   }
 
   private shouldRecommendPricing(spaceType: string, userProfile: Partial<UserProfile>): boolean {
