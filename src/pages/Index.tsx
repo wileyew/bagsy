@@ -320,16 +320,37 @@ const Index = () => {
               </div>
             </div>
             <div className="flex items-center gap-4">
-              {user ? (
+              {/* Sign In button - always visible for unauthenticated users */}
+              {!user && (
+                <Button 
+                  variant="ghost" 
+                  size="lg" 
+                  className="text-base"
+                  onClick={() => setAuthModalOpen(true)}
+                >
+                  Sign In
+                </Button>
+              )}
+              
+              {/* List Your Space with AI button - always visible, checks auth */}
+              <Button 
+                size="lg" 
+                className="apple-button-primary"
+                onClick={() => {
+                  if (user) {
+                    setAiSpaceListingModalOpen(true);
+                  } else {
+                    setAuthModalOpen(true);
+                  }
+                }}
+              >
+                <Sparkles className="h-4 w-4 mr-2" />
+                List Your Space with AI
+              </Button>
+              
+              {/* User-specific buttons - only visible when authenticated */}
+              {user && (
                 <>
-                  <Button 
-                    size="lg" 
-                    className="apple-button-primary"
-                    onClick={() => setAiSpaceListingModalOpen(true)}
-                  >
-                    <Sparkles className="h-4 w-4 mr-2" />
-                    List Your Space with AI
-                  </Button>
                   {hasListings && (
                     <Button 
                       variant="outline"
@@ -341,24 +362,6 @@ const Index = () => {
                     </Button>
                   )}
                   <UserMenu />
-                </>
-              ) : (
-                <>
-                  <Button 
-                    variant="ghost" 
-                    size="lg" 
-                    className="text-base"
-                    onClick={() => setAuthModalOpen(true)}
-                  >
-                    Sign In
-                  </Button>
-                  <Button 
-                    size="lg" 
-                    className="apple-button-primary"
-                    onClick={() => setAuthModalOpen(true)}
-                  >
-                    List Your Space
-                  </Button>
                 </>
               )}
             </div>

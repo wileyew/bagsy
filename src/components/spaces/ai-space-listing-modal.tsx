@@ -49,6 +49,9 @@ interface SpaceFormData {
   }>;
   isRecurring: boolean;
   recurringPattern?: 'weekly' | 'monthly';
+  availableFrom: string;
+  availableUntil: string;
+  timezone: string;
 }
 
 interface AIGeneratedData {
@@ -97,8 +100,26 @@ const spaceTypes = [
   { value: "other", label: "Other", description: "Custom space type" },
 ];
 
+const timezones = [
+  { value: "America/Los_Angeles", label: "Pacific Time (PT)" },
+  { value: "America/Denver", label: "Mountain Time (MT)" },
+  { value: "America/Chicago", label: "Central Time (CT)" },
+  { value: "America/New_York", label: "Eastern Time (ET)" },
+  { value: "America/Phoenix", label: "Arizona Time" },
+  { value: "America/Anchorage", label: "Alaska Time (AKT)" },
+  { value: "Pacific/Honolulu", label: "Hawaii Time (HST)" },
+];
+
 export function AISpaceListingModal({ open, onOpenChange }: AISpaceListingModalProps) {
   const debug = createComponentDebugger('AISpaceListingModal');
+  const { user } = useAuthContext();
+  
+  // Close modal if user is not authenticated
+  useEffect(() => {
+    if (open && !user) {
+      onOpenChange(false);
+    }
+  }, [open, user, onOpenChange]);
   
   const [formData, setFormData] = useState<SpaceFormData>({
     address: "",
@@ -117,6 +138,9 @@ export function AISpaceListingModal({ open, onOpenChange }: AISpaceListingModalP
     availabilityWindows: [],
     isRecurring: false,
     recurringPattern: 'weekly',
+    availableFrom: "",
+    availableUntil: "",
+    timezone: "America/Los_Angeles",
   });
   
   const [aiGeneratedData, setAiGeneratedData] = useState<AIGeneratedData | null>(null);
@@ -134,7 +158,6 @@ export function AISpaceListingModal({ open, onOpenChange }: AISpaceListingModalP
   const [requestStatus, setRequestStatus] = useState({ count: 0, maxRequests: 2, isBlocked: false, remaining: 2 });
   
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const { user } = useAuthContext();
   const { toast } = useToast();
   const { listingsCount } = useUserListingsCount();
 
@@ -1183,6 +1206,13 @@ Thank you!`);
         spaceType = 'storage_unit'; // Fallback for invalid types
       }
 
+      // Convert local datetime strings to UTC timestamps
+      const convertToUTC = (localDateTime: string) => {
+        if (!localDateTime) return null;
+        const date = new Date(localDateTime);
+        return date.toISOString();
+      };
+
       const spaceData = {
         title: editableData.title.trim(),
         description: editableData.description?.trim() || null,
@@ -1192,6 +1222,9 @@ Thank you!`);
         price_per_hour: Number(editableData.pricePerHour),
         price_per_day: editableData.pricePerDay ? Number(editableData.pricePerDay) : null,
         dimensions: editableData.dimensions?.trim() || null,
+        available_from: convertToUTC(formData.availableFrom),
+        available_until: convertToUTC(formData.availableUntil),
+        timezone: formData.timezone,
         owner_id: user.id,
         is_active: true,
         // Remove columns that don't exist in current schema
@@ -1358,6 +1391,9 @@ Thank you!`);
         availabilityWindows: [],
         isRecurring: false,
         recurringPattern: 'weekly',
+        availableFrom: "",
+        availableUntil: "",
+        timezone: "America/Los_Angeles",
       });
       setAiGeneratedData(null);
       setEditableData(null);
@@ -1435,6 +1471,9 @@ Thank you!`);
       availabilityWindows: [],
       isRecurring: false,
       recurringPattern: 'weekly',
+      availableFrom: "",
+      availableUntil: "",
+      timezone: "America/Los_Angeles",
     });
     setAiGeneratedData(null);
     setEditableData(null);
@@ -1696,6 +1735,63 @@ Thank you!`);
                       <li>Better search visibility</li>
                     </ul>
                   </div>
+                </div>
+              </div>
+
+              {/* Availability & Timeframes */}
+              <div className="space-y-4">
+                <div className="flex items-center gap-2">
+                  <Calendar className="h-5 w-5 text-primary" />
+                  <h3 className="text-lg font-semibold">Availability & Timeframes</h3>
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="availableFrom" className="text-sm font-medium">
+                      Available From
+                    </Label>
+                    <Input
+                      id="availableFrom"
+                      type="datetime-local"
+                      value={formData.availableFrom}
+                      onChange={(e) => handleInputChange("availableFrom", e.target.value)}
+                      className="apple-input h-12"
+                    />
+                    <p className="text-xs text-muted-foreground">When your space becomes available</p>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="availableUntil" className="text-sm font-medium">
+                      Available Until
+                    </Label>
+                    <Input
+                      id="availableUntil"
+                      type="datetime-local"
+                      value={formData.availableUntil}
+                      onChange={(e) => handleInputChange("availableUntil", e.target.value)}
+                      className="apple-input h-12"
+                    />
+                    <p className="text-xs text-muted-foreground">When your space stops being available</p>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="timezone" className="text-sm font-medium">
+                    Timezone
+                  </Label>
+                  <select
+                    id="timezone"
+                    value={formData.timezone}
+                    onChange={(e) => handleInputChange("timezone", e.target.value)}
+                    className="apple-input h-12 w-full px-3 py-2 border border-input bg-background text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {timezones.map((tz) => (
+                      <option key={tz.value} value={tz.value}>
+                        {tz.label}
+                      </option>
+                    ))}
+                  </select>
+                  <p className="text-xs text-muted-foreground">Timezone for the availability dates above</p>
                 </div>
               </div>
 
