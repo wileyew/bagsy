@@ -1,90 +1,172 @@
 -- Add AI enhancement fields to spaces table
-ALTER TABLE spaces ADD smart_scheduling_enabled BIT DEFAULT 0;
-ALTER TABLE spaces ADD ai_marketing_enabled BIT DEFAULT 0;
-ALTER TABLE spaces ADD predictive_analytics_enabled BIT DEFAULT 0;
-ALTER TABLE spaces ADD ai_support_enabled BIT DEFAULT 0;
-ALTER TABLE spaces ADD space_types NVARCHAR(MAX) DEFAULT '[]';
+ALTER TABLE spaces ADD COLUMN smart_scheduling_enabled BOOLEAN DEFAULT false;
+ALTER TABLE spaces ADD COLUMN ai_marketing_enabled BOOLEAN DEFAULT false;
+ALTER TABLE spaces ADD COLUMN predictive_analytics_enabled BOOLEAN DEFAULT false;
+ALTER TABLE spaces ADD COLUMN ai_support_enabled BOOLEAN DEFAULT false;
+ALTER TABLE spaces ADD COLUMN space_types TEXT DEFAULT '[]';
 
--- Add comments to explain the new fields (SQL Server syntax)
-EXEC sp_addextendedproperty 'MS_Description', 'Whether AI should optimize availability and scheduling for this space', 'SCHEMA', 'dbo', 'TABLE', 'spaces', 'COLUMN', 'smart_scheduling_enabled';
-EXEC sp_addextendedproperty 'MS_Description', 'Whether AI should generate marketing content for this space', 'SCHEMA', 'dbo', 'TABLE', 'spaces', 'COLUMN', 'ai_marketing_enabled';
-EXEC sp_addextendedproperty 'MS_Description', 'Whether AI should provide predictive analytics for this space', 'SCHEMA', 'dbo', 'TABLE', 'spaces', 'COLUMN', 'predictive_analytics_enabled';
-EXEC sp_addextendedproperty 'MS_Description', 'Whether AI should handle customer support for this space', 'SCHEMA', 'dbo', 'TABLE', 'spaces', 'COLUMN', 'ai_support_enabled';
-EXEC sp_addextendedproperty 'MS_Description', 'Array of space types this space can accommodate', 'SCHEMA', 'dbo', 'TABLE', 'spaces', 'COLUMN', 'space_types';
+-- Add comments to explain the new fields (PostgreSQL syntax)
+COMMENT ON COLUMN spaces.smart_scheduling_enabled IS 'Whether AI should optimize availability and scheduling for this space';
+COMMENT ON COLUMN spaces.ai_marketing_enabled IS 'Whether AI should generate marketing content for this space';
+COMMENT ON COLUMN spaces.predictive_analytics_enabled IS 'Whether AI should provide predictive analytics for this space';
+COMMENT ON COLUMN spaces.ai_support_enabled IS 'Whether AI should handle customer support for this space';
+COMMENT ON COLUMN spaces.space_types IS 'Array of space types this space can accommodate';
 
 -- Create user preferences table for AI matching
 CREATE TABLE user_preferences (
-  id UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
-  user_id UNIQUEIDENTIFIER NOT NULL,
-  space_type_preferences NVARCHAR(MAX) DEFAULT '[]',
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  space_type_preferences TEXT DEFAULT '[]',
   price_range_min DECIMAL(10,2),
   price_range_max DECIMAL(10,2),
-  location_preferences NVARCHAR(MAX) DEFAULT '[]',
-  amenities_preferences NVARCHAR(MAX) DEFAULT '[]',
-  search_history NVARCHAR(MAX) DEFAULT '{}',
-  booking_patterns NVARCHAR(MAX) DEFAULT '{}',
-  created_at DATETIME2 DEFAULT GETDATE(),
-  updated_at DATETIME2 DEFAULT GETDATE()
+  location_preferences TEXT DEFAULT '[]',
+  amenities_preferences TEXT DEFAULT '[]',
+  search_history TEXT DEFAULT '{}',
+  booking_patterns TEXT DEFAULT '{}',
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT now()
 );
 
--- Note: RLS policies not supported in SQL Server
--- Use application-level security or views/functions for row-level security
+-- Enable RLS on user_preferences
+ALTER TABLE user_preferences ENABLE ROW LEVEL SECURITY;
+
+-- Create RLS policies for user_preferences
+CREATE POLICY "Users can view their own preferences" 
+ON user_preferences 
+FOR SELECT 
+USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can insert their own preferences" 
+ON user_preferences 
+FOR INSERT 
+WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can update their own preferences" 
+ON user_preferences 
+FOR UPDATE 
+USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can delete their own preferences" 
+ON user_preferences 
+FOR DELETE 
+USING (auth.uid() = user_id);
 
 -- Create AI analytics table for storing AI insights
 CREATE TABLE ai_analytics (
-  id UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
-  space_id UNIQUEIDENTIFIER,
-  user_id UNIQUEIDENTIFIER,
-  analytics_type NVARCHAR(50) NOT NULL CHECK (analytics_type IN ('demand_prediction', 'pricing_optimization', 'market_analysis', 'booking_patterns', 'user_behavior')),
-  data NVARCHAR(MAX) NOT NULL,
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  space_id UUID REFERENCES spaces(id) ON DELETE CASCADE,
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+  analytics_type TEXT NOT NULL CHECK (analytics_type IN ('demand_prediction', 'pricing_optimization', 'market_analysis', 'booking_patterns', 'user_behavior')),
+  data TEXT NOT NULL,
   confidence_score DECIMAL(3,2) DEFAULT 0.0,
-  created_at DATETIME2 DEFAULT GETDATE()
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT now()
 );
 
--- Note: RLS not supported in SQL Server
+-- Enable RLS on ai_analytics
+ALTER TABLE ai_analytics ENABLE ROW LEVEL SECURITY;
+
+-- Create RLS policies for ai_analytics
+CREATE POLICY "Users can view analytics for their spaces" 
+ON ai_analytics 
+FOR SELECT 
+USING (
+  auth.uid() = user_id OR 
+  EXISTS (
+    SELECT 1 FROM spaces 
+    WHERE spaces.id = ai_analytics.space_id 
+    AND spaces.owner_id = auth.uid()
+  )
+);
 
 
 -- Create smart scheduling table for availability optimization
 CREATE TABLE smart_scheduling (
-  id UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
-  space_id UNIQUEIDENTIFIER NOT NULL,
-  optimal_hours NVARCHAR(MAX) NOT NULL DEFAULT '{}',
-  demand_patterns NVARCHAR(MAX) NOT NULL DEFAULT '{}',
-  pricing_adjustments NVARCHAR(MAX) NOT NULL DEFAULT '{}',
-  availability_windows NVARCHAR(MAX) NOT NULL DEFAULT '{}',
-  last_updated DATETIME2 DEFAULT GETDATE(),
-  created_at DATETIME2 DEFAULT GETDATE()
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  space_id UUID NOT NULL REFERENCES spaces(id) ON DELETE CASCADE,
+  optimal_hours TEXT NOT NULL DEFAULT '{}',
+  demand_patterns TEXT NOT NULL DEFAULT '{}',
+  pricing_adjustments TEXT NOT NULL DEFAULT '{}',
+  availability_windows TEXT NOT NULL DEFAULT '{}',
+  last_updated TIMESTAMP WITH TIME ZONE DEFAULT now(),
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT now()
 );
 
--- Note: RLS policies not supported in SQL Server
+-- Enable RLS on smart_scheduling
+ALTER TABLE smart_scheduling ENABLE ROW LEVEL SECURITY;
+
+-- Create RLS policies for smart_scheduling
+CREATE POLICY "Users can view smart scheduling for their spaces" 
+ON smart_scheduling 
+FOR SELECT 
+USING (
+  EXISTS (
+    SELECT 1 FROM spaces 
+    WHERE spaces.id = smart_scheduling.space_id 
+    AND spaces.owner_id = auth.uid()
+  )
+);
+
+CREATE POLICY "Users can manage smart scheduling for their spaces" 
+ON smart_scheduling 
+FOR ALL 
+USING (
+  EXISTS (
+    SELECT 1 FROM spaces 
+    WHERE spaces.id = smart_scheduling.space_id 
+    AND spaces.owner_id = auth.uid()
+  )
+);
 
 -- Create marketing content table for AI-generated content
 CREATE TABLE marketing_content (
-  id UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
-  space_id UNIQUEIDENTIFIER NOT NULL,
-  content_type NVARCHAR(50) NOT NULL CHECK (content_type IN ('title', 'description', 'seo_title', 'social_media', 'email_campaign')),
-  content NVARCHAR(MAX) NOT NULL,
-  ai_generated BIT DEFAULT 1,
-  performance_metrics NVARCHAR(MAX) DEFAULT '{}',
-  created_at DATETIME2 DEFAULT GETDATE()
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  space_id UUID NOT NULL REFERENCES spaces(id) ON DELETE CASCADE,
+  content_type TEXT NOT NULL CHECK (content_type IN ('title', 'description', 'seo_title', 'social_media', 'email_campaign')),
+  content TEXT NOT NULL,
+  ai_generated BOOLEAN DEFAULT true,
+  performance_metrics TEXT DEFAULT '{}',
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT now()
 );
 
--- Note: RLS policies not supported in SQL Server
+-- Enable RLS on marketing_content
+ALTER TABLE marketing_content ENABLE ROW LEVEL SECURITY;
 
--- Create triggers for automatic timestamp updates (SQL Server syntax)
-GO
-CREATE TRIGGER update_user_preferences_updated_at
-ON user_preferences
-AFTER UPDATE
-AS
+-- Create RLS policies for marketing_content
+CREATE POLICY "Users can view marketing content for their spaces" 
+ON marketing_content 
+FOR SELECT 
+USING (
+  EXISTS (
+    SELECT 1 FROM spaces 
+    WHERE spaces.id = marketing_content.space_id 
+    AND spaces.owner_id = auth.uid()
+  )
+);
+
+CREATE POLICY "Users can manage marketing content for their spaces" 
+ON marketing_content 
+FOR ALL 
+USING (
+  EXISTS (
+    SELECT 1 FROM spaces 
+    WHERE spaces.id = marketing_content.space_id 
+    AND spaces.owner_id = auth.uid()
+  )
+);
+
+-- Create triggers for automatic timestamp updates (PostgreSQL syntax)
+CREATE OR REPLACE FUNCTION update_updated_at_column()
+RETURNS TRIGGER AS $$
 BEGIN
-    SET NOCOUNT ON;
-    UPDATE user_preferences 
-    SET updated_at = GETDATE()
-    FROM user_preferences u
-    INNER JOIN inserted i ON u.id = i.id;
+    NEW.updated_at = now();
+    RETURN NEW;
 END;
-GO
+$$ language 'plpgsql';
+
+CREATE TRIGGER update_user_preferences_updated_at
+    BEFORE UPDATE ON user_preferences
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
 
 -- Create indexes for better performance
 CREATE INDEX idx_user_preferences_user_id ON user_preferences(user_id);

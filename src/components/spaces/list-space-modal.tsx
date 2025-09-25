@@ -10,7 +10,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Upload, X, Eye, EyeOff, MapPin, DollarSign, Ruler, Calendar, Clock } from "lucide-react";
 import { useAuthContext } from "@/contexts/auth-context";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
+import { getPhotoUploadErrorMessage, getPhotoUploadSuccessMessage } from "@/lib/photo-upload-error-messages";
 
 interface ListSpaceModalProps {
   open: boolean;
@@ -101,14 +101,16 @@ export function ListSpaceModal({ open, onOpenChange }: ListSpaceModalProps) {
         .getPublicUrl(filePath);
 
       setFormData(prev => ({ ...prev, photoUrl: publicUrl }));
+      const successMessage = getPhotoUploadSuccessMessage(1);
       toast({
-        title: "Photo uploaded successfully!",
-        description: "Your space photo has been uploaded.",
+        title: successMessage.title,
+        description: successMessage.description,
       });
     } catch (error: any) {
+      const errorMessage = getPhotoUploadErrorMessage(false);
       toast({
-        title: "Upload failed",
-        description: error.message || "Failed to upload photo. Please try again.",
+        title: errorMessage.title,
+        description: errorMessage.description,
         variant: "destructive",
       });
     } finally {

@@ -21,7 +21,7 @@ import { geolocationService, LocationData } from "@/lib/geolocation-service";
 import { aiRecommendationsService, AIRecommendation } from "@/lib/ai-recommendations-service";
 import { createComponentDebugger } from "@/lib/debug-utils";
 import { runFullStorageTest } from "@/lib/storage-test";
-import { setupStorageBuckets, checkStorageAccess } from "@/lib/setup-storage";
+import { getPhotoUploadErrorMessage, getPhotoUploadSuccessMessage } from "@/lib/photo-upload-error-messages";
 
 interface AISpaceListingModalProps {
   open: boolean;
@@ -580,9 +580,10 @@ export function AISpaceListingModal({ open, onOpenChange }: AISpaceListingModalP
         enableWebScraping: formData.enableWebScraping
       });
       
+      const successMessage = getPhotoUploadSuccessMessage(files.length);
       toast({
-        title: "Photos uploaded successfully!",
-        description: `${files.length} photo(s) uploaded. Ready for AI analysis!`,
+        title: successMessage.title,
+        description: successMessage.description,
       });
       
       // Stay on upload step to show AI analysis options
@@ -609,9 +610,10 @@ export function AISpaceListingModal({ open, onOpenChange }: AISpaceListingModalP
       // Clear the file input element on upload failure
       clearFileInput();
       
+      const errorMessage = getPhotoUploadErrorMessage(true);
       toast({
-        title: "Upload failed",
-        description: error instanceof Error ? error.message : "Failed to upload photos. Please try again.",
+        title: errorMessage.title,
+        description: errorMessage.description,
         variant: "destructive",
       });
     } finally {
