@@ -892,39 +892,40 @@ export function AISpaceListingModal({ open, onOpenChange }: AISpaceListingModalP
         }
       }
 
+      // TODO: Re-enable marketing content generation in future
       // Generate marketing content if enabled
-      if (formData.enableMarketingContent) {
-        try {
-          debug.info('Generating marketing content');
-          
-          const spaceData = {
-            id: 'temp-space-id',
-            space_type: analysisResult.spaceType,
-            title: finalTitle,
-            description: finalDescription,
-            address: formData.address,
-            price_per_hour: pricePerHour,
-            dimensions: finalDimensions
-          };
+      // if (formData.enableMarketingContent) {
+      //   try {
+      //     debug.info('Generating marketing content');
+      //     
+      //     const spaceData = {
+      //       id: 'temp-space-id',
+      //       space_type: analysisResult.spaceType,
+      //       title: finalTitle,
+      //       description: finalDescription,
+      //       address: formData.address,
+      //       price_per_hour: pricePerHour,
+      //       dimensions: finalDimensions
+      //     };
 
-          // Generate SEO content
-          const seoContent = await marketingContentService.generateSEOContent(spaceData, marketData);
-          
-          // Generate social media content
-          const socialContent = await marketingContentService.generateSocialMediaContent(spaceData);
-          
-          // Generate email campaigns
-          const emailCampaigns = await marketingContentService.generateEmailCampaigns(spaceData, 'potential_renters');
-          
-          debug.info('Marketing content generated', {
-            seoScore: seoContent.seoScore,
-            socialPlatforms: socialContent.length,
-            emailCampaigns: emailCampaigns.length
-          });
-        } catch (error) {
-          debug.warn('Marketing content generation failed', error);
-        }
-      }
+      //     // Generate SEO content
+      //     const seoContent = await marketingContentService.generateSEOContent(spaceData, marketData);
+      //     
+      //     // Generate social media content
+      //     const socialContent = await marketingContentService.generateSocialMediaContent(spaceData);
+      //     
+      //     // Generate email campaigns
+      //     const emailCampaigns = await marketingContentService.generateEmailCampaigns(spaceData, 'potential_renters');
+      //     
+      //     debug.info('Marketing content generated', {
+      //       seoScore: seoContent.seoScore,
+      //       socialPlatforms: socialContent.length,
+      //       emailCampaigns: emailCampaigns.length
+      //     });
+      //   } catch (error) {
+      //     debug.warn('Marketing content generation failed', error);
+      //   }
+      // }
 
       // Apply predictive analytics if enabled
       if (formData.enablePredictiveAnalytics) {

@@ -43,6 +43,13 @@ CREATE TABLE public.spaces (
   dimensions TEXT,
   available_from TIMESTAMP WITH TIME ZONE,
   available_until TIMESTAMP WITH TIME ZONE,
+  timezone TEXT DEFAULT 'America/Los_Angeles',
+  allow_ai_agent BOOLEAN NOT NULL DEFAULT false,
+  smart_scheduling_enabled BOOLEAN DEFAULT false,
+  ai_marketing_enabled BOOLEAN DEFAULT false,
+  predictive_analytics_enabled BOOLEAN DEFAULT false,
+  ai_support_enabled BOOLEAN DEFAULT false,
+  space_types TEXT DEFAULT '[]',
   is_active BOOLEAN NOT NULL DEFAULT true,
   stripe_connect_account_id TEXT,
   created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
@@ -51,6 +58,19 @@ CREATE TABLE public.spaces (
 
 -- Enable RLS on spaces
 ALTER TABLE public.spaces ENABLE ROW LEVEL SECURITY;
+
+-- Add comment to explain the timezone field
+COMMENT ON COLUMN public.spaces.timezone IS 'Timezone for the available_from and available_until fields';
+
+-- Add comment to explain the allow_ai_agent field
+COMMENT ON COLUMN public.spaces.allow_ai_agent IS 'Whether the space owner allows AI agent to negotiate on their behalf';
+
+-- Add comments to explain the AI enhancement fields
+COMMENT ON COLUMN public.spaces.smart_scheduling_enabled IS 'Whether AI should optimize availability and scheduling for this space';
+COMMENT ON COLUMN public.spaces.ai_marketing_enabled IS 'Whether AI should generate marketing content for this space';
+COMMENT ON COLUMN public.spaces.predictive_analytics_enabled IS 'Whether AI should provide predictive analytics for this space';
+COMMENT ON COLUMN public.spaces.ai_support_enabled IS 'Whether AI should handle customer support for this space';
+COMMENT ON COLUMN public.spaces.space_types IS 'Array of space types this space can accommodate';
 
 -- Create RLS policies for spaces
 CREATE POLICY "Anyone can view active spaces" 

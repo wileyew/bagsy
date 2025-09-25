@@ -1,16 +1,5 @@
--- Add AI enhancement fields to spaces table
-ALTER TABLE spaces ADD COLUMN smart_scheduling_enabled BOOLEAN DEFAULT false;
-ALTER TABLE spaces ADD COLUMN ai_marketing_enabled BOOLEAN DEFAULT false;
-ALTER TABLE spaces ADD COLUMN predictive_analytics_enabled BOOLEAN DEFAULT false;
-ALTER TABLE spaces ADD COLUMN ai_support_enabled BOOLEAN DEFAULT false;
-ALTER TABLE spaces ADD COLUMN space_types TEXT DEFAULT '[]';
-
--- Add comments to explain the new fields (PostgreSQL syntax)
-COMMENT ON COLUMN spaces.smart_scheduling_enabled IS 'Whether AI should optimize availability and scheduling for this space';
-COMMENT ON COLUMN spaces.ai_marketing_enabled IS 'Whether AI should generate marketing content for this space';
-COMMENT ON COLUMN spaces.predictive_analytics_enabled IS 'Whether AI should provide predictive analytics for this space';
-COMMENT ON COLUMN spaces.ai_support_enabled IS 'Whether AI should handle customer support for this space';
-COMMENT ON COLUMN spaces.space_types IS 'Array of space types this space can accommodate';
+-- Create AI-related tables for enhanced functionality
+-- This migration runs after the spaces table is created
 
 -- Create user preferences table for AI matching
 CREATE TABLE user_preferences (
@@ -77,7 +66,6 @@ USING (
     AND spaces.owner_id = auth.uid()
   )
 );
-
 
 -- Create smart scheduling table for availability optimization
 CREATE TABLE smart_scheduling (
