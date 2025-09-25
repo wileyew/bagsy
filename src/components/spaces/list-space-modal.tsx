@@ -7,7 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Card, CardContent } from "@/components/ui/card";
-import { Upload, X, Eye, EyeOff, MapPin, DollarSign, Ruler, Calendar } from "lucide-react";
+import { Upload, X, Eye, EyeOff, MapPin, DollarSign, Ruler, Calendar, Clock } from "lucide-react";
 import { useAuthContext } from "@/contexts/auth-context";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -28,6 +28,7 @@ interface SpaceFormData {
   dimensions: string;
   availableFrom: string;
   availableUntil: string;
+  timezone: string;
   showPhoto: boolean;
   photoUrl: string;
 }
@@ -39,6 +40,16 @@ const spaceTypes = [
   { value: "parking_spot", label: "Parking Spot", description: "Single parking space" },
   { value: "storage_unit", label: "Storage Unit", description: "Indoor storage unit" },
   { value: "outdoor_space", label: "Outdoor Space", description: "Open outdoor area" },
+];
+
+const timezones = [
+  { value: "America/Los_Angeles", label: "Pacific Time (PT)" },
+  { value: "America/Denver", label: "Mountain Time (MT)" },
+  { value: "America/Chicago", label: "Central Time (CT)" },
+  { value: "America/New_York", label: "Eastern Time (ET)" },
+  { value: "America/Phoenix", label: "Arizona Time" },
+  { value: "America/Anchorage", label: "Alaska Time (AKT)" },
+  { value: "Pacific/Honolulu", label: "Hawaii Time (HST)" },
 ];
 
 export function ListSpaceModal({ open, onOpenChange }: ListSpaceModalProps) {
@@ -53,6 +64,7 @@ export function ListSpaceModal({ open, onOpenChange }: ListSpaceModalProps) {
     dimensions: "",
     availableFrom: "",
     availableUntil: "",
+    timezone: "America/Los_Angeles",
     showPhoto: true,
     photoUrl: "",
   });
@@ -110,6 +122,13 @@ export function ListSpaceModal({ open, onOpenChange }: ListSpaceModalProps) {
 
     setLoading(true);
     try {
+      // Convert local datetime strings to UTC timestamps
+      const convertToUTC = (localDateTime: string) => {
+        if (!localDateTime) return null;
+        const date = new Date(localDateTime);
+        return date.toISOString();
+      };
+
       // Insert space into database
       const { data: space, error: spaceError } = await supabase
         .from('spaces')
@@ -122,8 +141,8 @@ export function ListSpaceModal({ open, onOpenChange }: ListSpaceModalProps) {
           price_per_hour: formData.pricePerHour,
           price_per_day: formData.pricePerDay,
           dimensions: formData.dimensions,
-          available_from: formData.availableFrom,
-          available_until: formData.availableUntil,
+          available_from: convertToUTC(formData.availableFrom),
+          available_until: convertToUTC(formData.availableUntil),
           owner_id: user.id,
           is_active: true,
         })
@@ -165,6 +184,7 @@ export function ListSpaceModal({ open, onOpenChange }: ListSpaceModalProps) {
         dimensions: "",
         availableFrom: "",
         availableUntil: "",
+        timezone: "America/Los_Angeles",
         showPhoto: true,
         photoUrl: "",
       });
@@ -370,15 +390,16 @@ export function ListSpaceModal({ open, onOpenChange }: ListSpaceModalProps) {
                   Available From
                 </Label>
                 <div className="relative">
-                  <Calendar className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <Clock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                   <Input
                     id="availableFrom"
-                    type="date"
+                    type="datetime-local"
                     value={formData.availableFrom}
                     onChange={(e) => handleInputChange("availableFrom", e.target.value)}
                     className="apple-input pl-10 h-12"
                   />
                 </div>
+                <p className="text-xs text-muted-foreground">When your space becomes available</p>
               </div>
 
               <div className="space-y-2">
@@ -386,16 +407,39 @@ export function ListSpaceModal({ open, onOpenChange }: ListSpaceModalProps) {
                   Available Until
                 </Label>
                 <div className="relative">
-                  <Calendar className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <Clock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                   <Input
                     id="availableUntil"
-                    type="date"
+                    type="datetime-local"
                     value={formData.availableUntil}
                     onChange={(e) => handleInputChange("availableUntil", e.target.value)}
                     className="apple-input pl-10 h-12"
                   />
                 </div>
+                <p className="text-xs text-muted-foreground">When your space stops being available</p>
               </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="timezone" className="text-sm font-medium">
+                Timezone
+              </Label>
+              <Select
+                value={formData.timezone}
+                onValueChange={(value) => handleInputChange("timezone", value)}
+              >
+                <SelectTrigger className="apple-input h-12">
+                  <SelectValue placeholder="Select timezone" />
+                </SelectTrigger>
+                <SelectContent>
+                  {timezones.map((tz) => (
+                    <SelectItem key={tz.value} value={tz.value}>
+                      {tz.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">Timezone for the availability dates above</p>
             </div>
           </div>
 

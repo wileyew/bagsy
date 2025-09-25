@@ -29,6 +29,7 @@ import {
   Calendar as CalendarIcon
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { EditSpaceModal } from '@/components/spaces/edit-space-modal';
 
 interface SpaceListing {
   id: string;
@@ -84,6 +85,8 @@ const MyListings: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [selectedListing, setSelectedListing] = useState<SpaceListing | null>(null);
   const [showDetailedView, setShowDetailedView] = useState(false);
+  const [editingListing, setEditingListing] = useState<SpaceListing | null>(null);
+  const [showEditModal, setShowEditModal] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -329,6 +332,20 @@ Thank you!`);
   const closeDetailedView = () => {
     setShowDetailedView(false);
     setSelectedListing(null);
+  };
+
+  const handleEditListing = (listing: SpaceListing) => {
+    setEditingListing(listing);
+    setShowEditModal(true);
+  };
+
+  const handleEditModalClose = () => {
+    setShowEditModal(false);
+    setEditingListing(null);
+  };
+
+  const handleListingUpdate = () => {
+    fetchListings(); // Refresh the listings after update
   };
 
   const testPhotoFetching = async () => {
@@ -737,7 +754,7 @@ Thank you!`);
                           size="sm"
                           variant="outline"
                           className="flex-1"
-                          onClick={() => navigate(`/listings/${listing.id}/edit`)}
+                          onClick={() => handleEditListing(listing)}
                         >
                           <Settings className="h-4 w-4 mr-1" />
                           Edit
@@ -969,7 +986,10 @@ Thank you!`);
               <div className="flex space-x-3 pt-6 border-t">
                 <Button
                   variant="outline"
-                  onClick={() => navigate(`/listings/${selectedListing.id}/edit`)}
+                  onClick={() => {
+                    closeDetailedView();
+                    handleEditListing(selectedListing);
+                  }}
                   className="flex items-center gap-2"
                 >
                   <Settings className="h-4 w-4" />
@@ -985,6 +1005,16 @@ Thank you!`);
             </div>
           </div>
         </div>
+      )}
+
+      {/* Edit Space Modal */}
+      {editingListing && (
+        <EditSpaceModal
+          open={showEditModal}
+          onOpenChange={handleEditModalClose}
+          space={editingListing}
+          onUpdate={handleListingUpdate}
+        />
       )}
     </div>
   );
