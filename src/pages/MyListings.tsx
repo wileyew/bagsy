@@ -31,6 +31,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { EditSpaceModal } from '@/components/spaces/edit-space-modal';
 import { SpaceCard } from '@/components/spaces/SpaceCard';
+import { DeleteConfirmationModal } from '@/components/spaces/delete-confirmation-modal';
 
 interface SpaceListing {
   id: string;
@@ -92,6 +93,9 @@ const MyListings: React.FC = () => {
   const [showDetailedView, setShowDetailedView] = useState(false);
   const [editingListing, setEditingListing] = useState<SpaceListing | null>(null);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [deletingListing, setDeletingListing] = useState<SpaceListing | null>(null);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -392,6 +396,66 @@ Thank you!`);
 
   const handleListingUpdate = () => {
     fetchListings(); // Refresh the listings after update
+  };
+
+  const handleDeleteListing = (listing: SpaceListing) => {
+    setDeletingListing(listing);
+    setShowDeleteModal(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!deletingListing || !user) return;
+
+    setDeleting(true);
+    try {
+      // Delete photos first
+      if (deletingListing.photos && deletingListing.photos.length > 0) {
+        const { error: photosError } = await supabase
+          .from('space_photos')
+          .delete()
+          .eq('space_id', deletingListing.id);
+
+        if (photosError) {
+          console.error('Error deleting photos:', photosError);
+          // Continue with space deletion even if photos fail
+        }
+      }
+
+      // Delete the space
+      const { error: spaceError } = await supabase
+        .from('spaces')
+        .delete()
+        .eq('id', deletingListing.id)
+        .eq('owner_id', user.id); // Ensure user can only delete their own spaces
+
+      if (spaceError) throw spaceError;
+
+      toast({
+        title: "Listing Deleted",
+        description: `"${deletingListing.title}" has been permanently deleted.`,
+      });
+
+      // Close modal and refresh listings
+      setShowDeleteModal(false);
+      setDeletingListing(null);
+      fetchListings();
+    } catch (error: unknown) {
+      console.error('Error deleting listing:', error);
+      toast({
+        title: "Delete Failed",
+        description: error instanceof Error ? error.message : "Failed to delete listing. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const handleDeleteModalClose = () => {
+    if (!deleting) {
+      setShowDeleteModal(false);
+      setDeletingListing(null);
+    }
   };
 
   const testPhotoFetching = async () => {
@@ -696,12 +760,17 @@ Thank you!`);
                 <SpaceCard
                   key={listing.id}
                   space={listing}
+                  currentUserId={user?.id}
                   onViewDetails={handleViewDetails}
-                  onBookNow={() => {
+                  onEdit={handleEditListing}
+                  onDelete={handleDeleteListing}
+                  onRelist={(space) => {
                     toast({
-                      title: "Booking Started",
-                      description: `Starting booking process for ${listing.title}`,
+                      title: "Relist Space",
+                      description: `Opening relist form for ${space.title}`,
                     });
+                    // Implement relist functionality here
+                    // You can open a modal to set new availability dates
                   }}
                   showAvailability={true}
                   showTimezone={true}
@@ -975,6 +1044,17 @@ Thank you!`);
           onOpenChange={handleEditModalClose}
           space={editingListing}
           onUpdate={handleListingUpdate}
+        />
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {deletingListing && (
+        <DeleteConfirmationModal
+          open={showDeleteModal}
+          onOpenChange={handleDeleteModalClose}
+          spaceTitle={deletingListing.title}
+          onConfirm={handleDeleteConfirm}
+          loading={deleting}
         />
       )}
     </div>
