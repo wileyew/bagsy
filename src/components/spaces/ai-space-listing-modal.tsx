@@ -2592,7 +2592,7 @@ Thank you!`);
                     <Input
                       type="datetime-local"
                       value={formData.availableFrom}
-                      onChange={(e) => setFormData(prev => ({ ...prev, availableFrom: e.target.value }))}
+                      onChange={(e) => handleInputChange("availableFrom", e.target.value)}
                       className="apple-input h-10"
                     />
                     <p className="text-xs text-muted-foreground">
@@ -2605,7 +2605,7 @@ Thank you!`);
                     <Input
                       type="datetime-local"
                       value={formData.availableUntil}
-                      onChange={(e) => setFormData(prev => ({ ...prev, availableUntil: e.target.value }))}
+                      onChange={(e) => handleInputChange("availableUntil", e.target.value)}
                       className="apple-input h-10"
                     />
                     <p className="text-xs text-muted-foreground">
@@ -2810,7 +2810,7 @@ Thank you!`);
                         <Input
                           type="datetime-local"
                           value={formData.availableFrom}
-                          onChange={(e) => setFormData(prev => ({ ...prev, availableFrom: e.target.value }))}
+                          onChange={(e) => handleInputChange("availableFrom", e.target.value)}
                           className="apple-input h-10"
                         />
                         <p className="text-xs text-muted-foreground">
@@ -2823,7 +2823,7 @@ Thank you!`);
                         <Input
                           type="datetime-local"
                           value={formData.availableUntil}
-                          onChange={(e) => setFormData(prev => ({ ...prev, availableUntil: e.target.value }))}
+                          onChange={(e) => handleInputChange("availableUntil", e.target.value)}
                           className="apple-input h-10"
                         />
                         <p className="text-xs text-muted-foreground">
