@@ -63,76 +63,78 @@ export function UserMenu() {
   };
 
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button variant="ghost" className="relative h-10 w-10 rounded-full">
-          <Avatar className="h-10 w-10">
-            <AvatarImage src={user.user_metadata?.avatar_url} alt={getUserName()} />
-            <AvatarFallback className="bg-primary text-primary-foreground font-semibold">
-              {getUserInitials()}
-            </AvatarFallback>
-          </Avatar>
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent className="apple-card w-56" align="end" forceMount>
-        <DropdownMenuLabel className="font-normal">
-          <div className="flex flex-col space-y-1">
-            <p className="text-sm font-medium leading-none">{getUserName()}</p>
-            <p className="text-xs leading-none text-muted-foreground">
-              {user.email}
-            </p>
-          </div>
-        </DropdownMenuLabel>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem className="cursor-pointer">
-          <User className="mr-2 h-4 w-4" />
-          <span>Profile</span>
-        </DropdownMenuItem>
-        {hasListings && (
+    <>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="ghost" className="relative h-10 w-10 rounded-full">
+            <Avatar className="h-10 w-10">
+              <AvatarImage src={user.user_metadata?.avatar_url} alt={getUserName()} />
+              <AvatarFallback className="bg-primary text-primary-foreground font-semibold">
+                {getUserInitials()}
+              </AvatarFallback>
+            </Avatar>
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent className="apple-card w-56" align="end" forceMount>
+          <DropdownMenuLabel className="font-normal">
+            <div className="flex flex-col space-y-1">
+              <p className="text-sm font-medium leading-none">{getUserName()}</p>
+              <p className="text-xs leading-none text-muted-foreground">
+                {user.email}
+              </p>
+            </div>
+          </DropdownMenuLabel>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem className="cursor-pointer">
+            <User className="mr-2 h-4 w-4" />
+            <span>Profile</span>
+          </DropdownMenuItem>
+          {hasListings && (
+            <DropdownMenuItem 
+              className="cursor-pointer"
+              onClick={() => navigate('/my-listings')}
+            >
+              <MapPin className="mr-2 h-4 w-4" />
+              <span>My Listings</span>
+              {listingsCount > 0 && (
+                <span className="ml-auto text-xs text-muted-foreground">
+                  {listingsCount}
+                </span>
+              )}
+            </DropdownMenuItem>
+          )}
+          <DropdownMenuItem className="cursor-pointer">
+            <BookOpen className="mr-2 h-4 w-4" />
+            <span>My Bookings</span>
+          </DropdownMenuItem>
           <DropdownMenuItem 
             className="cursor-pointer"
-            onClick={() => navigate('/my-listings')}
+            onClick={() => setAiSpaceListingModalOpen(true)}
           >
-            <MapPin className="mr-2 h-4 w-4" />
-            <span>My Listings</span>
-            {listingsCount > 0 && (
-              <span className="ml-auto text-xs text-muted-foreground">
-                {listingsCount}
-              </span>
-            )}
+            <Plus className="mr-2 h-4 w-4" />
+            <span>List Your Space</span>
           </DropdownMenuItem>
-        )}
-        <DropdownMenuItem className="cursor-pointer">
-          <BookOpen className="mr-2 h-4 w-4" />
-          <span>My Bookings</span>
-        </DropdownMenuItem>
-        <DropdownMenuItem 
-          className="cursor-pointer"
-          onClick={() => setAiSpaceListingModalOpen(true)}
-        >
-          <Plus className="mr-2 h-4 w-4" />
-          <span>List Your Space</span>
-        </DropdownMenuItem>
-        <DropdownMenuItem className="cursor-pointer">
-          <Settings className="mr-2 h-4 w-4" />
-          <span>Settings</span>
-        </DropdownMenuItem>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem 
-          className="cursor-pointer text-destructive focus:text-destructive"
-          onClick={handleSignOut}
-          disabled={isSigningOut}
-        >
-          <LogOut className="mr-2 h-4 w-4" />
-          <span>{isSigningOut ? "Signing out..." : "Sign out"}</span>
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
-    
-    {/* AI Space Listing Modal */}
-    <AISpaceListingModal 
-      open={aiSpaceListingModalOpen} 
-      onOpenChange={setAiSpaceListingModalOpen} 
-    />
+          <DropdownMenuItem className="cursor-pointer">
+            <Settings className="mr-2 h-4 w-4" />
+            <span>Settings</span>
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem 
+            className="cursor-pointer text-destructive focus:text-destructive"
+            onClick={handleSignOut}
+            disabled={isSigningOut}
+          >
+            <LogOut className="mr-2 h-4 w-4" />
+            <span>{isSigningOut ? "Signing out..." : "Sign out"}</span>
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+      
+      {/* AI Space Listing Modal */}
+      <AISpaceListingModal 
+        open={aiSpaceListingModalOpen} 
+        onOpenChange={setAiSpaceListingModalOpen} 
+      />
+    </>
   );
 }
