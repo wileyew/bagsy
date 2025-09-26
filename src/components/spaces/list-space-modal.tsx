@@ -31,6 +31,7 @@ interface SpaceFormData {
   timezone: string;
   showPhoto: boolean;
   photoUrl: string;
+  specialInstructions: string;
 }
 
 const spaceTypes = [
@@ -67,6 +68,7 @@ export function ListSpaceModal({ open, onOpenChange }: ListSpaceModalProps) {
     timezone: "America/Los_Angeles",
     showPhoto: true,
     photoUrl: "",
+    specialInstructions: "",
   });
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -145,6 +147,8 @@ export function ListSpaceModal({ open, onOpenChange }: ListSpaceModalProps) {
           dimensions: formData.dimensions,
           available_from: convertToUTC(formData.availableFrom),
           available_until: convertToUTC(formData.availableUntil),
+          timezone: formData.timezone,
+          special_instructions: formData.specialInstructions,
           owner_id: user.id,
           is_active: true,
         })
@@ -253,12 +257,28 @@ export function ListSpaceModal({ open, onOpenChange }: ListSpaceModalProps) {
               </Label>
               <Textarea
                 id="description"
-                placeholder="Describe your space, what makes it special, access details..."
+                placeholder="Describe your space, what makes it special, access details... (Note: 24/7 access during reservation period)"
                 value={formData.description}
                 onChange={(e) => handleInputChange("description", e.target.value)}
                 className="apple-input min-h-[100px] resize-none"
                 required
               />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="specialInstructions" className="text-sm font-medium">
+                Special Instructions
+              </Label>
+              <Textarea
+                id="specialInstructions"
+                placeholder="Gate codes, community rules, access instructions, etc. (Optional)"
+                value={formData.specialInstructions}
+                onChange={(e) => handleInputChange("specialInstructions", e.target.value)}
+                className="apple-input min-h-[80px] resize-none"
+              />
+              <p className="text-xs text-muted-foreground">
+                Provide any special access instructions like gate codes, community rules, or specific entry procedures.
+              </p>
             </div>
 
             <div className="space-y-2">

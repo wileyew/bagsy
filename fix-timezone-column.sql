@@ -32,6 +32,10 @@ ADD COLUMN IF NOT EXISTS ai_support_enabled BOOLEAN DEFAULT false;
 ALTER TABLE public.spaces 
 ADD COLUMN IF NOT EXISTS space_types TEXT DEFAULT '[]';
 
+-- Add special instructions field for gate codes, access details, etc.
+ALTER TABLE public.spaces 
+ADD COLUMN IF NOT EXISTS special_instructions TEXT;
+
 -- Add comments for the AI enhancement fields
 COMMENT ON COLUMN public.spaces.allow_ai_agent IS 'Whether the space owner allows AI agent to negotiate on their behalf';
 COMMENT ON COLUMN public.spaces.smart_scheduling_enabled IS 'Whether AI should optimize availability and scheduling for this space';
@@ -39,6 +43,7 @@ COMMENT ON COLUMN public.spaces.ai_marketing_enabled IS 'Whether AI should gener
 COMMENT ON COLUMN public.spaces.predictive_analytics_enabled IS 'Whether AI should provide predictive analytics for this space';
 COMMENT ON COLUMN public.spaces.ai_support_enabled IS 'Whether AI should handle customer support for this space';
 COMMENT ON COLUMN public.spaces.space_types IS 'Array of space types this space can accommodate';
+COMMENT ON COLUMN public.spaces.special_instructions IS 'Special access instructions like gate codes, community rules, etc.';
 
 -- Verify the columns were added
 SELECT column_name, data_type, is_nullable, column_default 

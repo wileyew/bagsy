@@ -183,6 +183,7 @@ export type Database = {
           price_per_day: number | null
           price_per_hour: number
           space_type: string
+          special_instructions: string | null
           stripe_connect_account_id: string | null
           title: string
           updated_at: string
@@ -203,6 +204,7 @@ export type Database = {
           price_per_day?: number | null
           price_per_hour: number
           space_type: string
+          special_instructions?: string | null
           stripe_connect_account_id?: string | null
           title: string
           updated_at?: string
@@ -223,6 +225,7 @@ export type Database = {
           price_per_day?: number | null
           price_per_hour?: number
           space_type?: string
+          special_instructions?: string | null
           stripe_connect_account_id?: string | null
           title?: string
           updated_at?: string

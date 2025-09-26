@@ -209,6 +209,7 @@ class AIService {
                  - Addresses user preferences and requirements
                  - Uses persuasive language to encourage bookings
                  - Includes any special features or restrictions mentioned
+                 - IMPORTANT: Always mention "24/7 access during reservation period" when describing access
               
               4. Dimensions: Estimate realistic dimensions based on:
                  - What you can see in the photos

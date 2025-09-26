@@ -52,6 +52,7 @@ interface SpaceFormData {
   availableFrom: string;
   availableUntil: string;
   timezone: string;
+  specialInstructions: string;
 }
 
 interface AIGeneratedData {
@@ -141,6 +142,7 @@ export function AISpaceListingModal({ open, onOpenChange }: AISpaceListingModalP
     availableFrom: "",
     availableUntil: "",
     timezone: "America/Los_Angeles",
+    specialInstructions: "",
   });
   
   const [aiGeneratedData, setAiGeneratedData] = useState<AIGeneratedData | null>(null);
@@ -748,7 +750,7 @@ export function AISpaceListingModal({ open, onOpenChange }: AISpaceListingModalP
         },
         additionalInfo: {
           availability: 'Flexible', // Could be enhanced with user input
-          accessHours: '24/7', // Could be enhanced with user input
+          accessHours: '24/7 during reservation period', // Updated to clarify reservation period access
           specialFeatures: [], // Could be enhanced with user input
           restrictions: [], // Could be enhanced with user input
           nearbyAmenities: [], // Could be enhanced with user input
@@ -1228,6 +1230,7 @@ Thank you!`);
         available_from: convertToUTC(formData.availableFrom),
         available_until: convertToUTC(formData.availableUntil),
         timezone: formData.timezone,
+        special_instructions: formData.specialInstructions?.trim() || null,
         owner_id: user.id,
         is_active: true,
         // Remove columns that don't exist in current schema
@@ -1397,6 +1400,7 @@ Thank you!`);
         availableFrom: "",
         availableUntil: "",
         timezone: "America/Los_Angeles",
+        specialInstructions: "",
       });
       setAiGeneratedData(null);
       setEditableData(null);
@@ -1477,6 +1481,7 @@ Thank you!`);
       availableFrom: "",
       availableUntil: "",
       timezone: "America/Los_Angeles",
+      specialInstructions: "",
     });
     setAiGeneratedData(null);
     setEditableData(null);
@@ -2658,7 +2663,25 @@ Thank you!`);
                       onChange={(e) => handleEditableChange("description", e.target.value)}
                       className="apple-input min-h-[100px] resize-none w-full"
                       rows={4}
+                      placeholder="Describe your space, what makes it special, access details... (Note: 24/7 access during reservation period)"
                     />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium flex items-center gap-2">
+                      <Edit3 className="h-4 w-4" />
+                      Special Instructions
+                    </Label>
+                    <textarea
+                      value={formData.specialInstructions}
+                      onChange={(e) => setFormData(prev => ({ ...prev, specialInstructions: e.target.value }))}
+                      placeholder="Gate codes, community rules, access instructions, etc. (Optional)"
+                      className="apple-input min-h-[80px] resize-none w-full"
+                      rows={3}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Provide any special access instructions like gate codes, community rules, or specific entry procedures.
+                    </p>
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
