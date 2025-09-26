@@ -11,6 +11,8 @@ import { Upload, X, Eye, EyeOff, MapPin, DollarSign, Ruler, Calendar, Clock } fr
 import { useAuthContext } from "@/contexts/auth-context";
 import { useToast } from "@/hooks/use-toast";
 import { getPhotoUploadErrorMessage, getPhotoUploadSuccessMessage } from "@/lib/photo-upload-error-messages";
+import { timezoneService } from "@/lib/timezone-service";
+import { supabase } from "@/integrations/supabase/client";
 
 interface ListSpaceModalProps {
   open: boolean;
@@ -76,8 +78,36 @@ export function ListSpaceModal({ open, onOpenChange }: ListSpaceModalProps) {
   const { user } = useAuthContext();
   const { toast } = useToast();
 
-  const handleInputChange = (field: keyof SpaceFormData, value: string | number | boolean) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+  const handleInputChange = async (field: keyof SpaceFormData, value: string | number | boolean) => {
+    // Auto-detect timezone when address changes
+    if (field === 'address' && typeof value === 'string' && value.trim().length > 5) {
+      try {
+        const timezoneData = await timezoneService.getTimezoneFromAddress(value);
+        
+        setFormData(prev => ({
+          ...prev,
+          [field]: value,
+          timezone: timezoneData.timezone
+        }));
+        
+        toast({
+          title: "Timezone Auto-Detected",
+          description: `Timezone set to ${timezoneData.displayName} based on your address`,
+          duration: 4000,
+        });
+      } catch (error) {
+        setFormData(prev => ({ ...prev, [field]: value }));
+        
+        toast({
+          title: "Timezone Detection Failed",
+          description: "Could not auto-detect timezone. Please select manually.",
+          variant: "destructive",
+          duration: 4000,
+        });
+      }
+    } else {
+      setFormData(prev => ({ ...prev, [field]: value }));
+    }
   };
 
   const handleFileUpload = async (file: File) => {
@@ -108,7 +138,7 @@ export function ListSpaceModal({ open, onOpenChange }: ListSpaceModalProps) {
         title: successMessage.title,
         description: successMessage.description,
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       const errorMessage = getPhotoUploadErrorMessage(false);
       toast({
         title: errorMessage.title,
@@ -193,12 +223,13 @@ export function ListSpaceModal({ open, onOpenChange }: ListSpaceModalProps) {
         timezone: "America/Los_Angeles",
         showPhoto: true,
         photoUrl: "",
+        specialInstructions: "",
       });
       onOpenChange(false);
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: "Failed to list space",
-        description: error.message || "Something went wrong. Please try again.",
+        description: error instanceof Error ? error.message : "Something went wrong. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -462,6 +493,9 @@ export function ListSpaceModal({ open, onOpenChange }: ListSpaceModalProps) {
                 </SelectContent>
               </Select>
               <p className="text-xs text-muted-foreground">Timezone for the availability dates above</p>
+              <p className="text-xs text-blue-600">
+                💡 Timezone is automatically detected when you enter your address
+              </p>
             </div>
           </div>
 

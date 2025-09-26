@@ -22,6 +22,7 @@ import { aiRecommendationsService, AIRecommendation } from "@/lib/ai-recommendat
 import { createComponentDebugger } from "@/lib/debug-utils";
 import { runFullStorageTest } from "@/lib/storage-test";
 import { getPhotoUploadErrorMessage, getPhotoUploadSuccessMessage } from "@/lib/photo-upload-error-messages";
+import { timezoneService } from "@/lib/timezone-service";
 
 interface AISpaceListingModalProps {
   open: boolean;
@@ -188,13 +189,46 @@ export function AISpaceListingModal({ open, onOpenChange }: AISpaceListingModalP
   }, [loading, uploading, analyzing, scraping, user, aiGeneratedData, editableData, marketAnalysis, debug]);
 
 
-  const handleInputChange = (field: keyof SpaceFormData, value: string | File[] | string[] | boolean) => {
+  const handleInputChange = async (field: keyof SpaceFormData, value: string | File[] | string[] | boolean) => {
     debug.userAction('Form field changed', { field, value, valueType: typeof value });
-    setFormData(prev => {
-      const newData = { ...prev, [field]: value };
-      debug.stateChange(field, prev[field], value);
-      return newData;
-    });
+    
+    // Auto-detect timezone when address changes
+    if (field === 'address' && typeof value === 'string' && value.trim().length > 5) {
+      try {
+        debug.info('Address changed, detecting timezone', { address: value });
+        const timezoneData = await timezoneService.getTimezoneFromAddress(value);
+        
+        setFormData(prev => ({
+          ...prev,
+          [field]: value,
+          timezone: timezoneData.timezone
+        }));
+        
+        toast({
+          title: "Timezone Auto-Detected",
+          description: `Timezone set to ${timezoneData.displayName} based on your address`,
+          duration: 4000,
+        });
+        
+        debug.info('Timezone auto-detected', timezoneData);
+      } catch (error) {
+        debug.error('Timezone detection failed', error);
+        setFormData(prev => ({ ...prev, [field]: value }));
+        
+        toast({
+          title: "Timezone Detection Failed",
+          description: "Could not auto-detect timezone. Please select manually.",
+          variant: "destructive",
+          duration: 4000,
+        });
+      }
+    } else {
+      setFormData(prev => {
+        const newData = { ...prev, [field]: value };
+        debug.stateChange(field, prev[field], value);
+        return newData;
+      });
+    }
   };
 
   const getCurrentLocation = async () => {
@@ -212,10 +246,30 @@ export function AISpaceListingModal({ open, onOpenChange }: AISpaceListingModalP
         setFormData(prev => ({ ...prev, zipCode: location.zipCode }));
       }
       
-      toast({
-        title: "Location Found!",
-        description: `Located: ${location.address}`,
-      });
+      // Auto-detect timezone from coordinates
+      try {
+        debug.info('Auto-detecting timezone from GPS coordinates');
+        const timezoneData = await timezoneService.getTimezoneFromCoordinates(
+          location.latitude, 
+          location.longitude
+        );
+        
+        setFormData(prev => ({ ...prev, timezone: timezoneData.timezone }));
+        
+        toast({
+          title: "Location Found!",
+          description: `Located: ${location.address}. Timezone set to ${timezoneData.displayName}`,
+          duration: 4000,
+        });
+        
+        debug.info('Timezone auto-detected from GPS', timezoneData);
+      } catch (timezoneError) {
+        debug.error('Timezone detection from GPS failed', timezoneError);
+        toast({
+          title: "Location Found!",
+          description: `Located: ${location.address}`,
+        });
+      }
       
       debug.info('Location obtained successfully', location);
     } catch (error) {
@@ -2578,6 +2632,9 @@ Thank you!`);
                   <p className="text-xs text-muted-foreground">
                     Timezone for your availability times (24/7 access during reservation period)
                   </p>
+                  <p className="text-xs text-blue-600">
+                    💡 Timezone is automatically detected when you enter your address
+                  </p>
                 </div>
               </div>
 
@@ -2792,6 +2849,9 @@ Thank you!`);
                       </select>
                       <p className="text-xs text-muted-foreground">
                         Timezone for your availability times (24/7 access during reservation period)
+                      </p>
+                      <p className="text-xs text-blue-600">
+                        💡 Timezone is automatically detected when you enter your address
                       </p>
                     </div>
                   </div>
