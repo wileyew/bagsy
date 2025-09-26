@@ -30,6 +30,7 @@ import {
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { EditSpaceModal } from '@/components/spaces/edit-space-modal';
+import { SpaceCard } from '@/components/spaces/SpaceCard';
 
 interface SpaceListing {
   id: string;
@@ -41,6 +42,10 @@ interface SpaceListing {
   price_per_hour: number;
   price_per_day: number | null;
   dimensions: string | null;
+  available_from: string | null;
+  available_until: string | null;
+  timezone: string | null;
+  special_instructions: string | null;
   is_active: boolean;
   created_at: string;
   updated_at: string;
@@ -293,6 +298,47 @@ const MyListings: React.FC = () => {
       month: 'short',
       day: 'numeric',
     });
+  };
+
+  const formatAvailability = (availableFrom: string | null, availableUntil: string | null, timezone: string | null) => {
+    if (!availableFrom || !availableUntil) {
+      return 'Not specified';
+    }
+
+    const fromDate = new Date(availableFrom);
+    const untilDate = new Date(availableUntil);
+    
+    // Format dates in the space's timezone
+    const options: Intl.DateTimeFormatOptions = {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      timeZone: timezone || 'America/Los_Angeles'
+    };
+
+    const fromFormatted = fromDate.toLocaleString('en-US', options);
+    const untilFormatted = untilDate.toLocaleString('en-US', options);
+    
+    return `${fromFormatted} - ${untilFormatted}`;
+  };
+
+  const getTimezoneDisplay = (timezone: string | null) => {
+    if (!timezone) return 'Not specified';
+    
+    // Convert timezone to readable format
+    const timezoneMap: { [key: string]: string } = {
+      'America/Los_Angeles': 'Pacific Time (PT)',
+      'America/Denver': 'Mountain Time (MT)',
+      'America/Chicago': 'Central Time (CT)',
+      'America/New_York': 'Eastern Time (ET)',
+      'America/Phoenix': 'Arizona Time',
+      'America/Anchorage': 'Alaska Time (AKT)',
+      'Pacific/Honolulu': 'Hawaii Time (HST)'
+    };
+    
+    return timezoneMap[timezone] || timezone;
   };
 
   const handleSupportEmail = () => {
@@ -647,122 +693,20 @@ Thank you!`);
               console.log(`🖼️ Primary photo for ${listing.id}:`, primaryPhoto);
 
               return (
-                <Card key={listing.id} className="overflow-hidden hover:shadow-lg transition-shadow">
-                  <div className="aspect-video bg-gray-200">
-                    {primaryPhoto ? (
-                      <img
-                        src={primaryPhoto.photo_url}
-                        alt={listing.title}
-                        className="w-full h-full object-cover"
-                        onError={(e) => {
-                          console.error(`❌ Image failed to load for listing ${listing.id}:`, primaryPhoto.photo_url);
-                          e.currentTarget.style.display = 'none';
-                        }}
-                        onLoad={() => {
-                          console.log(`✅ Image loaded successfully for listing ${listing.id}:`, primaryPhoto.photo_url);
-                        }}
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center bg-gray-100">
-                        <div className="text-center text-gray-400">
-                          <Image className="h-12 w-12 mx-auto mb-2" />
-                          <p className="text-sm">No photo available</p>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                  
-                  <CardHeader className="pb-3">
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <CardTitle className="text-lg line-clamp-2">{listing.title}</CardTitle>
-                        <div className="flex items-center mt-1 text-sm text-gray-500">
-                          <MapPin className="h-4 w-4 mr-1" />
-                          <span className="truncate">{listing.address}</span>
-                        </div>
-                      </div>
-                      <Badge variant={listingStatus.color as any} className="ml-2 flex items-center space-x-1">
-                        {getStatusIcon(listingStatus.status)}
-                        <span>{listingStatus.label}</span>
-                      </Badge>
-                    </div>
-                  </CardHeader>
-
-                  <CardContent className="pt-0">
-                    <div className="space-y-3">
-                      {/* Price */}
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm text-gray-500">Hourly Rate</span>
-                        <span className="font-semibold text-lg">
-                          {formatPrice(listing.price_per_hour)}
-                        </span>
-                      </div>
-
-                      {/* Space Type */}
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm text-gray-500">Type</span>
-                        <span className="text-sm font-medium capitalize">
-                          {listing.space_type.replace('_', ' ')}
-                        </span>
-                      </div>
-
-                      {/* Created Date */}
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm text-gray-500">Listed</span>
-                        <span className="text-sm">{formatDate(listing.created_at)}</span>
-                      </div>
-
-                      {/* AI Negotiation Status */}
-                      {listingStatus.status === 'negotiating' && (
-                        <div className="bg-orange-50 border border-orange-200 rounded-lg p-3">
-                          <div className="flex items-center space-x-2">
-                            <MessageCircle className="h-4 w-4 text-orange-600" />
-                            <span className="text-sm font-medium text-orange-800">
-                              AI Agent is negotiating with potential renters
-                            </span>
-                          </div>
-                          <p className="text-xs text-orange-600 mt-1">
-                            {listing.negotiations?.length || 0} active negotiation(s)
-                          </p>
-                        </div>
-                      )}
-
-                      {/* Active Bookings */}
-                      {listingStatus.status === 'booked' && (
-                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-                          <div className="flex items-center space-x-2">
-                            <Calendar className="h-4 w-4 text-blue-600" />
-                            <span className="text-sm font-medium text-blue-800">
-                              {listing.bookings?.filter(b => b.status === 'confirmed').length || 0} confirmed booking(s)
-                            </span>
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Action Buttons */}
-                      <div className="flex space-x-2 pt-2">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="flex-1"
-                          onClick={() => handleViewDetails(listing)}
-                        >
-                          <Eye className="h-4 w-4 mr-1" />
-                          View Details
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="flex-1"
-                          onClick={() => handleEditListing(listing)}
-                        >
-                          <Settings className="h-4 w-4 mr-1" />
-                          Edit
-                        </Button>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
+                <SpaceCard
+                  key={listing.id}
+                  space={listing}
+                  onViewDetails={handleViewDetails}
+                  onBookNow={() => {
+                    toast({
+                      title: "Booking Started",
+                      description: `Starting booking process for ${listing.title}`,
+                    });
+                  }}
+                  showAvailability={true}
+                  showTimezone={true}
+                  showSpecialInstructions={true}
+                />
               );
             })}
           </div>
@@ -830,6 +774,23 @@ Thank you!`);
                         <p className="text-sm">{selectedListing.dimensions || 'Not specified'}</p>
                       </div>
                     </div>
+
+                    <div>
+                      <span className="text-sm font-medium text-gray-500">Availability</span>
+                      <p className="text-sm">{formatAvailability(selectedListing.available_from, selectedListing.available_until, selectedListing.timezone)}</p>
+                    </div>
+
+                    <div>
+                      <span className="text-sm font-medium text-gray-500">Timezone</span>
+                      <p className="text-sm">{getTimezoneDisplay(selectedListing.timezone)}</p>
+                    </div>
+
+                    {selectedListing.special_instructions && (
+                      <div>
+                        <span className="text-sm font-medium text-gray-500">Special Instructions</span>
+                        <p className="text-sm bg-gray-50 p-2 rounded">{selectedListing.special_instructions}</p>
+                      </div>
+                    )}
 
                     <div>
                       <span className="text-sm font-medium text-gray-500">Location</span>

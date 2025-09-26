@@ -185,6 +185,7 @@ export type Database = {
           space_type: string
           special_instructions: string | null
           stripe_connect_account_id: string | null
+          timezone: string | null
           title: string
           updated_at: string
           zip_code: string
@@ -206,6 +207,7 @@ export type Database = {
           space_type: string
           special_instructions?: string | null
           stripe_connect_account_id?: string | null
+          timezone?: string | null
           title: string
           updated_at?: string
           zip_code?: string
@@ -227,6 +229,7 @@ export type Database = {
           space_type?: string
           special_instructions?: string | null
           stripe_connect_account_id?: string | null
+          timezone?: string | null
           title?: string
           updated_at?: string
           zip_code?: string

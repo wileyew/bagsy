@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -9,12 +9,14 @@ import { LoadingDots } from "@/components/ui/loading-dots";
 import { AuthModal } from "@/components/auth/auth-modal";
 import { UserMenu } from "@/components/auth/user-menu";
 import { AISpaceListingModal } from "@/components/spaces/ai-space-listing-modal";
+import { SpaceCard } from "@/components/spaces/SpaceCard";
 import { BagsyLogo } from "@/components/ui/bagsy-logo";
 import { useAuthContext } from "@/contexts/auth-context";
 import { useToast } from "@/hooks/use-toast";
 import DebugPanel from "@/components/debug/DebugPanel";
 import { useNavigate } from "react-router-dom";
 import { useUserListingsCount } from "@/hooks/use-user-listings-count";
+import { supabase } from "@/integrations/supabase/client";
 
 const Index = () => {
   const [currentStep, setCurrentStep] = useState(0);
@@ -32,6 +34,133 @@ const Index = () => {
   });
   const { user } = useAuthContext();
   const { toast } = useToast();
+
+  // Real space data state
+  const [spaces, setSpaces] = useState<any[]>([]);
+  const [loadingSpaces, setLoadingSpaces] = useState(false);
+  const [spacesError, setSpacesError] = useState<string | null>(null);
+  
+  // Search and filter state
+  const [searchFilters, setSearchFilters] = useState({
+    spaceType: '',
+    location: '',
+    minPrice: '',
+    maxPrice: '',
+    availableFrom: '',
+    availableUntil: '',
+    timezone: ''
+  });
+
+  // Fetch real spaces from database
+  useEffect(() => {
+    fetchSpaces();
+  }, []);
+
+  const fetchSpaces = async (filters = searchFilters) => {
+    try {
+      setLoadingSpaces(true);
+      setSpacesError(null);
+
+      // Build query based on filters
+      let query = supabase
+        .from('spaces')
+        .select(`
+          *,
+          photos:space_photos(*)
+        `)
+        .eq('is_active', true);
+
+      // Apply filters
+      if (filters.spaceType) {
+        query = query.eq('space_type', filters.spaceType);
+      }
+      
+      if (filters.location) {
+        query = query.or(`address.ilike.%${filters.location}%,zip_code.ilike.%${filters.location}%`);
+      }
+      
+      if (filters.minPrice) {
+        query = query.gte('price_per_hour', parseFloat(filters.minPrice));
+      }
+      
+      if (filters.maxPrice) {
+        query = query.lte('price_per_hour', parseFloat(filters.maxPrice));
+      }
+      
+      if (filters.timezone) {
+        query = query.eq('timezone', filters.timezone);
+      }
+
+      // Apply availability filters
+      if (filters.availableFrom) {
+        query = query.gte('available_from', filters.availableFrom);
+      }
+      
+      if (filters.availableUntil) {
+        query = query.lte('available_until', filters.availableUntil);
+      }
+
+      query = query.order('created_at', { ascending: false }).limit(12);
+
+      const { data: spacesData, error: spacesError } = await query;
+
+      if (spacesError) {
+        throw spacesError;
+      }
+
+      setSpaces(spacesData || []);
+    } catch (error) {
+      console.error('Error fetching spaces:', error);
+      setSpacesError(error instanceof Error ? error.message : 'Failed to fetch spaces');
+      // Fallback to mock data if real data fails
+      setSpaces(mockListings.map(listing => ({
+        id: listing.id.toString(),
+        title: listing.title,
+        description: `A great ${listing.type} space in ${listing.address}`,
+        space_type: listing.type,
+        address: listing.address,
+        zip_code: '94110',
+        price_per_hour: listing.price,
+        price_per_day: null,
+        dimensions: listing.dimensions,
+        available_from: null,
+        available_until: null,
+        timezone: 'America/Los_Angeles',
+        special_instructions: null,
+        is_active: true,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        photos: []
+      })));
+    } finally {
+      setLoadingSpaces(false);
+    }
+  };
+
+  const handleSearch = () => {
+    fetchSpaces(searchFilters);
+  };
+
+  const clearFilters = () => {
+    setSearchFilters({
+      spaceType: '',
+      location: '',
+      minPrice: '',
+      maxPrice: '',
+      availableFrom: '',
+      availableUntil: '',
+      timezone: ''
+    });
+    fetchSpaces({
+      spaceType: '',
+      location: '',
+      minPrice: '',
+      maxPrice: '',
+      availableFrom: '',
+      availableUntil: '',
+      timezone: ''
+    });
+  };
 
   const spaceTypes = [
     { id: "garage", name: "Garage", icon: Home, description: "Covered storage space" },
@@ -241,56 +370,151 @@ const Index = () => {
   };
 
   const renderResults = () => (
-          <div className="w-full max-w-6xl mx-auto space-y-12 animate-scale-in">
+    <div className="w-full max-w-6xl mx-auto space-y-12 animate-scale-in">
       <div className="text-center space-y-4">
         <h2 className="text-4xl font-bold tracking-tight mb-4">
           Perfect matches found!
         </h2>
         <p className="text-xl text-muted-foreground">
-          Our AI found {mockListings.length} spaces matching your needs
+          Our AI found {spaces.length} spaces matching your needs
         </p>
+        {spacesError && (
+          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+            <p className="text-sm text-yellow-800">
+              Showing sample data. Real spaces will appear here once listings are created.
+            </p>
+          </div>
+        )}
       </div>
-      
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-        {mockListings.map((listing) => (
-          <Card key={listing.id} className="apple-card overflow-hidden hover:shadow-xl transition-all duration-300 group">
-            <div className="aspect-[4/3] bg-muted relative overflow-hidden">
-              <img src={listing.image} alt={listing.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
-              <Badge className="absolute top-4 right-4 bg-success text-success-foreground rounded-full">
-                Available
-              </Badge>
+
+      {/* Search and Filter Section */}
+      <Card className="p-6">
+        <div className="space-y-4">
+          <h3 className="text-lg font-semibold">Refine Your Search</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div>
+              <label className="text-sm font-medium text-gray-700">Space Type</label>
+              <select
+                value={searchFilters.spaceType}
+                onChange={(e) => setSearchFilters(prev => ({ ...prev, spaceType: e.target.value }))}
+                className="w-full mt-1 p-2 border border-gray-300 rounded-md"
+              >
+                <option value="">All Types</option>
+                <option value="garage">Garage</option>
+                <option value="driveway">Driveway</option>
+                <option value="warehouse">Warehouse</option>
+                <option value="parking_spot">Parking Spot</option>
+                <option value="storage_unit">Storage Unit</option>
+                <option value="outdoor_space">Outdoor Space</option>
+              </select>
             </div>
-            <CardContent className="p-6">
-              <div className="flex items-start justify-between mb-4">
-                <h3 className="font-semibold text-lg line-clamp-2">{listing.title}</h3>
-                <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                  <Star className="h-4 w-4 fill-current text-warning" />
-                  {listing.rating}
-                </div>
+            
+            <div>
+              <label className="text-sm font-medium text-gray-700">Location</label>
+              <Input
+                placeholder="City, ZIP, or address"
+                value={searchFilters.location}
+                onChange={(e) => setSearchFilters(prev => ({ ...prev, location: e.target.value }))}
+                className="mt-1"
+              />
+            </div>
+            
+            <div>
+              <label className="text-sm font-medium text-gray-700">Price Range</label>
+              <div className="flex gap-2 mt-1">
+                <Input
+                  placeholder="Min $"
+                  type="number"
+                  value={searchFilters.minPrice}
+                  onChange={(e) => setSearchFilters(prev => ({ ...prev, minPrice: e.target.value }))}
+                />
+                <Input
+                  placeholder="Max $"
+                  type="number"
+                  value={searchFilters.maxPrice}
+                  onChange={(e) => setSearchFilters(prev => ({ ...prev, maxPrice: e.target.value }))}
+                />
               </div>
-              
-              <div className="space-y-3 text-sm text-muted-foreground mb-6">
-                <div className="flex items-center gap-3">
-                  <MapPin className="h-4 w-4" />
-                  {listing.address}
+            </div>
+            
+            <div>
+              <label className="text-sm font-medium text-gray-700">Timezone</label>
+              <select
+                value={searchFilters.timezone}
+                onChange={(e) => setSearchFilters(prev => ({ ...prev, timezone: e.target.value }))}
+                className="w-full mt-1 p-2 border border-gray-300 rounded-md"
+              >
+                <option value="">All Timezones</option>
+                <option value="America/Los_Angeles">Pacific Time (PT)</option>
+                <option value="America/Denver">Mountain Time (MT)</option>
+                <option value="America/Chicago">Central Time (CT)</option>
+                <option value="America/New_York">Eastern Time (ET)</option>
+                <option value="America/Phoenix">Arizona Time</option>
+                <option value="America/Anchorage">Alaska Time (AKT)</option>
+                <option value="Pacific/Honolulu">Hawaii Time (HST)</option>
+              </select>
+            </div>
+          </div>
+          
+          <div className="flex gap-2">
+            <Button onClick={handleSearch} className="apple-button-primary">
+              <Search className="h-4 w-4 mr-2" />
+              Apply Filters
+            </Button>
+            <Button variant="outline" onClick={clearFilters}>
+              Clear Filters
+            </Button>
+          </div>
+        </div>
+      </Card>
+      
+      {loadingSpaces ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          {[1, 2, 3].map((i) => (
+            <Card key={i} className="apple-card overflow-hidden">
+              <div className="aspect-[4/3] bg-muted animate-pulse" />
+              <CardContent className="p-6">
+                <div className="space-y-3">
+                  <div className="h-6 bg-muted animate-pulse rounded" />
+                  <div className="h-4 bg-muted animate-pulse rounded w-3/4" />
+                  <div className="h-4 bg-muted animate-pulse rounded w-1/2" />
+                  <div className="h-10 bg-muted animate-pulse rounded" />
                 </div>
-                <div className="flex items-center gap-3">
-                  <DollarSign className="h-4 w-4" />
-                  ${listing.price}/hour
-                </div>
-                <div className="flex items-center gap-3">
-                  <Search className="h-4 w-4" />
-                  {listing.dimensions}
-                </div>
-              </div>
-              
-              <Button className="w-full apple-button-primary h-12">
-                Book Now
-              </Button>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          {spaces.map((space) => (
+            <SpaceCard
+              key={space.id}
+              space={space}
+              onViewDetails={(space) => {
+                toast({
+                  title: "Space Details",
+                  description: `Viewing details for ${space.title}`,
+                });
+                // You can implement a detailed view modal here
+              }}
+              onBookNow={(space) => {
+                if (user) {
+                  toast({
+                    title: "Booking Started",
+                    description: `Starting booking process for ${space.title}`,
+                  });
+                  // Implement booking flow here
+                } else {
+                  setAuthModalOpen(true);
+                }
+              }}
+              showAvailability={true}
+              showTimezone={true}
+              showSpecialInstructions={true}
+            />
+          ))}
+        </div>
+      )}
       
       <div className="text-center">
         <Button 
