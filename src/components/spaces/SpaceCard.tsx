@@ -9,7 +9,10 @@ import {
   Calendar,
   Star,
   Image,
-  Eye
+  Eye,
+  Edit,
+  Trash2,
+  RotateCcw
 } from 'lucide-react';
 
 interface SpacePhoto {
@@ -35,6 +38,7 @@ interface SpaceListing {
   is_active: boolean;
   created_at: string;
   updated_at: string;
+  owner_id: string;
   photos: SpacePhoto[];
 }
 
@@ -42,18 +46,26 @@ interface SpaceCardProps {
   space: SpaceListing;
   onViewDetails?: (space: SpaceListing) => void;
   onBookNow?: (space: SpaceListing) => void;
+  onEdit?: (space: SpaceListing) => void;
+  onDelete?: (space: SpaceListing) => void;
+  onRelist?: (space: SpaceListing) => void;
   showAvailability?: boolean;
   showTimezone?: boolean;
   showSpecialInstructions?: boolean;
+  currentUserId?: string;
 }
 
 export const SpaceCard: React.FC<SpaceCardProps> = ({
   space,
   onViewDetails,
   onBookNow,
+  onEdit,
+  onDelete,
+  onRelist,
   showAvailability = true,
   showTimezone = true,
-  showSpecialInstructions = true
+  showSpecialInstructions = true,
+  currentUserId
 }) => {
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('en-US', {
@@ -104,6 +116,8 @@ export const SpaceCard: React.FC<SpaceCardProps> = ({
   };
 
   const primaryPhoto = space.photos?.[0];
+  const isOwner = currentUserId && space.owner_id === currentUserId;
+  const isExpired = space.available_until && new Date(space.available_until) < new Date();
 
   return (
     <Card className="apple-card overflow-hidden hover:shadow-xl transition-all duration-300 group">
@@ -125,8 +139,12 @@ export const SpaceCard: React.FC<SpaceCardProps> = ({
             </div>
           </div>
         )}
-        <Badge className="absolute top-4 right-4 bg-success text-success-foreground rounded-full">
-          Available
+        <Badge className={`absolute top-4 right-4 rounded-full ${
+          isExpired 
+            ? 'bg-destructive text-destructive-foreground' 
+            : 'bg-success text-success-foreground'
+        }`}>
+          {isExpired ? 'Expired' : 'Available'}
         </Badge>
       </div>
       
@@ -193,13 +211,60 @@ export const SpaceCard: React.FC<SpaceCardProps> = ({
               View Details
             </Button>
           )}
-          {onBookNow && (
-            <Button 
-              className="flex-1 apple-button-primary"
-              onClick={() => onBookNow(space)}
-            >
-              Book Now
-            </Button>
+          
+          {isOwner ? (
+            // Owner actions
+            <div className="flex gap-2 flex-1">
+              {isExpired ? (
+                // Expired listing - show relist button
+                onRelist && (
+                  <Button 
+                    className="flex-1 apple-button-primary"
+                    onClick={() => onRelist(space)}
+                  >
+                    <RotateCcw className="h-4 w-4 mr-1" />
+                    Relist
+                  </Button>
+                )
+              ) : (
+                // Active listing - show edit and delete
+                <>
+                  {onEdit && (
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="flex-1"
+                      onClick={() => onEdit(space)}
+                    >
+                      <Edit className="h-4 w-4 mr-1" />
+                      Edit
+                    </Button>
+                  )}
+                  {onDelete && (
+                    <Button 
+                      variant="destructive" 
+                      size="sm" 
+                      className="flex-1"
+                      onClick={() => onDelete(space)}
+                    >
+                      <Trash2 className="h-4 w-4 mr-1" />
+                      Delete
+                    </Button>
+                  )}
+                </>
+              )}
+            </div>
+          ) : (
+            // Non-owner - show book now button
+            onBookNow && (
+              <Button 
+                className="flex-1 apple-button-primary"
+                onClick={() => onBookNow(space)}
+                disabled={isExpired}
+              >
+                {isExpired ? 'Expired' : 'Book Now'}
+              </Button>
+            )
           )}
         </div>
       </CardContent>

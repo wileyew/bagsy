@@ -10,6 +10,7 @@ import { AuthModal } from "@/components/auth/auth-modal";
 import { UserMenu } from "@/components/auth/user-menu";
 import { AISpaceListingModal } from "@/components/spaces/ai-space-listing-modal";
 import { SpaceCard } from "@/components/spaces/SpaceCard";
+import { RelistModal } from "@/components/spaces/relist-modal";
 import { BagsyLogo } from "@/components/ui/bagsy-logo";
 import { useAuthContext } from "@/contexts/auth-context";
 import { useToast } from "@/hooks/use-toast";
@@ -23,6 +24,8 @@ const Index = () => {
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [aiSpaceListingModalOpen, setAiSpaceListingModalOpen] = useState(false);
   const [debugPanelOpen, setDebugPanelOpen] = useState(false);
+  const [relistModalOpen, setRelistModalOpen] = useState(false);
+  const [selectedSpaceForRelist, setSelectedSpaceForRelist] = useState<any>(null);
   const navigate = useNavigate();
   const { hasListings } = useUserListingsCount();
   const [formData, setFormData] = useState({
@@ -490,6 +493,7 @@ const Index = () => {
             <SpaceCard
               key={space.id}
               space={space}
+              currentUserId={user?.id}
               onViewDetails={(space) => {
                 toast({
                   title: "Space Details",
@@ -507,6 +511,26 @@ const Index = () => {
                 } else {
                   setAuthModalOpen(true);
                 }
+              }}
+              onEdit={(space) => {
+                toast({
+                  title: "Edit Space",
+                  description: `Opening edit form for ${space.title}`,
+                });
+                // Implement edit functionality here
+                // You can open an edit modal or navigate to edit page
+              }}
+              onDelete={(space) => {
+                toast({
+                  title: "Delete Space",
+                  description: `Deleting ${space.title}`,
+                });
+                // Implement delete functionality here
+                // You should add a confirmation dialog
+              }}
+              onRelist={(space) => {
+                setSelectedSpaceForRelist(space);
+                setRelistModalOpen(true);
               }}
               showAvailability={true}
               showTimezone={true}
@@ -999,6 +1023,16 @@ const Index = () => {
       <AISpaceListingModal 
         open={aiSpaceListingModalOpen}
         onOpenChange={setAiSpaceListingModalOpen}
+      />
+
+      {/* Relist Modal */}
+      <RelistModal 
+        open={relistModalOpen}
+        onOpenChange={setRelistModalOpen}
+        space={selectedSpaceForRelist}
+        onSuccess={() => {
+          fetchSpaces(); // Refresh the spaces list
+        }}
       />
 
       {/* Debug Panel */}
