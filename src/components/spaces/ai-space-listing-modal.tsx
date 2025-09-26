@@ -2525,6 +2525,62 @@ Thank you!`);
                 </div>
               </div>
 
+              {/* Availability and Timezone Section */}
+              <div className="space-y-4 p-4 border border-muted-foreground/25 rounded-lg bg-muted/30">
+                <h4 className="text-sm font-medium flex items-center gap-2">
+                  <Calendar className="h-4 w-4" />
+                  Availability & Scheduling
+                </h4>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium">Available From</Label>
+                    <Input
+                      type="datetime-local"
+                      value={formData.availableFrom}
+                      onChange={(e) => setFormData(prev => ({ ...prev, availableFrom: e.target.value }))}
+                      className="apple-input h-10"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      When your space becomes available for booking
+                    </p>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium">Available Until</Label>
+                    <Input
+                      type="datetime-local"
+                      value={formData.availableUntil}
+                      onChange={(e) => setFormData(prev => ({ ...prev, availableUntil: e.target.value }))}
+                      className="apple-input h-10"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      When your space stops being available for booking
+                    </p>
+                  </div>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium">Timezone</Label>
+                  <select
+                    value={formData.timezone}
+                    onChange={(e) => setFormData(prev => ({ ...prev, timezone: e.target.value }))}
+                    className="w-full p-2 border border-gray-300 rounded-md apple-input h-10"
+                  >
+                    <option value="America/Los_Angeles">Pacific Time (PT)</option>
+                    <option value="America/Denver">Mountain Time (MT)</option>
+                    <option value="America/Chicago">Central Time (CT)</option>
+                    <option value="America/New_York">Eastern Time (ET)</option>
+                    <option value="America/Phoenix">Arizona Time</option>
+                    <option value="America/Anchorage">Alaska Time (AKT)</option>
+                    <option value="Pacific/Honolulu">Hawaii Time (HST)</option>
+                  </select>
+                  <p className="text-xs text-muted-foreground">
+                    Timezone for your availability times (24/7 access during reservation period)
+                  </p>
+                </div>
+              </div>
+
               <Button
                 type="button"
                 onClick={() => setStep('confirm')}
@@ -2682,6 +2738,62 @@ Thank you!`);
                     <p className="text-xs text-muted-foreground">
                       Provide any special access instructions like gate codes, community rules, or specific entry procedures.
                     </p>
+                  </div>
+
+                  {/* Availability and Timezone Section */}
+                  <div className="space-y-4 p-4 border border-muted-foreground/25 rounded-lg bg-muted/30">
+                    <h4 className="text-sm font-medium flex items-center gap-2">
+                      <Calendar className="h-4 w-4" />
+                      Availability & Scheduling
+                    </h4>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label className="text-sm font-medium">Available From</Label>
+                        <Input
+                          type="datetime-local"
+                          value={formData.availableFrom}
+                          onChange={(e) => setFormData(prev => ({ ...prev, availableFrom: e.target.value }))}
+                          className="apple-input h-10"
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          When your space becomes available for booking
+                        </p>
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <Label className="text-sm font-medium">Available Until</Label>
+                        <Input
+                          type="datetime-local"
+                          value={formData.availableUntil}
+                          onChange={(e) => setFormData(prev => ({ ...prev, availableUntil: e.target.value }))}
+                          className="apple-input h-10"
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          When your space stops being available for booking
+                        </p>
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium">Timezone</Label>
+                      <select
+                        value={formData.timezone}
+                        onChange={(e) => setFormData(prev => ({ ...prev, timezone: e.target.value }))}
+                        className="w-full p-2 border border-gray-300 rounded-md apple-input h-10"
+                      >
+                        <option value="America/Los_Angeles">Pacific Time (PT)</option>
+                        <option value="America/Denver">Mountain Time (MT)</option>
+                        <option value="America/Chicago">Central Time (CT)</option>
+                        <option value="America/New_York">Eastern Time (ET)</option>
+                        <option value="America/Phoenix">Arizona Time</option>
+                        <option value="America/Anchorage">Alaska Time (AKT)</option>
+                        <option value="Pacific/Honolulu">Hawaii Time (HST)</option>
+                      </select>
+                      <p className="text-xs text-muted-foreground">
+                        Timezone for your availability times (24/7 access during reservation period)
+                      </p>
+                    </div>
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
