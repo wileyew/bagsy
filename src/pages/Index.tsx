@@ -556,7 +556,7 @@ const Index = () => {
                 </Button>
               )}
               
-              {/* List Your Space with AI button - always visible, checks auth */}
+              {/* List Your Space button - always visible, checks auth */}
               <Button 
                 size="lg" 
                 className="apple-button-primary"
@@ -569,7 +569,7 @@ const Index = () => {
                 }}
               >
                 <Sparkles className="h-4 w-4 mr-2" />
-                List Your Space with AI
+                List Your Space
               </Button>
               
               {/* User-specific buttons - only visible when authenticated */}

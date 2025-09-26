@@ -14,12 +14,14 @@ import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 import { useUserListingsCount } from "@/hooks/use-user-listings-count";
+import { AISpaceListingModal } from "@/components/spaces/ai-space-listing-modal";
 
 export function UserMenu() {
   const { user, signOut } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
   const [isSigningOut, setIsSigningOut] = useState(false);
+  const [aiSpaceListingModalOpen, setAiSpaceListingModalOpen] = useState(false);
   const { hasListings, listingsCount, loading: listingsLoading } = useUserListingsCount();
 
   if (!user) return null;
@@ -104,7 +106,10 @@ export function UserMenu() {
           <BookOpen className="mr-2 h-4 w-4" />
           <span>My Bookings</span>
         </DropdownMenuItem>
-        <DropdownMenuItem className="cursor-pointer">
+        <DropdownMenuItem 
+          className="cursor-pointer"
+          onClick={() => setAiSpaceListingModalOpen(true)}
+        >
           <Plus className="mr-2 h-4 w-4" />
           <span>List Your Space</span>
         </DropdownMenuItem>
@@ -123,5 +128,11 @@ export function UserMenu() {
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
+    
+    {/* AI Space Listing Modal */}
+    <AISpaceListingModal 
+      open={aiSpaceListingModalOpen} 
+      onOpenChange={setAiSpaceListingModalOpen} 
+    />
   );
 }

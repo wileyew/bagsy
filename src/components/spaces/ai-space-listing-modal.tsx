@@ -2986,6 +2986,62 @@ Thank you!`);
                       <span className="font-medium">Location:</span> {formData.address}, {formData.zipCode}
                     </div>
 
+                    {/* Availability Schedule */}
+                    {(formData.availableFrom || formData.availableUntil || formData.timezone) && (
+                      <div className="space-y-2">
+                        <span className="font-medium">Availability Schedule:</span>
+                        <div className="space-y-1 text-sm">
+                          {formData.availableFrom && (
+                            <div>
+                              <span className="font-medium">Available From:</span> {
+                                new Date(formData.availableFrom).toLocaleString('en-US', {
+                                  year: 'numeric',
+                                  month: 'short',
+                                  day: 'numeric',
+                                  hour: '2-digit',
+                                  minute: '2-digit',
+                                  timeZone: formData.timezone || 'America/Los_Angeles'
+                                })
+                              }
+                            </div>
+                          )}
+                          {formData.availableUntil && (
+                            <div>
+                              <span className="font-medium">Available Until:</span> {
+                                new Date(formData.availableUntil).toLocaleString('en-US', {
+                                  year: 'numeric',
+                                  month: 'short',
+                                  day: 'numeric',
+                                  hour: '2-digit',
+                                  minute: '2-digit',
+                                  timeZone: formData.timezone || 'America/Los_Angeles'
+                                })
+                              }
+                            </div>
+                          )}
+                          {formData.timezone && (
+                            <div>
+                              <span className="font-medium">Timezone:</span> {
+                                formData.timezone === 'America/Los_Angeles' ? 'Pacific Time (PT)' :
+                                formData.timezone === 'America/Denver' ? 'Mountain Time (MT)' :
+                                formData.timezone === 'America/Chicago' ? 'Central Time (CT)' :
+                                formData.timezone === 'America/New_York' ? 'Eastern Time (ET)' :
+                                formData.timezone === 'America/Phoenix' ? 'Arizona Time' :
+                                formData.timezone === 'America/Anchorage' ? 'Alaska Time (AKT)' :
+                                formData.timezone === 'Pacific/Honolulu' ? 'Hawaii Time (HST)' :
+                                formData.timezone
+                              }
+                            </div>
+                          )}
+                          {formData.specialInstructions && (
+                            <div>
+                              <span className="font-medium">Special Instructions:</span> {formData.specialInstructions}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
                     {/* Availability Windows */}
                     {formData.availabilityWindows.length > 0 && (
                       <div>
