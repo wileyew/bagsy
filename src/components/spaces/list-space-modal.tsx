@@ -156,6 +156,15 @@ export function ListSpaceModal({ open, onOpenChange }: ListSpaceModalProps) {
 
     setLoading(true);
     try {
+      // Get fresh user data from Supabase auth to avoid stale context
+      const { data: authData, error: authError } = await supabase.auth.getUser();
+      
+      if (authError || !authData.user) {
+        throw new Error('Authentication error: Please log in again');
+      }
+      
+      const currentUser = authData.user;
+
       // Convert local datetime strings to UTC timestamps
       const convertToUTC = (localDateTime: string) => {
         if (!localDateTime) return null;
@@ -179,7 +188,7 @@ export function ListSpaceModal({ open, onOpenChange }: ListSpaceModalProps) {
           available_until: convertToUTC(formData.availableUntil),
           timezone: formData.timezone,
           special_instructions: formData.specialInstructions,
-          owner_id: user.id,
+          owner_id: currentUser.id,
           is_active: true,
         })
         .select()
@@ -213,6 +222,36 @@ export function ListSpaceModal({ open, onOpenChange }: ListSpaceModalProps) {
         const { data: authData, error: authError } = await supabase.auth.getUser();
         
         if (authError || !authData.user) {
+          toast({
+            title: "⚠️ Authentication Issue",
+            description: "Your listing was submitted successfully, but there was an authentication issue. Please refresh the page and log in again.",
+            variant: "destructive",
+            duration: 8000,
+          });
+          
+          // Reset form and close modal
+          setFormData({
+            title: "",
+            description: "",
+            spaceType: "",
+            address: "",
+            zipCode: "",
+            pricePerHour: 0,
+            pricePerDay: null,
+            dimensions: "",
+            availableFrom: "",
+            availableUntil: "",
+            timezone: "America/Los_Angeles",
+            showPhoto: true,
+            photoUrl: "",
+            specialInstructions: "",
+          });
+          onOpenChange(false);
+          return;
+        }
+        
+        // Verify it's the same user
+        if (authData.user.id !== currentUser.id) {
           toast({
             title: "⚠️ Authentication Issue",
             description: "Your listing was submitted successfully, but there was an authentication issue. Please refresh the page and log in again.",

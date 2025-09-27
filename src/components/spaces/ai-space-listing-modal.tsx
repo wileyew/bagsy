@@ -1255,11 +1255,12 @@ Thank you!`);
         supabaseKeyExists: !!import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY
       });
 
-      // Test Supabase connection first
-      debug.info('🔌 Testing Supabase connection...');
+      // Get fresh user data from Supabase auth to avoid stale context
+      debug.info('🔌 Getting fresh user data from Supabase auth...');
+      let currentUser;
       try {
         const { data: authData, error: authError } = await supabase.auth.getUser();
-        debug.info('🔐 Supabase auth check', { 
+        debug.info('🔐 Fresh Supabase auth check', { 
           hasUser: !!authData.user, 
           userId: authData.user?.id,
           authError: authError?.message 
@@ -1272,6 +1273,12 @@ Thank you!`);
         if (!authData.user) {
           throw new Error('No authenticated user found');
         }
+        
+        currentUser = authData.user;
+        debug.info('✅ Fresh user data obtained', { 
+          userId: currentUser.id,
+          email: currentUser.email 
+        });
       } catch (authCheckError) {
         debug.error('❌ Supabase connection/auth check failed', authCheckError);
         throw authCheckError;
@@ -1323,7 +1330,7 @@ Thank you!`);
         available_until: convertToUTC(formData.availableUntil),
         timezone: formData.timezone,
         special_instructions: formData.specialInstructions?.trim() || null,
-        owner_id: user.id,
+        owner_id: currentUser.id,
         is_active: true,
         // Remove columns that don't exist in current schema
         // allow_ai_agent: formData.allowAIAgent,
@@ -1331,7 +1338,7 @@ Thank you!`);
       };
 
       debug.debug('Inserting space into database', spaceData);
-      debug.debug('User ID:', user.id);
+      debug.debug('User ID:', currentUser.id);
       debug.debug('Space type validation:', { 
         original: editableData.spaceType, 
         mapped: spaceType,
@@ -1455,6 +1462,27 @@ Thank you!`);
           debug.warn('⚠️ User authentication lost after submission', { 
             authError: authError?.message,
             hasUser: !!authData.user 
+          });
+          
+          // Dismiss loading toast and show auth warning
+          loadingToast.dismiss();
+          toast({
+            title: "⚠️ Authentication Issue",
+            description: "Your listing was submitted successfully, but there was an authentication issue. Please refresh the page and log in again.",
+            variant: "destructive",
+            duration: 8000,
+          });
+          
+          // Reset form and close modal
+          resetFormAndClose();
+          return;
+        }
+        
+        // Verify it's the same user
+        if (authData.user.id !== currentUser.id) {
+          debug.warn('⚠️ User ID changed after submission', { 
+            originalUserId: currentUser.id,
+            newUserId: authData.user.id 
           });
           
           // Dismiss loading toast and show auth warning
