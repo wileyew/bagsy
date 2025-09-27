@@ -208,6 +208,67 @@ export function ListSpaceModal({ open, onOpenChange }: ListSpaceModalProps) {
         description: "Your space is now available for booking.",
       });
 
+      // Verify user is still authenticated after submission
+      try {
+        const { data: authData, error: authError } = await supabase.auth.getUser();
+        
+        if (authError || !authData.user) {
+          toast({
+            title: "⚠️ Authentication Issue",
+            description: "Your listing was submitted successfully, but there was an authentication issue. Please refresh the page and log in again.",
+            variant: "destructive",
+            duration: 8000,
+          });
+          
+          // Reset form and close modal
+          setFormData({
+            title: "",
+            description: "",
+            spaceType: "",
+            address: "",
+            zipCode: "",
+            pricePerHour: 0,
+            pricePerDay: null,
+            dimensions: "",
+            availableFrom: "",
+            availableUntil: "",
+            timezone: "America/Los_Angeles",
+            showPhoto: true,
+            photoUrl: "",
+            specialInstructions: "",
+          });
+          onOpenChange(false);
+          return;
+        }
+      } catch (authVerifyError) {
+        toast({
+          title: "⚠️ Authentication Issue",
+          description: "Your listing was submitted successfully, but there was an authentication issue. Please refresh the page and log in again.",
+          variant: "destructive",
+          duration: 8000,
+        });
+        
+        // Reset form and close modal
+        setFormData({
+          title: "",
+          description: "",
+          spaceType: "",
+          address: "",
+          zipCode: "",
+          pricePerHour: 0,
+          pricePerDay: null,
+          dimensions: "",
+          availableFrom: "",
+          availableUntil: "",
+          timezone: "America/Los_Angeles",
+          showPhoto: true,
+          photoUrl: "",
+          specialInstructions: "",
+        });
+        onOpenChange(false);
+        return;
+      }
+
       // Reset form and close modal
       setFormData({
         title: "",

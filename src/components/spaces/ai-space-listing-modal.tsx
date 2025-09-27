@@ -1096,6 +1096,44 @@ export function AISpaceListingModal({ open, onOpenChange }: AISpaceListingModalP
     setEditableData(prev => prev ? { ...prev, [field]: value } : null);
   };
 
+  const resetFormAndClose = () => {
+    debug.info('Resetting form and closing modal');
+    setFormData({
+      address: "",
+      zipCode: "",
+      photos: [],
+      photoUrls: [],
+      disableAI: false,
+      allowAIAgent: false,
+      enableWebScraping: false,
+      enablePricingOptimization: false,
+      enableSmartScheduling: false,
+      enableMarketingContent: false,
+      enablePredictiveAnalytics: false,
+      customSpaceType: "",
+      selectedSpaceTypes: [],
+      availabilityWindows: [],
+      isRecurring: false,
+      recurringPattern: 'weekly',
+      availableFrom: "",
+      availableUntil: "",
+      timezone: "America/Los_Angeles",
+      specialInstructions: "",
+    });
+    setAiGeneratedData(null);
+    setEditableData(null);
+    setMarketAnalysis(null);
+    setStep('upload');
+    
+    // Reset the re-run analysis flag
+    hasRerunAnalysis.current = false;
+    
+    // Clear the file input element
+    clearFileInput();
+    
+    onOpenChange(false);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -1408,6 +1446,52 @@ Thank you!`);
         allowAIAgent: formData.allowAIAgent
       });
 
+      // Verify user is still authenticated after submission
+      debug.info('🔐 Verifying user authentication after submission...');
+      try {
+        const { data: authData, error: authError } = await supabase.auth.getUser();
+        
+        if (authError || !authData.user) {
+          debug.warn('⚠️ User authentication lost after submission', { 
+            authError: authError?.message,
+            hasUser: !!authData.user 
+          });
+          
+          // Dismiss loading toast and show auth warning
+          loadingToast.dismiss();
+          toast({
+            title: "⚠️ Authentication Issue",
+            description: "Your listing was submitted successfully, but there was an authentication issue. Please refresh the page and log in again.",
+            variant: "destructive",
+            duration: 8000,
+          });
+          
+          // Reset form and close modal
+          resetFormAndClose();
+          return;
+        }
+        
+        debug.info('✅ User authentication verified after submission', { 
+          userId: authData.user.id,
+          email: authData.user.email 
+        });
+      } catch (authVerifyError) {
+        debug.error('❌ Authentication verification failed', authVerifyError);
+        
+        // Dismiss loading toast and show auth warning
+        loadingToast.dismiss();
+        toast({
+          title: "⚠️ Authentication Issue",
+          description: "Your listing was submitted successfully, but there was an authentication issue. Please refresh the page and log in again.",
+          variant: "destructive",
+          duration: 8000,
+        });
+        
+        // Reset form and close modal
+        resetFormAndClose();
+        return;
+      }
+
       // Dismiss loading toast and show success message
       loadingToast.dismiss();
       toast({
@@ -1433,41 +1517,7 @@ Thank you!`);
       }, 1000);
 
       // Reset form and close modal
-      debug.info('Resetting form and closing modal');
-      setFormData({
-        address: "",
-        zipCode: "",
-        photos: [],
-        photoUrls: [],
-        disableAI: false,
-        allowAIAgent: false,
-        enableWebScraping: false,
-        enablePricingOptimization: false,
-        enableSmartScheduling: false,
-        enableMarketingContent: false,
-        enablePredictiveAnalytics: false,
-        customSpaceType: "",
-        selectedSpaceTypes: [],
-        availabilityWindows: [],
-        isRecurring: false,
-        recurringPattern: 'weekly',
-        availableFrom: "",
-        availableUntil: "",
-        timezone: "America/Los_Angeles",
-        specialInstructions: "",
-      });
-      setAiGeneratedData(null);
-      setEditableData(null);
-      setMarketAnalysis(null);
-      setStep('upload');
-      
-      // Reset the re-run analysis flag
-      hasRerunAnalysis.current = false;
-      
-      // Clear the file input element
-      clearFileInput();
-      
-      onOpenChange(false);
+      resetFormAndClose();
     } catch (error: unknown) {
       debug.logError(error instanceof Error ? error : new Error(String(error)), { 
         hasUser: !!user, 
