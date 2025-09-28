@@ -15,6 +15,7 @@ import { BagsyLogo } from "@/components/ui/bagsy-logo";
 import { useAuthContext } from "@/contexts/auth-context";
 import { useToast } from "@/hooks/use-toast";
 import DebugPanel from "@/components/debug/DebugPanel";
+import { ApiKeyDebug } from "@/components/debug/ApiKeyDebug";
 import { useNavigate } from "react-router-dom";
 import { useUserListingsCount } from "@/hooks/use-user-listings-count";
 import { supabase } from "@/integrations/supabase/client";
@@ -1043,6 +1044,11 @@ const Index = () => {
             onClose={() => setDebugPanelOpen(false)}
           />
           
+          {/* API Key Debug Component */}
+          <div className="fixed top-20 right-4 z-50">
+            <ApiKeyDebug />
+          </div>
+          
           {/* Debug Toggle Button */}
           <button
             onClick={() => setDebugPanelOpen(!debugPanelOpen)}
@@ -1053,6 +1059,11 @@ const Index = () => {
           </button>
         </>
       )}
+
+      {/* Production API Key Debug - Remove after debugging */}
+      <div className="fixed bottom-4 right-4 z-50">
+        <ApiKeyDebug />
+      </div>
     </div>
   );
 };
