@@ -823,10 +823,16 @@ export function AISpaceListingModal({ open, onOpenChange }: AISpaceListingModalP
       updateRequestStatus();
       
       // Perform web scraping if enabled
-      const spaceTypeForScraping = analysisResult.spaceType === 'other' && formData.customSpaceType 
-        ? formData.customSpaceType 
-        : analysisResult.spaceType;
-      const marketData = await performWebScraping(spaceTypeForScraping);
+      let marketData = null;
+      try {
+        const spaceTypeForScraping = analysisResult.spaceType === 'other' && formData.customSpaceType 
+          ? formData.customSpaceType 
+          : analysisResult.spaceType;
+        marketData = await performWebScraping(spaceTypeForScraping);
+      } catch (error) {
+        debug.warn('Web scraping failed, continuing with AI analysis only', error);
+        marketData = null;
+      }
       
       // Convert pricePerHour to pricePerDay (assuming 8 hours per day)
       let pricePerHour = analysisResult.pricePerHour;
@@ -886,7 +892,14 @@ export function AISpaceListingModal({ open, onOpenChange }: AISpaceListingModalP
       }
       
       // Apply pricing optimization if enabled
-      const optimizationData = await performPricingOptimization(pricePerHour, analysisResult.spaceType);
+      let optimizationData = null;
+      try {
+        optimizationData = await performPricingOptimization(pricePerHour, analysisResult.spaceType);
+      } catch (error) {
+        debug.warn('Pricing optimization failed, using base price', error);
+        optimizationData = null;
+      }
+      
       if (optimizationData) {
         const originalPrice = pricePerHour;
         pricePerHour = optimizationData.optimizedPrice;

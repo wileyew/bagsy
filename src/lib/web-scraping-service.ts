@@ -342,15 +342,19 @@ class WebScrapingService {
       // Construct the ScrapingBee API URL properly
       const scrapingBeeUrl = new URL(this.baseUrl);
       scrapingBeeUrl.searchParams.set('api_key', this.apiKey);
-      scrapingBeeUrl.searchParams.set('url', url);
+      // Ensure URL is properly encoded - decode first to avoid double encoding
+      const decodedUrl = decodeURIComponent(url);
+      scrapingBeeUrl.searchParams.set('url', decodedUrl);
       scrapingBeeUrl.searchParams.set('render_js', 'true');
       scrapingBeeUrl.searchParams.set('premium_proxy', 'true'); // Use premium proxy for better reliability
       scrapingBeeUrl.searchParams.set('country_code', 'us'); // Set country for better results
       
       this.debug.debug('ScrapingBee URL constructed', { 
         originalUrl: url,
+        decodedUrl: decodedUrl,
         scrapingBeeUrl: scrapingBeeUrl.toString(),
-        hasApiKey: !!this.apiKey
+        hasApiKey: !!this.apiKey,
+        apiKeyLength: this.apiKey.length
       });
       
       const response = await fetch(scrapingBeeUrl.toString(), {
@@ -361,6 +365,16 @@ class WebScrapingService {
         },
         // Add timeout to prevent hanging requests
         signal: AbortSignal.timeout(30000) // 30 second timeout
+      }).catch(async (fetchError) => {
+        // If fetch fails with network error, mark service as unavailable
+        if (fetchError instanceof TypeError && fetchError.message.includes('Failed to fetch')) {
+          this.debug.error('ScrapingBee network error - marking service as unavailable', {
+            error: fetchError.message,
+            url: scrapingBeeUrl.toString()
+          });
+          this.isServiceAvailable = false;
+        }
+        throw fetchError;
       });
       
       this.debug.apiResponse('fetchPage', 'GET', url, response.status, {
