@@ -2,24 +2,29 @@
   <rect width="1200" height="1200" fill="#EAEAEA" rx="3"/>
   
   <!-- Bagsy logo centered -->
-  <g transform="translate(600, 600)">
-    <!-- Dark blue rounded square background -->
-    <rect x="-200" y="-100" width="400" height="200" rx="50" fill="#1E3A8A"/>
+  <g transform="translate(200, 400) scale(0.7)">
+    <!-- Dark blue "B" letter -->
+    <path d="M262 100 L262 1000 L640 1000 C760 1000 850 950 850 820 C850 730 800 680 720 660 C780 640 820 590 820 520 C820 400 730 100 580 100 L262 100 Z M395 230 L560 230 C640 230 680 300 680 420 C680 520 640 560 560 560 L395 560 Z M395 690 L600 690 C680 690 720 740 720 820 C720 900 680 870 600 870 L395 870 Z" fill="#1E3A8A"/>
     
-    <!-- Stylized "B" letter -->
-    <g transform="translate(-50, 0)">
-      <!-- B letter outline -->
-      <path d="M-80 -40 L-20 -40 L-20 -20 L0 -20 L0 -40 L40 -40 L40 -30 L20 -30 L20 -20 L30 -20 L30 -10 L20 -10 L20 0 L30 0 L30 10 L20 10 L20 20 L30 20 L30 30 L20 30 L20 40 L40 40 L40 30 L0 30 L0 10 L-20 10 L-20 40 L-80 40 Z" fill="white"/>
-      
-      <!-- Inner curves of B (transparent to show background) -->
-      <path d="M-60 -30 L0 -30 L0 -20 L-20 -20 L-20 -10 L0 -10 L0 0 L-20 0 L-20 10 L0 10 L0 20 L-20 20 L-20 30 L0 30 L0 20 L20 20 L20 10 L0 10 L0 0 L20 0 L20 -10 L0 -10 L0 -20 L20 -20 L20 -30 L0 -30 Z" fill="transparent"/>
-      
-      <!-- Teal arrow -->
-      <path d="M-30 20 Q-10 10 0 20 Q10 30 30 20" stroke="#14B8A6" stroke-width="6" fill="none" stroke-linecap="round"/>
-      <path d="M20 10 L30 20 L20 30" stroke="#14B8A6" stroke-width="6" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
-    </g>
+    <!-- Teal circular arrow -->
+    <path d="M470 350 Q300 500 470 650 Q550 720 650 720 C800 720 900 620 900 470 C900 320 800 220 650 220 Q550 220 470 290" 
+          stroke="#5EBEAE" 
+          stroke-width="80" 
+          fill="none" 
+          stroke-linecap="round"/>
     
-    <!-- Bagsy text -->
-    <text x="250" y="20" font-family="Arial, sans-serif" font-size="80" font-weight="bold" fill="#333333">Bagsy</text>
+    <!-- Arrow head pointing left -->
+    <path d="M530 280 L470 350 L540 420" 
+          stroke="#5EBEAE" 
+          stroke-width="80" 
+          fill="none" 
+          stroke-linecap="round" 
+          stroke-linejoin="round"/>
+    
+    <!-- Garage door cutout (white rectangle) -->
+    <circle cx="650" cy="570" r="250" fill="white"/>
   </g>
+  
+  <!-- Bagsy text -->
+  <text x="600" y="950" font-family="Arial, sans-serif" font-size="80" font-weight="bold" fill="#333333" text-anchor="middle">Bagsy</text>
 </svg>

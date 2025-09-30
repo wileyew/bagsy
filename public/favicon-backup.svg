@@ -1,17 +1,22 @@
-<svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" style="display: block;">
-  <!-- Dark blue background -->
-  <rect width="32" height="32" rx="8" fill="#1E3A8A" style="fill: #1E3A8A !important;"/>
+<svg width="32" height="32" viewBox="0 0 1080 1080" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Dark blue "B" letter -->
+  <path d="M262 100 L262 1000 L640 1000 C760 1000 850 950 850 820 C850 730 800 680 720 660 C780 640 820 590 820 520 C820 400 730 100 580 100 L262 100 Z M395 230 L560 230 C640 230 680 300 680 420 C680 520 640 560 560 560 L395 560 Z M395 690 L600 690 C680 690 720 740 720 820 C720 900 680 870 600 870 L395 870 Z" fill="#1E3A8A"/>
   
-  <!-- Stylized "B" letter -->
-  <g transform="translate(16, 16)">
-    <!-- B letter outline -->
-    <path d="M-8 -8 L-2 -8 L-2 -2 L0 -2 L0 -8 L6 -8 L6 -6 L2 -6 L2 -4 L4 -4 L4 -2 L2 -2 L2 0 L4 0 L4 2 L2 2 L2 4 L4 4 L4 6 L2 6 L2 8 L6 8 L6 6 L0 6 L0 2 L-2 2 L-2 8 L-8 8 Z" fill="white" style="fill: white !important;"/>
-    
-    <!-- Inner curves of B (transparent to show background) -->
-    <path d="M-6 -6 L0 -6 L0 -4 L-2 -4 L-2 -2 L0 -2 L0 0 L-2 0 L-2 2 L0 2 L0 4 L-2 4 L-2 6 L0 6 L0 4 L2 4 L2 2 L0 2 L0 0 L2 0 L2 -2 L0 -2 L0 -4 L2 -4 L2 -6 L0 -6 Z" fill="transparent" style="fill: transparent !important;"/>
-    
-    <!-- Teal arrow -->
-    <path d="M-4 4 Q-2 2 0 4 Q2 6 4 4" stroke="#14B8A6" stroke-width="2" fill="none" stroke-linecap="round" style="stroke: #14B8A6 !important;"/>
-    <path d="M2 2 L4 4 L2 6" stroke="#14B8A6" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" style="stroke: #14B8A6 !important;"/>
-  </g>
+  <!-- Teal circular arrow -->
+  <path d="M470 350 Q300 500 470 650 Q550 720 650 720 C800 720 900 620 900 470 C900 320 800 220 650 220 Q550 220 470 290" 
+        stroke="#5EBEAE" 
+        stroke-width="80" 
+        fill="none" 
+        stroke-linecap="round"/>
+  
+  <!-- Arrow head pointing left -->
+  <path d="M530 280 L470 350 L540 420" 
+        stroke="#5EBEAE" 
+        stroke-width="80" 
+        fill="none" 
+        stroke-linecap="round" 
+        stroke-linejoin="round"/>
+  
+  <!-- Garage door cutout (white rectangle) -->
+  <circle cx="650" cy="570" r="250" fill="white"/>
 </svg>
