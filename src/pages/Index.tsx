@@ -628,7 +628,7 @@ const Index = () => {
                 <div className="space-y-6">
                   <div className="space-y-2">
                     <Badge variant="outline" className="px-4 py-2 text-sm font-medium">
-                      Bagsy - AI-Powered Driveway Rental
+                      Bagsy™ - AI-Powered Driveway Rental
                     </Badge>
                   </div>
                   <h1 className="text-6xl md:text-7xl font-bold tracking-tight leading-tight">
@@ -671,13 +671,13 @@ const Index = () => {
                 <div className="text-center space-y-8 animate-fade-in">
                   <div className="space-y-4">
                     <Badge variant="outline" className="px-4 py-2 text-sm font-medium">
-                      Why Choose Bagsy?
+                      Why Choose Bagsy™?
                     </Badge>
                     <h2 className="text-4xl md:text-5xl font-bold tracking-tight">
                       The <span className="apple-text-gradient">Uber for Driveways</span>
                     </h2>
                     <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
-                      Just like Uber revolutionized transportation, Bagsy is revolutionizing driveway rental. 
+                      Just like Uber revolutionized transportation, Bagsy™ is revolutionizing driveway rental. 
                       We're not just another marketplace—we're the infrastructure that powers the future of driveway sharing.
                     </p>
                   </div>
@@ -687,7 +687,7 @@ const Index = () => {
                 <div className="max-w-6xl mx-auto animate-fade-in">
                   <Card className="apple-card border-0 shadow-xl overflow-hidden">
                     <CardHeader className="text-center pb-8">
-                      <CardTitle className="text-2xl font-bold">Bagsy vs. Traditional Platforms</CardTitle>
+                      <CardTitle className="text-2xl font-bold">Bagsy™ vs. Traditional Platforms</CardTitle>
                       <CardDescription className="text-lg">
                         See how we're different from Airbnb, Craigslist, and other driveway rental platforms
                       </CardDescription>
@@ -701,7 +701,6 @@ const Index = () => {
                               <th className="text-center p-6 font-semibold">
                                 <div className="flex items-center justify-center gap-2">
                                   <BagsyLogo size="sm" />
-                                  <span>Bagsy</span>
                                 </div>
                               </th>
                               <th className="text-center p-6 font-semibold text-muted-foreground">Airbnb</th>
@@ -882,7 +881,7 @@ const Index = () => {
                 <div className="max-w-4xl mx-auto animate-fade-in">
                   <Card className="apple-card border-0 shadow-xl">
                     <CardHeader className="text-center pb-8">
-                      <CardTitle className="text-2xl font-bold">What Makes Bagsy Different</CardTitle>
+                      <CardTitle className="text-2xl font-bold">What Makes Bagsy™ Different</CardTitle>
                       <CardDescription className="text-lg">
                         We're building the future of driveway sharing, not just another rental platform
                       </CardDescription>
@@ -1009,7 +1008,7 @@ const Index = () => {
             </span>
           </div>
           <p className="text-muted-foreground">
-            &copy; 2024 Bagsy. Revolutionizing driveway booking.
+            &copy; 2024 Bagsy™. Revolutionizing driveway booking.
           </p>
         </div>
       </footer>

@@ -19,4 +19,7 @@
   
   <!-- Garage door cutout (white rectangle) -->
   <circle cx="650" cy="570" r="250" fill="white"/>
+  
+  <!-- Trademark symbol -->
+  <text x="920" y="180" font-family="Arial, sans-serif" font-size="140" font-weight="bold" fill="#1E3A8A">™</text>
 </svg>

@@ -347,7 +347,7 @@ const MyListings: React.FC = () => {
 
   const handleSupportEmail = () => {
     const subject = encodeURIComponent("Missing Listing - Need Help");
-    const body = encodeURIComponent(`Hi Bagsy Support Team,
+    const body = encodeURIComponent(`Hi Bagsy™ Support Team,
 
 I believe I posted a listing but it's not showing up in my listings page. Could you please help me check?
 
@@ -361,7 +361,7 @@ Thank you!`);
 
   const handleSalesEmail = () => {
     const subject = encodeURIComponent("Interested in More Listings - Sales Inquiry");
-    const body = encodeURIComponent(`Hi Bagsy Sales Team,
+    const body = encodeURIComponent(`Hi Bagsy™ Sales Team,
 
 I'm interested in listing more than 5 spaces and would like to discuss partnership or premium options.
 

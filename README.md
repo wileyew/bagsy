@@ -1,4 +1,4 @@
-# 🏠 Bagsy - AI-Powered Space Booking Platform
+# 🏠 Bagsy™ - AI-Powered Space Booking Platform
 
 > **Find, list, and book the perfect storage space in seconds with AI-enhanced features.**
 
@@ -10,7 +10,7 @@
 
 ## 🎯 **Overview**
 
-Bagsy is a modern, AI-powered platform that revolutionizes space rental by connecting property owners with people who need storage space. Whether it's a garage, driveway, warehouse, or custom space, Bagsy uses advanced AI to optimize listings, pricing, and user experience.
+Bagsy™ is a modern, AI-powered platform that revolutionizes space rental by connecting property owners with people who need storage space. Whether it's a garage, driveway, warehouse, or custom space, Bagsy™ uses advanced AI to optimize listings, pricing, and user experience.
 
 ### **Key Features**
 
