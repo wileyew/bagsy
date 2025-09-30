@@ -159,11 +159,17 @@ export function ListSpaceModal({ open, onOpenChange }: ListSpaceModalProps) {
       // Get fresh user data from Supabase auth to avoid stale context
       const { data: authData, error: authError } = await supabase.auth.getUser();
       
+      let currentUser;
       if (authError || !authData.user) {
-        throw new Error('Authentication error: Please log in again');
+        // Try to get session as fallback
+        const { data: sessionData } = await supabase.auth.getSession();
+        if (!sessionData.session?.user) {
+          throw new Error('Authentication error: Please log in again');
+        }
+        currentUser = sessionData.session.user;
+      } else {
+        currentUser = authData.user;
       }
-      
-      const currentUser = authData.user;
 
       // Convert local datetime strings to UTC timestamps
       const convertToUTC = (localDateTime: string) => {
@@ -217,96 +223,7 @@ export function ListSpaceModal({ open, onOpenChange }: ListSpaceModalProps) {
         description: "Your space is now available for booking.",
       });
 
-      // Verify user is still authenticated after submission
-      try {
-        const { data: authData, error: authError } = await supabase.auth.getUser();
-        
-        if (authError || !authData.user) {
-          toast({
-            title: "⚠️ Authentication Issue",
-            description: "Your listing was submitted successfully, but there was an authentication issue. Please refresh the page and log in again.",
-            variant: "destructive",
-            duration: 8000,
-          });
-          
-          // Reset form and close modal
-          setFormData({
-            title: "",
-            description: "",
-            spaceType: "",
-            address: "",
-            zipCode: "",
-            pricePerHour: 0,
-            pricePerDay: null,
-            dimensions: "",
-            availableFrom: "",
-            availableUntil: "",
-            timezone: "America/Los_Angeles",
-            showPhoto: true,
-            photoUrl: "",
-            specialInstructions: "",
-          });
-          onOpenChange(false);
-          return;
-        }
-        
-        // Verify it's the same user
-        if (authData.user.id !== currentUser.id) {
-          toast({
-            title: "⚠️ Authentication Issue",
-            description: "Your listing was submitted successfully, but there was an authentication issue. Please refresh the page and log in again.",
-            variant: "destructive",
-            duration: 8000,
-          });
-          
-          // Reset form and close modal
-          setFormData({
-            title: "",
-            description: "",
-            spaceType: "",
-            address: "",
-            zipCode: "",
-            pricePerHour: 0,
-            pricePerDay: null,
-            dimensions: "",
-            availableFrom: "",
-            availableUntil: "",
-            timezone: "America/Los_Angeles",
-            showPhoto: true,
-            photoUrl: "",
-            specialInstructions: "",
-          });
-          onOpenChange(false);
-          return;
-        }
-      } catch (authVerifyError) {
-        toast({
-          title: "⚠️ Authentication Issue",
-          description: "Your listing was submitted successfully, but there was an authentication issue. Please refresh the page and log in again.",
-          variant: "destructive",
-          duration: 8000,
-        });
-        
-        // Reset form and close modal
-        setFormData({
-          title: "",
-          description: "",
-          spaceType: "",
-          address: "",
-          zipCode: "",
-          pricePerHour: 0,
-          pricePerDay: null,
-          dimensions: "",
-          availableFrom: "",
-          availableUntil: "",
-          timezone: "America/Los_Angeles",
-          showPhoto: true,
-          photoUrl: "",
-          specialInstructions: "",
-        });
-        onOpenChange(false);
-        return;
-      }
+      // Note: Removed post-submission auth check as it was causing false logout warnings
 
       // Reset form and close modal
       setFormData({

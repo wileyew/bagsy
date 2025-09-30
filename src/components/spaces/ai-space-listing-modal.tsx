@@ -1279,19 +1279,25 @@ Thank you!`);
           authError: authError?.message 
         });
         
-        if (authError) {
-          throw new Error(`Authentication error: ${authError.message}`);
+        if (authError || !authData.user) {
+          // Try to get session as fallback
+          debug.info('🔄 Trying session fallback...');
+          const { data: sessionData } = await supabase.auth.getSession();
+          if (!sessionData.session?.user) {
+            throw new Error('Authentication error: Please log in again');
+          }
+          currentUser = sessionData.session.user;
+          debug.info('✅ Session fallback successful', { 
+            userId: currentUser.id,
+            email: currentUser.email 
+          });
+        } else {
+          currentUser = authData.user;
+          debug.info('✅ Fresh user data obtained', { 
+            userId: currentUser.id,
+            email: currentUser.email 
+          });
         }
-        
-        if (!authData.user) {
-          throw new Error('No authenticated user found');
-        }
-        
-        currentUser = authData.user;
-        debug.info('✅ Fresh user data obtained', { 
-          userId: currentUser.id,
-          email: currentUser.email 
-        });
       } catch (authCheckError) {
         debug.error('❌ Supabase connection/auth check failed', authCheckError);
         throw authCheckError;
@@ -1466,72 +1472,7 @@ Thank you!`);
         allowAIAgent: formData.allowAIAgent
       });
 
-      // Verify user is still authenticated after submission
-      debug.info('🔐 Verifying user authentication after submission...');
-      try {
-        const { data: authData, error: authError } = await supabase.auth.getUser();
-        
-        if (authError || !authData.user) {
-          debug.warn('⚠️ User authentication lost after submission', { 
-            authError: authError?.message,
-            hasUser: !!authData.user 
-          });
-          
-          // Dismiss loading toast and show auth warning
-          loadingToast.dismiss();
-          toast({
-            title: "⚠️ Authentication Issue",
-            description: "Your listing was submitted successfully, but there was an authentication issue. Please refresh the page and log in again.",
-            variant: "destructive",
-            duration: 8000,
-          });
-          
-          // Reset form and close modal
-          resetFormAndClose();
-          return;
-        }
-        
-        // Verify it's the same user
-        if (authData.user.id !== currentUser.id) {
-          debug.warn('⚠️ User ID changed after submission', { 
-            originalUserId: currentUser.id,
-            newUserId: authData.user.id 
-          });
-          
-          // Dismiss loading toast and show auth warning
-          loadingToast.dismiss();
-          toast({
-            title: "⚠️ Authentication Issue",
-            description: "Your listing was submitted successfully, but there was an authentication issue. Please refresh the page and log in again.",
-            variant: "destructive",
-            duration: 8000,
-          });
-          
-          // Reset form and close modal
-          resetFormAndClose();
-          return;
-        }
-        
-        debug.info('✅ User authentication verified after submission', { 
-          userId: authData.user.id,
-          email: authData.user.email 
-        });
-      } catch (authVerifyError) {
-        debug.error('❌ Authentication verification failed', authVerifyError);
-        
-        // Dismiss loading toast and show auth warning
-        loadingToast.dismiss();
-        toast({
-          title: "⚠️ Authentication Issue",
-          description: "Your listing was submitted successfully, but there was an authentication issue. Please refresh the page and log in again.",
-          variant: "destructive",
-          duration: 8000,
-        });
-        
-        // Reset form and close modal
-        resetFormAndClose();
-        return;
-      }
+      // Note: Removed post-submission auth check as it was causing false logout warnings
 
       // Dismiss loading toast and show success message
       loadingToast.dismiss();

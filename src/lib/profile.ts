@@ -3,6 +3,18 @@ import type { TablesInsert } from '@/integrations/supabase/types';
 
 export async function createUserProfile(userId: string, fullName?: string) {
   try {
+    // First check if profile already exists
+    const { data: existingProfile } = await supabase
+      .from('profiles')
+      .select('user_id')
+      .eq('user_id', userId)
+      .single();
+
+    if (existingProfile) {
+      console.log('User profile already exists:', userId);
+      return { error: null };
+    }
+
     const { error } = await supabase
       .from('profiles')
       .insert({
@@ -11,10 +23,17 @@ export async function createUserProfile(userId: string, fullName?: string) {
       });
 
     if (error) {
+      // Handle specific error cases
+      if (error.code === '23505') {
+        // Duplicate key - profile already exists
+        console.log('Profile already exists (duplicate key):', userId);
+        return { error: null };
+      }
       console.error('Error creating user profile:', error);
       return { error };
     }
 
+    console.log('User profile created successfully:', userId);
     return { error: null };
   } catch (err) {
     console.error('Error creating user profile:', err);
