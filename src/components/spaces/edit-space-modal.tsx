@@ -151,11 +151,11 @@ export function EditSpaceModal({ open, onOpenChange, space, onUpdate }: EditSpac
         title: "Photo uploaded successfully!",
         description: "Your photo has been uploaded and will be shown in your listing.",
       });
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error uploading file:', error);
       toast({
         title: "Upload failed",
-        description: error.message || "Failed to upload photo. Please try again.",
+        description: error instanceof Error ? error.message : "Failed to upload photo. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -249,10 +249,10 @@ export function EditSpaceModal({ open, onOpenChange, space, onUpdate }: EditSpac
 
       onUpdate(); // Refresh the listings
       onOpenChange(false);
-    } catch (error: any) {
+    } catch (error) {
       toast({
         title: "Failed to update listing",
-        description: error.message || "Please try again.",
+        description: error instanceof Error ? error.message : "Please try again.",
         variant: "destructive",
       });
     } finally {
