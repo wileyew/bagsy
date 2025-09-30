@@ -1,16 +1,17 @@
 <svg width="180" height="180" viewBox="0 0 180 180" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <!-- Blue rounded square background -->
-  <rect width="180" height="180" rx="45" fill="#007AFF"/>
+  <!-- Dark blue background -->
+  <rect width="180" height="180" rx="45" fill="#1E3A8A"/>
   
-  
-  <!-- White house icon -->
+  <!-- Stylized "B" letter -->
   <g transform="translate(90, 90)">
-    <!-- House silhouette -->
-    <path d="M-30 -20 L0 -40 L30 -20 L30 20 L-30 20 Z" fill="white"/>
-    <!-- House base -->
-    <rect x="-20" y="0" width="40" height="20" fill="white"/>
-    <!-- Small black checkmark inside house -->
-    <path d="M-8 0 L0 8 L16 -8" stroke="#000000" stroke-width="4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+    <!-- B letter outline -->
+    <path d="M-45 -45 L-11 -45 L-11 -11 L0 -11 L0 -45 L34 -45 L34 -34 L11 -34 L11 -23 L23 -23 L23 -11 L11 -11 L11 0 L23 0 L23 11 L11 11 L11 23 L23 23 L23 34 L11 34 L11 45 L34 45 L34 34 L0 34 L0 11 L-11 11 L-11 45 L-45 45 Z" fill="white"/>
+    
+    <!-- Inner curves of B (transparent to show background) -->
+    <path d="M-34 -34 L0 -34 L0 -23 L-11 -23 L-11 -11 L0 -11 L0 0 L-11 0 L-11 11 L0 11 L0 23 L-11 23 L-11 34 L0 34 L0 23 L11 23 L11 11 L0 11 L0 0 L11 0 L11 -11 L0 -11 L0 -23 L11 -23 L11 -34 L0 -34 Z" fill="transparent"/>
+    
+    <!-- Teal arrow -->
+    <path d="M-23 23 Q-11 11 0 23 Q11 34 23 23" stroke="#14B8A6" stroke-width="8" fill="none" stroke-linecap="round"/>
+    <path d="M11 11 L23 23 L11 34" stroke="#14B8A6" stroke-width="8" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
   </g>
-  
 </svg>
