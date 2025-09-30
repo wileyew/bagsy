@@ -99,7 +99,7 @@ const spaceTypes = [
   { value: "storage_unit", label: "Storage Unit", description: "Indoor storage unit" },
   { value: "outdoor_space", label: "Outdoor Space", description: "Open outdoor area" },
   { value: "rv_storage", label: "RV Storage", description: "Dedicated space for RVs, campers, and trailers" },
-  { value: "other", label: "Other", description: "Custom space type" },
+  { value: "other", label: "Other", description: "Custom driveway type" },
 ];
 
 const timezones = [
@@ -332,7 +332,7 @@ export function AISpaceListingModal({ open, onOpenChange }: AISpaceListingModalP
       
       toast({
         title: "AI Recommendations Ready!",
-        description: `Generated ${uniqueRecommendations.length} personalized recommendations for your space.`,
+        description: `Generated ${uniqueRecommendations.length} personalized recommendations for your driveway.`,
       });
     } catch (error) {
       debug.error('Failed to generate AI recommendations', error);
@@ -1058,8 +1058,8 @@ export function AISpaceListingModal({ open, onOpenChange }: AISpaceListingModalP
       }
 
       const description = enabledFeatures.length > 0 
-        ? `Your space has been analyzed with ${enabledFeatures.join(', ')}. Review the suggestions below.`
-        : "Your space has been analyzed. Review the suggestions below.";
+        ? `Your driveway has been analyzed with ${enabledFeatures.join(', ')}. Review the suggestions below.`
+        : "Your driveway has been analyzed. Review the suggestions below.";
       
       toast({
         title: "AI Analysis Complete!",
@@ -1073,7 +1073,7 @@ export function AISpaceListingModal({ open, onOpenChange }: AISpaceListingModalP
       
       toast({
         title: "AI Analysis Unavailable",
-        description: "Please enter your space details manually below.",
+        description: "Please enter your driveway details manually below.",
         variant: "default",
       });
     } finally {
@@ -1248,8 +1248,8 @@ Thank you!`);
     
     // Show loading toast
     const loadingToast = toast({
-      title: "⏳ Submitting Your Space...",
-      description: "Please wait while we submit your space listing to our platform.",
+      title: "⏳ Submitting Your Driveway...",
+      description: "Please wait while we submit your driveway listing to our platform.",
       duration: 0, // Don't auto-dismiss
     });
     
@@ -1403,7 +1403,7 @@ Thank you!`);
         if (spaceError.code === '23502') {
           throw new Error('Missing required field: ' + spaceError.message);
         } else if (spaceError.code === '23514') {
-          throw new Error('Invalid space type. Please select a valid space type.');
+          throw new Error('Invalid driveway type. Please select a valid driveway type.');
         } else if (spaceError.code === '23503') {
           throw new Error('Invalid user ID. Please log in again.');
         } else {
@@ -1466,7 +1466,7 @@ Thank you!`);
         debug.info('📸 No photos to insert');
       }
 
-      debug.info('Space listing completed successfully', {
+      debug.info('Driveway listing completed successfully', {
         spaceId: space.id,
         photoCount: formData.photoUrls.length,
         allowAIAgent: formData.allowAIAgent
@@ -1477,8 +1477,8 @@ Thank you!`);
       // Dismiss loading toast and show success message
       loadingToast.dismiss();
       toast({
-        title: "🎉 Space Successfully Listed!",
-        description: "Your space has been submitted and is now available for booking. You can view and manage it from your dashboard.",
+        title: "🎉 Driveway Successfully Listed!",
+        description: "Your driveway has been submitted and is now available for booking. You can view and manage it from your dashboard.",
         duration: 5000,
       });
       
@@ -1486,7 +1486,7 @@ Thank you!`);
       setTimeout(() => {
         toast({
           title: "📋 View Your Listings",
-          description: "Click to go to your listings dashboard and manage your space.",
+          description: "Click to go to your listings dashboard and manage your driveway.",
           action: (
             <button 
               onClick={() => window.location.href = '/my-listings'}
@@ -1516,8 +1516,8 @@ Thank you!`);
       toast({
         title: "❌ Submission Failed",
         description: error instanceof Error 
-          ? `Failed to submit your space listing: ${error.message}` 
-          : "There was an issue submitting your space listing. Please check your internet connection and try again.",
+          ? `Failed to submit your driveway listing: ${error.message}` 
+          : "There was an issue submitting your driveway listing. Please check your internet connection and try again.",
         variant: "destructive",
         duration: 7000,
       });
@@ -1625,14 +1625,14 @@ Thank you!`);
         <DialogHeader className="text-center space-y-4">
           <DialogTitle className="text-2xl font-bold tracking-tight flex items-center justify-center gap-2">
             <Sparkles className="h-6 w-6 text-primary" />
-            AI-Powered Space Listing
+            AI-Powered Driveway Listing
           </DialogTitle>
           <p className="text-muted-foreground">
             {step === 'upload' && "Upload photos and enter location - AI will do the rest!"}
             {step === 'analyze' && "AI is analyzing your photos..."}
             {step === 'review' && "Review AI suggestions and make any adjustments"}
-            {step === 'manual' && "Enter your space details manually"}
-            {step === 'confirm' && "Confirm your space listing"}
+            {step === 'manual' && "Enter your driveway details manually"}
+            {step === 'confirm' && "Confirm your driveway listing"}
           </p>
         </DialogHeader>
 
@@ -1670,7 +1670,7 @@ Thank you!`);
                 <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-8 text-center">
                   <Upload className="h-8 w-8 mx-auto mb-4 text-muted-foreground" />
                   <p className="text-sm text-muted-foreground mb-4">
-                    Upload 1-5 photos of your space
+                    Upload 1-5 photos of your driveway
                   </p>
                   <Button
                     type="button"
@@ -1718,7 +1718,7 @@ Thank you!`);
                               <div className="relative">
                                 <img
                                   src={url}
-                                  alt={`Space photo ${index + 1}`}
+                                  alt={`Driveway photo ${index + 1}`}
                                   className="w-full h-32 object-cover"
                                   onLoad={() => {
                                     console.log(`✅ Photo ${index + 1} loaded successfully:`, url);
@@ -1851,7 +1851,7 @@ Thank you!`);
                       onChange={(e) => handleInputChange("availableFrom", e.target.value)}
                       className="apple-input h-12"
                     />
-                    <p className="text-xs text-muted-foreground">When your space becomes available</p>
+                    <p className="text-xs text-muted-foreground">When your driveway becomes available</p>
                   </div>
                   
                   <div className="space-y-2">
@@ -1865,7 +1865,7 @@ Thank you!`);
                       onChange={(e) => handleInputChange("availableUntil", e.target.value)}
                       className="apple-input h-12"
                     />
-                    <p className="text-xs text-muted-foreground">When your space stops being available</p>
+                    <p className="text-xs text-muted-foreground">When your driveway stops being available</p>
                   </div>
                 </div>
 
@@ -1889,11 +1889,11 @@ Thank you!`);
                 </div>
               </div>
 
-              {/* Space Type Selection */}
+              {/* Driveway Type Selection */}
               <div className="space-y-4">
                 <div className="space-y-2">
                   <Label className="text-sm font-medium">
-                    Space Types * 
+                    Driveway Types * 
                     {formData.selectedSpaceTypes.length > 0 && (
                       <span className="ml-2 text-xs bg-primary text-primary-foreground px-2 py-1 rounded-full">
                         {formData.selectedSpaceTypes.length} selected
@@ -1902,7 +1902,7 @@ Thank you!`);
                   </Label>
                   <div className="space-y-3 p-4 border border-muted-foreground/25 rounded-lg bg-muted/30">
                     <p className="text-xs text-muted-foreground mb-3">
-                      Select all space types that apply to your listing:
+                      Select all driveway types that apply to your listing:
                     </p>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                       {spaceTypes.map((type) => (
@@ -1925,10 +1925,10 @@ Thank you!`);
                       ))}
                     </div>
                     
-                    {/* Custom space type input */}
+                    {/* Custom driveway type input */}
                     <div className="mt-4 pt-4 border-t border-muted-foreground/25">
                       <div className="space-y-2">
-                        <Label className="text-sm font-medium">Custom Space Type (Optional)</Label>
+                        <Label className="text-sm font-medium">Custom Driveway Type (Optional)</Label>
                         <Input
                           value={formData.customSpaceType || ''}
                           onChange={(e) => handleInputChange("customSpaceType", e.target.value)}
@@ -1936,7 +1936,7 @@ Thank you!`);
                           className="apple-input h-10"
                         />
                         <p className="text-xs text-muted-foreground">
-                          Specify a custom space type if none of the above options fit your space
+                          Specify a custom driveway type if none of the above options fit your driveway
                         </p>
                       </div>
                     </div>
@@ -2002,8 +2002,8 @@ Thank you!`);
                   
                   <p className="text-sm text-purple-700 mb-4">
                     {formData.selectedSpaceTypes.length > 0 
-                      ? "Based on your selected space types, our AI will recommend the most beneficial features for your listing."
-                      : "Our AI will analyze your space and recommend the most beneficial features for your listing. Select space types above for more personalized recommendations."
+                      ? "Based on your selected driveway types, our AI will recommend the most beneficial features for your listing."
+                      : "Our AI will analyze your driveway and recommend the most beneficial features for your listing. Select driveway types above for more personalized recommendations."
                     }
                   </p>
 
@@ -2056,7 +2056,7 @@ Thank you!`);
                   ) : (
                     <div className="text-center py-4">
                       <p className="text-sm text-purple-600">
-                        Click "Get Recommendations" to receive personalized AI suggestions for your space.
+                        Click "Get Recommendations" to receive personalized AI suggestions for your driveway.
                       </p>
                     </div>
                   )}
@@ -2078,7 +2078,7 @@ Thank you!`);
                         Disable AI photo analysis
                       </Label>
                       <p className="text-xs text-muted-foreground">
-                        Check this box to skip AI analysis and enter your space details manually. 
+                        Check this box to skip AI analysis and enter your driveway details manually. 
                         Your photos will still be uploaded but won't be analyzed by AI.
                       </p>
                     </div>
@@ -2105,8 +2105,8 @@ Thank you!`);
                       onClick={() => {
                         if (formData.selectedSpaceTypes.length === 0) {
                           toast({
-                            title: "Space Type Required",
-                            description: "Please select at least one space type to proceed with AI analysis.",
+                            title: "Driveway Type Required",
+                            description: "Please select at least one driveway type to proceed with AI analysis.",
                             variant: "destructive",
                           });
                           return;
@@ -2135,7 +2135,7 @@ Thank you!`);
                     {formData.disableAI 
                       ? "ℹ️ AI analysis disabled - you'll enter details manually"
                       : formData.selectedSpaceTypes.length === 0
-                        ? "⚠️ Please select at least one space type above to enable AI analysis"
+                        ? "⚠️ Please select at least one driveway type above to enable AI analysis"
                         : formData.photoUrls.length === 0
                           ? "⚠️ Please upload at least one photo to enable AI analysis"
                           : requestStatus.isBlocked
@@ -2167,8 +2167,8 @@ Thank you!`);
                     <p><strong>Photo URLs:</strong> {formData.photoUrls.length}</p>
                     <p><strong>User ID:</strong> {user?.id || 'Not logged in'}</p>
                     <p><strong>Step:</strong> {step}</p>
-                    <p><strong>Custom Space Type:</strong> {formData.customSpaceType || 'None'}</p>
-                    <p><strong>Selected Space Types:</strong> {formData.selectedSpaceTypes.length > 0 ? formData.selectedSpaceTypes.join(', ') : 'None'}</p>
+                    <p><strong>Custom Driveway Type:</strong> {formData.customSpaceType || 'None'}</p>
+                    <p><strong>Selected Driveway Types:</strong> {formData.selectedSpaceTypes.length > 0 ? formData.selectedSpaceTypes.join(', ') : 'None'}</p>
                     <p><strong>AI Analysis:</strong> {aiGeneratedData ? 'Completed' : 'Not started'}</p>
                     <p><strong>Market Analysis:</strong> {marketAnalysis ? `${marketAnalysis.competitorCount} competitors found` : 'Not available'}</p>
                     <p><strong>Web Scraping:</strong> {formData.enableWebScraping ? 'Enabled' : 'Disabled'}</p>
@@ -2280,17 +2280,17 @@ Thank you!`);
                       ? "AI is analyzing your photos..."
                       : scraping
                         ? "Researching market data from other platforms..."
-                        : "Processing your space..."
+                        : "Processing your driveway..."
                   }
                 </h3>
                 <p className="text-muted-foreground">
                   {analyzing && scraping 
-                    ? "Our AI is examining your space and gathering competitive pricing insights"
+                    ? "Our AI is examining your driveway and gathering competitive pricing insights"
                     : analyzing 
-                      ? "Our AI is examining your space to generate the perfect listing"
+                      ? "Our AI is examining your driveway to generate the perfect listing"
                       : scraping
                         ? "Searching other websites for similar listings and pricing data"
-                        : "Preparing your space analysis"
+                        : "Preparing your driveway analysis"
                   }
                   {formData.enablePricingOptimization && " with pricing optimization"}
                 </p>
@@ -2310,7 +2310,7 @@ Thank you!`);
             <>
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-lg font-semibold">Enter Your Space Details</h3>
+                  <h3 className="text-lg font-semibold">Enter Your Driveway Details</h3>
                   <Button
                     type="button"
                     variant="outline"
@@ -2330,7 +2330,7 @@ Thank you!`);
                         <div className="relative">
                           <img
                             src={url}
-                            alt={`Space photo ${index + 1}`}
+                            alt={`Driveway photo ${index + 1}`}
                             className="w-full h-32 object-cover"
                           />
                           <Button
@@ -2352,7 +2352,7 @@ Thank you!`);
                 <div className="space-y-4">
                   <div className="space-y-2">
                     <Label className="text-sm font-medium">
-                      Space Types * 
+                      Driveway Types * 
                       {formData.selectedSpaceTypes.length > 0 && (
                         <span className="ml-2 text-xs bg-primary text-primary-foreground px-2 py-1 rounded-full">
                           {formData.selectedSpaceTypes.length} selected
@@ -2361,7 +2361,7 @@ Thank you!`);
                     </Label>
                     <div className="space-y-3 p-4 border border-muted-foreground/25 rounded-lg bg-muted/30">
                       <p className="text-xs text-muted-foreground mb-3">
-                        Select all space types that apply to your listing:
+                        Select all driveway types that apply to your listing:
                       </p>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                         {spaceTypes.map((type) => (
@@ -2384,10 +2384,10 @@ Thank you!`);
                         ))}
                       </div>
                       
-                      {/* Custom space type input */}
+                      {/* Custom driveway type input */}
                       <div className="mt-4 pt-4 border-t border-muted-foreground/25">
                         <div className="space-y-2">
-                          <Label className="text-sm font-medium">Custom Space Type (Optional)</Label>
+                          <Label className="text-sm font-medium">Custom Driveway Type (Optional)</Label>
                       <Input
                         value={formData.customSpaceType || ''}
                         onChange={(e) => handleInputChange("customSpaceType", e.target.value)}
@@ -2395,7 +2395,7 @@ Thank you!`);
                             className="apple-input h-10"
                           />
                           <p className="text-xs text-muted-foreground">
-                            Specify a custom space type if none of the above options fit your space
+                            Specify a custom driveway type if none of the above options fit your driveway
                         </p>
                       </div>
                       </div>
@@ -2444,7 +2444,7 @@ Thank you!`);
                           handleEditableChange("description", e.target.value);
                         }
                       }}
-                      placeholder="Describe your space, its features, and what makes it special..."
+                      placeholder="Describe your driveway, its features, and what makes it special..."
                       className="apple-input min-h-[100px] resize-none w-full"
                       rows={4}
                       required
@@ -2515,7 +2515,7 @@ Thank you!`);
                       Availability Windows
                     </Label>
                     <p className="text-xs text-muted-foreground">
-                      Set when your space is available for booking. You can add multiple time windows for different days.
+                      Set when your driveway is available for booking. You can add multiple time windows for different days.
                     </p>
                     
                     <div className="space-y-3">
@@ -2628,7 +2628,7 @@ Thank you!`);
                       className="apple-input h-10"
                     />
                     <p className="text-xs text-muted-foreground">
-                      When your space becomes available for booking
+                      When your driveway becomes available for booking
                     </p>
                   </div>
                   
@@ -2641,7 +2641,7 @@ Thank you!`);
                       className="apple-input h-10"
                     />
                     <p className="text-xs text-muted-foreground">
-                      When your space stops being available for booking
+                      When your driveway stops being available for booking
                     </p>
                   </div>
                 </div>
@@ -2713,7 +2713,7 @@ Thank you!`);
                         <div className="relative">
                           <img
                             src={url}
-                            alt={`Space photo ${index + 1}`}
+                            alt={`Driveway photo ${index + 1}`}
                             className="w-full h-32 object-cover"
                           />
                           <Button
@@ -2736,7 +2736,7 @@ Thank you!`);
                   <div className="space-y-2">
                     <Label className="text-sm font-medium flex items-center gap-2">
                       <Edit3 className="h-4 w-4" />
-                      Space Types
+                      Driveway Types
                       {formData.selectedSpaceTypes.length > 0 && (
                         <span className="text-xs bg-primary text-primary-foreground px-2 py-1 rounded-full">
                           {formData.selectedSpaceTypes.length} selected
@@ -2745,7 +2745,7 @@ Thank you!`);
                     </Label>
                     <div className="space-y-3 p-4 border border-muted-foreground/25 rounded-lg bg-muted/30">
                       <p className="text-xs text-muted-foreground mb-3">
-                        Select all space types that apply to your listing:
+                        Select all driveway types that apply to your listing:
                       </p>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                         {spaceTypes.map((type) => (
@@ -2768,10 +2768,10 @@ Thank you!`);
                         ))}
                       </div>
                       
-                      {/* Custom space type input */}
+                      {/* Custom driveway type input */}
                       <div className="mt-4 pt-4 border-t border-muted-foreground/25">
                         <div className="space-y-2">
-                          <Label className="text-sm font-medium">Custom Space Type (Optional)</Label>
+                          <Label className="text-sm font-medium">Custom Driveway Type (Optional)</Label>
                       <Input
                         value={formData.customSpaceType || ''}
                         onChange={(e) => handleInputChange("customSpaceType", e.target.value)}
@@ -2779,7 +2779,7 @@ Thank you!`);
                             className="apple-input h-10"
                           />
                           <p className="text-xs text-muted-foreground">
-                            Specify a custom space type if none of the above options fit your space
+                            Specify a custom driveway type if none of the above options fit your driveway
                         </p>
                       </div>
                       </div>
@@ -2808,7 +2808,7 @@ Thank you!`);
                       onChange={(e) => handleEditableChange("description", e.target.value)}
                       className="apple-input min-h-[100px] resize-none w-full"
                       rows={4}
-                      placeholder="Describe your space, what makes it special, access details... (Note: 24/7 access during reservation period)"
+                      placeholder="Describe your driveway, what makes it special, access details... (Note: 24/7 access during reservation period)"
                     />
                   </div>
 
@@ -2846,7 +2846,7 @@ Thank you!`);
                           className="apple-input h-10"
                         />
                         <p className="text-xs text-muted-foreground">
-                          When your space becomes available for booking
+                          When your driveway becomes available for booking
                         </p>
                       </div>
                       
@@ -2859,7 +2859,7 @@ Thank you!`);
                           className="apple-input h-10"
                         />
                         <p className="text-xs text-muted-foreground">
-                          When your space stops being available for booking
+                          When your driveway stops being available for booking
                         </p>
                       </div>
                     </div>

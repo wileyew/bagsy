@@ -224,7 +224,7 @@ const Index = () => {
   const renderConversationalForm = () => {
     const questions = [
       {
-        title: "What type of space do you need?",
+        title: "What type of driveway do you need?",
         content: (
           <div className="grid grid-cols-1 gap-4">
             {spaceTypes.map((type) => (
@@ -251,7 +251,7 @@ const Index = () => {
         )
       },
       {
-        title: "Where do you need the space?",
+        title: "Where do you need the driveway?",
         content: (
           <div className="space-y-4">
             <Input
@@ -261,7 +261,7 @@ const Index = () => {
               className="apple-input text-lg h-14"
             />
             <p className="text-sm text-muted-foreground text-center">
-              Enter your location to find nearby spaces
+              Enter your location to find nearby driveways
             </p>
           </div>
         )
@@ -317,7 +317,7 @@ const Index = () => {
           <Card className="apple-card border-0 shadow-xl">
             <CardHeader className="text-center pb-8">
               <CardTitle className="text-3xl font-bold tracking-tight mb-4">
-                Finding your perfect space
+                Finding your perfect driveway
               </CardTitle>
               <p className="text-muted-foreground text-lg">
                 Our AI is analyzing your requirements...
@@ -364,7 +364,7 @@ const Index = () => {
                 canProceed ? "apple-button-primary" : "opacity-50"
               }`}
             >
-              {currentStep === questions.length - 1 ? "Find My Space" : "Continue"}
+              {currentStep === questions.length - 1 ? "Find My Driveway" : "Continue"}
               <ArrowRight className="ml-2 h-5 w-5" />
             </Button>
           </CardContent>
@@ -380,12 +380,12 @@ const Index = () => {
           Perfect matches found!
         </h2>
         <p className="text-xl text-muted-foreground">
-          Our AI found {spaces.length} spaces matching your needs
+          Our AI found {spaces.length} driveways matching your needs
         </p>
         {spacesError && (
           <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
             <p className="text-sm text-yellow-800">
-              Showing sample data. Real spaces will appear here once listings are created.
+              Showing sample data. Real driveways will appear here once listings are created.
             </p>
           </div>
         )}
@@ -393,11 +393,11 @@ const Index = () => {
 
       {/* Search and Filter Section */}
       <Card className="p-6">
-        <div className="space-y-4">
-          <h3 className="text-lg font-semibold">Refine Your Search</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div>
-              <label className="text-sm font-medium text-gray-700">Space Type</label>
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold">Refine Your Search</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div>
+                <label className="text-sm font-medium text-gray-700">Driveway Type</label>
               <select
                 value={searchFilters.spaceType}
                 onChange={(e) => setSearchFilters(prev => ({ ...prev, spaceType: e.target.value }))}
@@ -564,7 +564,7 @@ const Index = () => {
               <BagsyLogo size="lg" />
               <div className="hidden md:block">
                 <span className="text-sm font-medium text-muted-foreground">
-                  AI-Powered Space Rental
+                  AI-Powered Driveway Rental
                 </span>
               </div>
             </div>
@@ -594,7 +594,7 @@ const Index = () => {
                 }}
               >
                 <Sparkles className="h-4 w-4 mr-2" />
-                List Your Space
+                List Your Driveway
               </Button>
               
               {/* User-specific buttons - only visible when authenticated */}
@@ -628,15 +628,15 @@ const Index = () => {
                 <div className="space-y-6">
                   <div className="space-y-2">
                     <Badge variant="outline" className="px-4 py-2 text-sm font-medium">
-                      Bagsy - AI-Powered Space Rental
+                      Bagsy - AI-Powered Driveway Rental
                     </Badge>
                   </div>
                   <h1 className="text-6xl md:text-7xl font-bold tracking-tight leading-tight">
-                    Find the perfect space in
+                    Find the perfect driveway in
                     <span className="apple-text-gradient"> seconds</span>
                   </h1>
                   <p className="text-2xl text-muted-foreground max-w-3xl mx-auto leading-relaxed">
-                    AI-powered space booking from posting to lease confirmation. 
+                    AI-powered driveway booking from posting to lease confirmation. 
                     Get fair prices and instant bookings.
                   </p>
                 </div>
@@ -674,11 +674,11 @@ const Index = () => {
                       Why Choose Bagsy?
                     </Badge>
                     <h2 className="text-4xl md:text-5xl font-bold tracking-tight">
-                      The <span className="apple-text-gradient">Uber for Spaces</span>
+                      The <span className="apple-text-gradient">Uber for Driveways</span>
                     </h2>
                     <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
-                      Just like Uber revolutionized transportation, Bagsy is revolutionizing space rental. 
-                      We're not just another marketplace—we're the infrastructure that powers the future of space sharing.
+                      Just like Uber revolutionized transportation, Bagsy is revolutionizing driveway rental. 
+                      We're not just another marketplace—we're the infrastructure that powers the future of driveway sharing.
                     </p>
                   </div>
                 </div>
@@ -689,7 +689,7 @@ const Index = () => {
                     <CardHeader className="text-center pb-8">
                       <CardTitle className="text-2xl font-bold">Bagsy vs. Traditional Platforms</CardTitle>
                       <CardDescription className="text-lg">
-                        See how we're different from Airbnb, Craigslist, and other space rental platforms
+                        See how we're different from Airbnb, Craigslist, and other driveway rental platforms
                       </CardDescription>
                     </CardHeader>
                     <CardContent className="p-0">
@@ -758,7 +758,7 @@ const Index = () => {
                               </td>
                             </tr>
                             <tr>
-                              <td className="p-6 font-medium">Space-Specific Features</td>
+                              <td className="p-6 font-medium">Driveway-Specific Features</td>
                               <td className="p-6 text-center">
                                 <CheckCircle className="h-5 w-5 text-green-500 mx-auto" />
                               </td>
@@ -829,7 +829,7 @@ const Index = () => {
                     </CardHeader>
                     <CardContent className="space-y-4">
                       <p className="text-muted-foreground">
-                        Twilio provides APIs for communication. We provide AI agents for space negotiation.
+                        Twilio provides APIs for communication. We provide AI agents for driveway negotiation.
                       </p>
                       <div className="space-y-2 text-sm">
                         <div className="flex items-center gap-2">
@@ -858,7 +858,7 @@ const Index = () => {
                     </CardHeader>
                     <CardContent className="space-y-4">
                       <p className="text-muted-foreground">
-                        We're not just a marketplace—we're the infrastructure that powers space sharing.
+                        We're not just a marketplace—we're the infrastructure that powers driveway sharing.
                       </p>
                       <div className="space-y-2 text-sm">
                         <div className="flex items-center gap-2">
@@ -884,7 +884,7 @@ const Index = () => {
                     <CardHeader className="text-center pb-8">
                       <CardTitle className="text-2xl font-bold">What Makes Bagsy Different</CardTitle>
                       <CardDescription className="text-lg">
-                        We're building the future of space sharing, not just another rental platform
+                        We're building the future of driveway sharing, not just another rental platform
                       </CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-8">
@@ -951,10 +951,10 @@ const Index = () => {
 
                 {/* Call to Action */}
                 <div className="text-center space-y-6 animate-fade-in">
-                  <h3 className="text-2xl font-bold">Ready to experience the future of space sharing?</h3>
+                  <h3 className="text-2xl font-bold">Ready to experience the future of driveway sharing?</h3>
                   <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-                    Join thousands of users who are already using AI-powered space booking. 
-                    List your space in seconds, get fair prices, and let our AI agents handle the rest.
+                    Join thousands of users who are already using AI-powered driveway booking. 
+                    List your driveway in seconds, get fair prices, and let our AI agents handle the rest.
                   </p>
                   <div className="flex items-center justify-center gap-4">
                     <Button 
@@ -963,7 +963,7 @@ const Index = () => {
                       onClick={() => setCurrentStep(1)}
                     >
                       <Search className="h-5 w-5 mr-2" />
-                      Find Your Space
+                      Find Your Driveway
                     </Button>
                     {user ? (
                       <Button 
@@ -973,7 +973,7 @@ const Index = () => {
                         onClick={() => setAiSpaceListingModalOpen(true)}
                       >
                         <Sparkles className="h-5 w-5 mr-2" />
-                        List Your Space
+                        List Your Driveway
                       </Button>
                     ) : (
                       <Button 
@@ -983,7 +983,7 @@ const Index = () => {
                         onClick={() => setAuthModalOpen(true)}
                       >
                         <Sparkles className="h-5 w-5 mr-2" />
-                        List Your Space
+                        List Your Driveway
                       </Button>
                     )}
                   </div>
@@ -1005,11 +1005,11 @@ const Index = () => {
           <div className="flex items-center justify-center gap-3">
             <BagsyLogo size="lg" />
             <span className="text-sm font-medium text-muted-foreground">
-              AI-Powered Space Rental
+              AI-Powered Driveway Rental
             </span>
           </div>
           <p className="text-muted-foreground">
-            &copy; 2024 Bagsy. Revolutionizing space booking.
+            &copy; 2024 Bagsy. Revolutionizing driveway booking.
           </p>
         </div>
       </footer>
