@@ -121,17 +121,31 @@ export function AuthModal({ open, onOpenChange }: AuthModalProps) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="apple-card max-w-md w-full mx-4">
-        <DialogHeader className="text-center space-y-4">
-            <DialogTitle className="text-2xl font-bold tracking-tight">
+      <DialogContent className="apple-card max-w-md w-[calc(100%-1rem)] sm:w-full mx-2 sm:mx-4">
+        <DialogHeader className="text-center space-y-3 sm:space-y-4">
+            <DialogTitle className="text-xl sm:text-2xl font-bold tracking-tight">
               {getTitle()}
             </DialogTitle>
-            <p className="text-muted-foreground">
+            <p className="text-sm sm:text-base text-muted-foreground">
               {getDescription()}
             </p>
           </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        {isLoading && (
+          <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg text-sm text-blue-800">
+            <div className="flex items-center gap-2">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              <div>
+                <p className="font-medium">Signing you in...</p>
+                <p className="text-xs mt-1 text-blue-700">
+                  💡 Taking too long? Try: Sign in with <strong>incognito mode</strong>, clear cookies, or restart your browser
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
           {/* Google Sign In Button */}
           <Button
             type="button"

@@ -11,11 +11,10 @@ import { UserMenu } from "@/components/auth/user-menu";
 import { AISpaceListingModal } from "@/components/spaces/ai-space-listing-modal";
 import { SpaceCard } from "@/components/spaces/SpaceCard";
 import { RelistModal } from "@/components/spaces/relist-modal";
+import { BookingModal } from "@/components/spaces/booking-modal";
 import { BagsyLogo } from "@/components/ui/bagsy-logo";
 import { useAuthContext } from "@/contexts/auth-context";
 import { useToast } from "@/hooks/use-toast";
-import DebugPanel from "@/components/debug/DebugPanel";
-import { ApiKeyDebug } from "@/components/debug/ApiKeyDebug";
 import { useNavigate } from "react-router-dom";
 import { useUserListingsCount } from "@/hooks/use-user-listings-count";
 import { supabase } from "@/integrations/supabase/client";
@@ -24,9 +23,10 @@ const Index = () => {
   const [currentStep, setCurrentStep] = useState(0);
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [aiSpaceListingModalOpen, setAiSpaceListingModalOpen] = useState(false);
-  const [debugPanelOpen, setDebugPanelOpen] = useState(false);
   const [relistModalOpen, setRelistModalOpen] = useState(false);
   const [selectedSpaceForRelist, setSelectedSpaceForRelist] = useState<any>(null);
+  const [bookingModalOpen, setBookingModalOpen] = useState(false);
+  const [selectedSpaceForBooking, setSelectedSpaceForBooking] = useState<any>(null);
   const navigate = useNavigate();
   const { hasListings } = useUserListingsCount();
   const [formData, setFormData] = useState({
@@ -504,11 +504,8 @@ const Index = () => {
               }}
               onBookNow={(space) => {
                 if (user) {
-                  toast({
-                    title: "Booking Started",
-                    description: `Starting booking process for ${space.title}`,
-                  });
-                  // Implement booking flow here
+                  setSelectedSpaceForBooking(space);
+                  setBookingModalOpen(true);
                 } else {
                   setAuthModalOpen(true);
                 }
@@ -558,23 +555,24 @@ const Index = () => {
     <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="bg-background/80 backdrop-blur-xl border-b border-border/50 sticky top-0 z-50">
-        <div className="container mx-auto px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <BagsyLogo size="lg" />
+        <div className="container mx-auto px-3 sm:px-6 py-3 sm:py-4">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 sm:gap-3">
+              <BagsyLogo size="sm" className="sm:hidden" />
+              <BagsyLogo size="lg" className="hidden sm:flex" />
               <div className="hidden md:block">
                 <span className="text-sm font-medium text-muted-foreground">
                   AI-Powered Driveway Rental
                 </span>
               </div>
             </div>
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-1.5 sm:gap-2 md:gap-4">
               {/* Sign In button - always visible for unauthenticated users */}
               {!user && (
                 <Button 
                   variant="ghost" 
-                  size="lg" 
-                  className="text-base"
+                  size="sm"
+                  className="text-sm sm:text-base h-9 sm:h-10 px-3 sm:px-4"
                   onClick={() => setAuthModalOpen(true)}
                 >
                   Sign In
@@ -583,8 +581,8 @@ const Index = () => {
               
               {/* List Your Space button - always visible, checks auth */}
               <Button 
-                size="lg" 
-                className="apple-button-primary"
+                size="sm"
+                className="apple-button-primary text-sm sm:text-base h-9 sm:h-10 px-3 sm:px-4"
                 onClick={() => {
                   if (user) {
                     setAiSpaceListingModalOpen(true);
@@ -593,8 +591,9 @@ const Index = () => {
                   }
                 }}
               >
-                <Sparkles className="h-4 w-4 mr-2" />
-                List Your Driveway
+                <Sparkles className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1.5 sm:mr-2" />
+                <span className="hidden xs:inline">List Your Driveway</span>
+                <span className="xs:hidden">List</span>
               </Button>
               
               {/* User-specific buttons - only visible when authenticated */}
@@ -603,11 +602,12 @@ const Index = () => {
                   {hasListings && (
                     <Button 
                       variant="outline"
-                      size="lg" 
+                      size="sm"
+                      className="hidden sm:flex h-9 sm:h-10 px-3 sm:px-4"
                       onClick={() => navigate('/my-listings')}
                     >
-                      <MapPin className="h-4 w-4 mr-2" />
-                      My Listings
+                      <MapPin className="h-3.5 w-3.5 sm:h-4 sm:w-4 sm:mr-2" />
+                      <span className="hidden sm:inline">My Listings</span>
                     </Button>
                   )}
                   <UserMenu />
@@ -619,46 +619,46 @@ const Index = () => {
       </header>
 
       {/* Main Content */}
-      <main className="container mx-auto px-6 py-12">
+      <main className="container mx-auto px-3 sm:px-4 md:px-6 py-6 sm:py-8 md:py-12">
         {currentStep < 5 ? (
-          <div className="space-y-16">
+          <div className="space-y-8 sm:space-y-12 md:space-y-16">
             {/* Hero Section */}
             {currentStep === 0 && (
-              <div className="text-center space-y-8 mb-20 animate-fade-in">
-                <div className="space-y-6">
+              <div className="text-center space-y-6 sm:space-y-8 mb-12 sm:mb-16 md:mb-20 animate-fade-in">
+                <div className="space-y-4 sm:space-y-6">
                   <div className="space-y-2">
-                    <Badge variant="outline" className="px-4 py-2 text-sm font-medium">
+                    <Badge variant="outline" className="px-3 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm font-medium">
                       Bagsy™ - AI-Powered Driveway Rental
                     </Badge>
                   </div>
-                  <h1 className="text-6xl md:text-7xl font-bold tracking-tight leading-tight">
+                  <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-bold tracking-tight leading-tight px-4 sm:px-0">
                     Find the perfect driveway in
                     <span className="apple-text-gradient"> seconds</span>
                   </h1>
-                  <p className="text-2xl text-muted-foreground max-w-3xl mx-auto leading-relaxed">
+                  <p className="text-base sm:text-lg md:text-xl lg:text-2xl text-muted-foreground max-w-3xl mx-auto leading-relaxed px-4 sm:px-6">
                     AI-powered driveway booking from posting to lease confirmation. 
                     Get fair prices and instant bookings.
                   </p>
                 </div>
                 
-                <div className="flex items-center justify-center gap-8 text-base text-muted-foreground">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 rounded-full bg-primary/10">
-                      <Clock className="h-5 w-5 text-primary" />
+                <div className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-6 md:gap-8 text-sm sm:text-base text-muted-foreground px-4">
+                  <div className="flex items-center gap-2 sm:gap-3">
+                    <div className="p-1.5 sm:p-2 rounded-full bg-primary/10">
+                      <Clock className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
                     </div>
-                    Instant matching
+                    <span className="whitespace-nowrap">Instant matching</span>
                   </div>
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 rounded-full bg-primary/10">
-                      <DollarSign className="h-5 w-5 text-primary" />
+                  <div className="flex items-center gap-2 sm:gap-3">
+                    <div className="p-1.5 sm:p-2 rounded-full bg-primary/10">
+                      <DollarSign className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
                     </div>
-                    Fair AI pricing
+                    <span className="whitespace-nowrap">Fair AI pricing</span>
                   </div>
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 rounded-full bg-primary/10">
-                      <Sparkles className="h-5 w-5 text-primary" />
+                  <div className="flex items-center gap-2 sm:gap-3">
+                    <div className="p-1.5 sm:p-2 rounded-full bg-primary/10">
+                      <Sparkles className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
                     </div>
-                    Auto negotiation
+                    <span className="whitespace-nowrap">Auto negotiation</span>
                   </div>
                 </div>
               </div>
@@ -666,17 +666,17 @@ const Index = () => {
 
             {/* Differentiation Section */}
             {currentStep === 0 && (
-              <div className="space-y-16 mb-20">
+              <div className="space-y-10 sm:space-y-12 md:space-y-16 mb-12 sm:mb-16 md:mb-20">
                 {/* Why Bagsy Section */}
-                <div className="text-center space-y-8 animate-fade-in">
-                  <div className="space-y-4">
-                    <Badge variant="outline" className="px-4 py-2 text-sm font-medium">
+                <div className="text-center space-y-6 sm:space-y-8 animate-fade-in px-4">
+                  <div className="space-y-3 sm:space-y-4">
+                    <Badge variant="outline" className="px-3 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm font-medium">
                       Why Choose Bagsy™?
                     </Badge>
-                    <h2 className="text-4xl md:text-5xl font-bold tracking-tight">
+                    <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight">
                       The <span className="apple-text-gradient">Uber for Driveways</span>
                     </h2>
-                    <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
+                    <p className="text-base sm:text-lg md:text-xl text-muted-foreground max-w-3xl mx-auto px-2">
                       Just like Uber revolutionized transportation, Bagsy™ is revolutionizing driveway rental. 
                       We're not just another marketplace—we're the infrastructure that powers the future of driveway sharing.
                     </p>
@@ -684,100 +684,100 @@ const Index = () => {
                 </div>
 
                 {/* Comparison Table */}
-                <div className="max-w-6xl mx-auto animate-fade-in">
+                <div className="max-w-6xl mx-auto animate-fade-in px-2 sm:px-4">
                   <Card className="apple-card border-0 shadow-xl overflow-hidden">
-                    <CardHeader className="text-center pb-8">
-                      <CardTitle className="text-2xl font-bold">Bagsy™ vs. Traditional Platforms</CardTitle>
-                      <CardDescription className="text-lg">
+                    <CardHeader className="text-center pb-4 sm:pb-6 md:pb-8 px-4">
+                      <CardTitle className="text-lg sm:text-xl md:text-2xl font-bold">Bagsy™ vs. Traditional Platforms</CardTitle>
+                      <CardDescription className="text-sm sm:text-base md:text-lg">
                         See how we're different from Airbnb, Craigslist, and other driveway rental platforms
                       </CardDescription>
                     </CardHeader>
                     <CardContent className="p-0">
                       <div className="overflow-x-auto">
-                        <table className="w-full">
+                        <table className="w-full text-xs sm:text-sm md:text-base">
                           <thead className="bg-muted/50">
                             <tr>
-                              <th className="text-left p-6 font-semibold">Feature</th>
-                              <th className="text-center p-6 font-semibold">
-                                <div className="flex items-center justify-center gap-2">
+                              <th className="text-left p-3 sm:p-4 md:p-6 font-semibold min-w-[120px] sm:min-w-[150px]">Feature</th>
+                              <th className="text-center p-3 sm:p-4 md:p-6 font-semibold min-w-[80px] sm:min-w-[100px]">
+                                <div className="flex items-center justify-center gap-1 sm:gap-2">
                                   <BagsyLogo size="sm" />
                                 </div>
                               </th>
-                              <th className="text-center p-6 font-semibold text-muted-foreground">Airbnb</th>
-                              <th className="text-center p-6 font-semibold text-muted-foreground">Craigslist</th>
+                              <th className="text-center p-3 sm:p-4 md:p-6 font-semibold text-muted-foreground min-w-[80px] sm:min-w-[100px]">Airbnb</th>
+                              <th className="text-center p-3 sm:p-4 md:p-6 font-semibold text-muted-foreground min-w-[80px] sm:min-w-[100px]">Craigslist</th>
                             </tr>
                           </thead>
                           <tbody className="divide-y divide-border">
                             <tr>
-                              <td className="p-6 font-medium">AI-Powered Matching</td>
-                              <td className="p-6 text-center">
-                                <CheckCircle className="h-5 w-5 text-green-500 mx-auto" />
+                              <td className="p-3 sm:p-4 md:p-6 font-medium">AI-Powered Matching</td>
+                              <td className="p-3 sm:p-4 md:p-6 text-center">
+                                <CheckCircle className="h-4 w-4 sm:h-5 sm:w-5 text-green-500 mx-auto" />
                               </td>
-                              <td className="p-6 text-center">
-                                <X className="h-5 w-5 text-red-500 mx-auto" />
+                              <td className="p-3 sm:p-4 md:p-6 text-center">
+                                <X className="h-4 w-4 sm:h-5 sm:w-5 text-red-500 mx-auto" />
                               </td>
-                              <td className="p-6 text-center">
-                                <X className="h-5 w-5 text-red-500 mx-auto" />
-                              </td>
-                            </tr>
-                            <tr>
-                              <td className="p-6 font-medium">Instant Booking</td>
-                              <td className="p-6 text-center">
-                                <CheckCircle className="h-5 w-5 text-green-500 mx-auto" />
-                              </td>
-                              <td className="p-6 text-center">
-                                <CheckCircle className="h-5 w-5 text-green-500 mx-auto" />
-                              </td>
-                              <td className="p-6 text-center">
-                                <X className="h-5 w-5 text-red-500 mx-auto" />
+                              <td className="p-3 sm:p-4 md:p-6 text-center">
+                                <X className="h-4 w-4 sm:h-5 sm:w-5 text-red-500 mx-auto" />
                               </td>
                             </tr>
                             <tr>
-                              <td className="p-6 font-medium">AI Agents for Negotiation</td>
-                              <td className="p-6 text-center">
-                                <CheckCircle className="h-5 w-5 text-green-500 mx-auto" />
+                              <td className="p-3 sm:p-4 md:p-6 font-medium">Instant Booking</td>
+                              <td className="p-3 sm:p-4 md:p-6 text-center">
+                                <CheckCircle className="h-4 w-4 sm:h-5 sm:w-5 text-green-500 mx-auto" />
                               </td>
-                              <td className="p-6 text-center">
-                                <X className="h-5 w-5 text-red-500 mx-auto" />
+                              <td className="p-3 sm:p-4 md:p-6 text-center">
+                                <CheckCircle className="h-4 w-4 sm:h-5 sm:w-5 text-green-500 mx-auto" />
                               </td>
-                              <td className="p-6 text-center">
-                                <X className="h-5 w-5 text-red-500 mx-auto" />
-                              </td>
-                            </tr>
-                            <tr>
-                              <td className="p-6 font-medium">Dynamic Pricing</td>
-                              <td className="p-6 text-center">
-                                <CheckCircle className="h-5 w-5 text-green-500 mx-auto" />
-                              </td>
-                              <td className="p-6 text-center">
-                                <X className="h-5 w-5 text-red-500 mx-auto" />
-                              </td>
-                              <td className="p-6 text-center">
-                                <X className="h-5 w-5 text-red-500 mx-auto" />
+                              <td className="p-3 sm:p-4 md:p-6 text-center">
+                                <X className="h-4 w-4 sm:h-5 sm:w-5 text-red-500 mx-auto" />
                               </td>
                             </tr>
                             <tr>
-                              <td className="p-6 font-medium">Driveway-Specific Features</td>
-                              <td className="p-6 text-center">
-                                <CheckCircle className="h-5 w-5 text-green-500 mx-auto" />
+                              <td className="p-3 sm:p-4 md:p-6 font-medium">AI Agents for Negotiation</td>
+                              <td className="p-3 sm:p-4 md:p-6 text-center">
+                                <CheckCircle className="h-4 w-4 sm:h-5 sm:w-5 text-green-500 mx-auto" />
                               </td>
-                              <td className="p-6 text-center">
-                                <X className="h-5 w-5 text-red-500 mx-auto" />
+                              <td className="p-3 sm:p-4 md:p-6 text-center">
+                                <X className="h-4 w-4 sm:h-5 sm:w-5 text-red-500 mx-auto" />
                               </td>
-                              <td className="p-6 text-center">
-                                <X className="h-5 w-5 text-red-500 mx-auto" />
+                              <td className="p-3 sm:p-4 md:p-6 text-center">
+                                <X className="h-4 w-4 sm:h-5 sm:w-5 text-red-500 mx-auto" />
                               </td>
                             </tr>
                             <tr>
-                              <td className="p-6 font-medium">Market Research Integration</td>
-                              <td className="p-6 text-center">
-                                <CheckCircle className="h-5 w-5 text-green-500 mx-auto" />
+                              <td className="p-3 sm:p-4 md:p-6 font-medium">Dynamic Pricing</td>
+                              <td className="p-3 sm:p-4 md:p-6 text-center">
+                                <CheckCircle className="h-4 w-4 sm:h-5 sm:w-5 text-green-500 mx-auto" />
                               </td>
-                              <td className="p-6 text-center">
-                                <X className="h-5 w-5 text-red-500 mx-auto" />
+                              <td className="p-3 sm:p-4 md:p-6 text-center">
+                                <X className="h-4 w-4 sm:h-5 sm:w-5 text-red-500 mx-auto" />
                               </td>
-                              <td className="p-6 text-center">
-                                <X className="h-5 w-5 text-red-500 mx-auto" />
+                              <td className="p-3 sm:p-4 md:p-6 text-center">
+                                <X className="h-4 w-4 sm:h-5 sm:w-5 text-red-500 mx-auto" />
+                              </td>
+                            </tr>
+                            <tr>
+                              <td className="p-3 sm:p-4 md:p-6 font-medium">Driveway-Specific Features</td>
+                              <td className="p-3 sm:p-4 md:p-6 text-center">
+                                <CheckCircle className="h-4 w-4 sm:h-5 sm:w-5 text-green-500 mx-auto" />
+                              </td>
+                              <td className="p-3 sm:p-4 md:p-6 text-center">
+                                <X className="h-4 w-4 sm:h-5 sm:w-5 text-red-500 mx-auto" />
+                              </td>
+                              <td className="p-3 sm:p-4 md:p-6 text-center">
+                                <X className="h-4 w-4 sm:h-5 sm:w-5 text-red-500 mx-auto" />
+                              </td>
+                            </tr>
+                            <tr>
+                              <td className="p-3 sm:p-4 md:p-6 font-medium">Market Research Integration</td>
+                              <td className="p-3 sm:p-4 md:p-6 text-center">
+                                <CheckCircle className="h-4 w-4 sm:h-5 sm:w-5 text-green-500 mx-auto" />
+                              </td>
+                              <td className="p-3 sm:p-4 md:p-6 text-center">
+                                <X className="h-4 w-4 sm:h-5 sm:w-5 text-red-500 mx-auto" />
+                              </td>
+                              <td className="p-3 sm:p-4 md:p-6 text-center">
+                                <X className="h-4 w-4 sm:h-5 sm:w-5 text-red-500 mx-auto" />
                               </td>
                             </tr>
                           </tbody>
@@ -999,15 +999,16 @@ const Index = () => {
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-border/50 mt-20 py-12">
-        <div className="container mx-auto px-6 text-center space-y-4">
-          <div className="flex items-center justify-center gap-3">
-            <BagsyLogo size="lg" />
-            <span className="text-sm font-medium text-muted-foreground">
+      <footer className="border-t border-border/50 mt-12 sm:mt-16 md:mt-20 py-8 sm:py-10 md:py-12">
+        <div className="container mx-auto px-3 sm:px-4 md:px-6 text-center space-y-3 sm:space-y-4">
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-3">
+            <BagsyLogo size="sm" className="sm:hidden" />
+            <BagsyLogo size="lg" className="hidden sm:flex" />
+            <span className="text-xs sm:text-sm font-medium text-muted-foreground">
               AI-Powered Driveway Rental
             </span>
           </div>
-          <p className="text-muted-foreground">
+          <p className="text-xs sm:text-sm text-muted-foreground px-4">
             &copy; 2024 Bagsy™. Revolutionizing driveway booking.
           </p>
         </div>
@@ -1035,29 +1036,20 @@ const Index = () => {
         }}
       />
 
-      {/* Debug Panel */}
-      {import.meta.env.DEV && (
-        <>
-          <DebugPanel 
-            isOpen={debugPanelOpen}
-            onClose={() => setDebugPanelOpen(false)}
-          />
-          
-          {/* API Key Debug Component */}
-          <div className="fixed top-20 right-4 z-50">
-            <ApiKeyDebug />
-          </div>
-          
-          {/* Debug Toggle Button */}
-          <button
-            onClick={() => setDebugPanelOpen(!debugPanelOpen)}
-            className="fixed top-4 right-4 z-50 p-2 bg-black text-white rounded-full shadow-lg hover:bg-gray-800 transition-colors"
-            title="Toggle Debug Panel"
-          >
-            🐛
-          </button>
-        </>
-      )}
+      {/* Booking Modal */}
+      <BookingModal
+        open={bookingModalOpen}
+        onOpenChange={setBookingModalOpen}
+        space={selectedSpaceForBooking}
+        onBookingCreated={() => {
+          setBookingModalOpen(false);
+          toast({
+            title: "Success!",
+            description: "Check 'My Bookings' to track your request.",
+          });
+        }}
+      />
+
     </div>
   );
 };

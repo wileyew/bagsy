@@ -7,7 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Card, CardContent } from "@/components/ui/card";
-import { Upload, X, Eye, EyeOff, MapPin, DollarSign, Ruler, Calendar, Clock } from "lucide-react";
+import { Upload, X, Eye, EyeOff, MapPin, DollarSign, Ruler, Calendar, Clock, Loader2 } from "lucide-react";
 import { useAuthContext } from "@/contexts/auth-context";
 import { useToast } from "@/hooks/use-toast";
 import { getPhotoUploadErrorMessage, getPhotoUploadSuccessMessage } from "@/lib/photo-upload-error-messages";
@@ -75,7 +75,7 @@ export function ListSpaceModal({ open, onOpenChange }: ListSpaceModalProps) {
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const { user } = useAuthContext();
+  const { user, loading: authLoading } = useAuthContext();
   const { toast } = useToast();
 
   const handleInputChange = async (field: keyof SpaceFormData, value: string | number | boolean) => {
@@ -270,20 +270,34 @@ export function ListSpaceModal({ open, onOpenChange }: ListSpaceModalProps) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="apple-card max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
-        <DialogHeader className="text-center space-y-4">
-          <DialogTitle className="text-2xl font-bold tracking-tight">
+      <DialogContent className="apple-card max-w-2xl w-[calc(100%-1rem)] sm:w-[calc(100%-2rem)] mx-2 sm:mx-4 max-h-[90vh] overflow-y-auto">
+        <DialogHeader className="text-center space-y-3 sm:space-y-4 px-2">
+          <DialogTitle className="text-xl sm:text-2xl font-bold tracking-tight">
             List Your Space
           </DialogTitle>
-          <p className="text-muted-foreground">
+          <p className="text-sm sm:text-base text-muted-foreground">
             Share your space with the community and start earning
           </p>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        {authLoading && (
+          <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg text-sm text-blue-800">
+            <div className="flex items-center gap-2">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              <div>
+                <p className="font-medium">Loading authentication...</p>
+                <p className="text-xs mt-1 text-blue-700">
+                  💡 Taking too long? Try: <strong>incognito mode</strong>, clear cookies, or restart your browser
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
           {/* Basic Information */}
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold">Basic Information</h3>
+          <div className="space-y-3 sm:space-y-4">
+            <h3 className="text-base sm:text-lg font-semibold">Basic Information</h3>
             
             <div className="space-y-2">
               <Label htmlFor="title" className="text-sm font-medium">
@@ -294,7 +308,7 @@ export function ListSpaceModal({ open, onOpenChange }: ListSpaceModalProps) {
                 placeholder="e.g., Spacious Garage in Mission District"
                 value={formData.title}
                 onChange={(e) => handleInputChange("title", e.target.value)}
-                className="apple-input h-12"
+                className="apple-input h-10 sm:h-12 text-sm sm:text-base"
                 required
               />
             </div>
@@ -587,7 +601,7 @@ export function ListSpaceModal({ open, onOpenChange }: ListSpaceModalProps) {
           <Button
             type="submit"
             disabled={loading}
-            className="w-full apple-button-primary h-12"
+            className="w-full apple-button-primary h-11 sm:h-12 text-sm sm:text-base"
           >
             {loading ? "Listing Space..." : "List My Space"}
           </Button>

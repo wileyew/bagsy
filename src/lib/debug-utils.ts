@@ -132,9 +132,7 @@ class DebugLogger {
     this.debug(component, 'Form Data', formData);
   }
 
-  logApiKey(component: string, keyName: string, hasKey: boolean): void {
-    this.debug(component, `API Key Check: ${keyName}`, { present: hasKey, length: hasKey ? '***' : 0 });
-  }
+  // API Key logging removed for security - never log API key information
 
   logError(component: string, error: Error, context?: any): void {
     this.error(component, `Error: ${error.message}`, {
@@ -194,7 +192,6 @@ export const createComponentDebugger = (componentName: string) => ({
   performance: (operation: string, duration: number, data?: any) => debugLogger.performance(componentName, operation, duration, data),
   
   logFormData: (formData: any) => debugLogger.logFormData(componentName, formData),
-  logApiKey: (keyName: string, hasKey: boolean) => debugLogger.logApiKey(componentName, keyName, hasKey),
   logError: (error: Error, context?: any) => debugLogger.logError(componentName, error, context),
   
   timeStart: (operation: string) => debugLogger.timeStart(componentName, operation),

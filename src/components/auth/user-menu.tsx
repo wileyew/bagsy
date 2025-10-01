@@ -9,7 +9,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { User, Settings, LogOut, BookOpen, Plus, MapPin } from "lucide-react";
+import { User, Settings, LogOut, BookOpen, Plus, MapPin, Calendar } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
@@ -103,8 +103,11 @@ export function UserMenu() {
               )}
             </DropdownMenuItem>
           )}
-          <DropdownMenuItem className="cursor-pointer">
-            <BookOpen className="mr-2 h-4 w-4" />
+          <DropdownMenuItem 
+            className="cursor-pointer"
+            onClick={() => navigate('/my-bookings')}
+          >
+            <Calendar className="mr-2 h-4 w-4" />
             <span>My Bookings</span>
           </DropdownMenuItem>
           <DropdownMenuItem 

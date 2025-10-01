@@ -561,20 +561,20 @@ Thank you!`);
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-gray-50 py-4 sm:py-6 md:py-8">
+      <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8">
         {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-8">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">My Listings</h1>
-            <p className="mt-2 text-gray-600">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 sm:mb-8 gap-4">
+          <div className="flex-1">
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">My Listings</h1>
+            <p className="mt-1 sm:mt-2 text-sm sm:text-base text-gray-600">
               Manage your space listings and track their performance
             </p>
             {listings.length >= 4 && (
-              <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                <div className="flex items-center space-x-2">
-                  <AlertCircle className="h-4 w-4 text-blue-600" />
-                  <span className="text-sm text-blue-800">
+              <div className="mt-2 p-2 sm:p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                <div className="flex items-start sm:items-center gap-2">
+                  <AlertCircle className="h-4 w-4 text-blue-600 flex-shrink-0 mt-0.5 sm:mt-0" />
+                  <span className="text-xs sm:text-sm text-blue-800">
                     You're using {listings.length}/5 free listings. 
                     <button 
                       onClick={handleSalesEmail}
@@ -587,24 +587,26 @@ Thank you!`);
               </div>
             )}
           </div>
-          <div className="mt-4 sm:mt-0 flex space-x-3">
+          <div className="flex gap-2 sm:gap-3">
             {listings.length < 5 ? (
               <Button
                 onClick={() => navigate('/')}
                 variant="outline"
-                className="flex items-center space-x-2"
+                className="flex items-center gap-1.5 sm:gap-2 h-9 sm:h-10 px-3 sm:px-4 text-sm sm:text-base whitespace-nowrap"
               >
-                <Plus className="h-4 w-4" />
-                <span>List New Space</span>
+                <Plus className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                <span className="hidden xs:inline">List New Space</span>
+                <span className="xs:hidden">New</span>
               </Button>
             ) : (
               <Button
                 onClick={handleSalesEmail}
                 variant="outline"
-                className="flex items-center space-x-2"
+                className="flex items-center gap-1.5 sm:gap-2 h-9 sm:h-10 px-3 sm:px-4 text-sm sm:text-base whitespace-nowrap"
               >
-                <Mail className="h-4 w-4" />
-                <span>Contact Sales</span>
+                <Mail className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                <span className="hidden xs:inline">Contact Sales</span>
+                <span className="xs:hidden">Sales</span>
                 <ExternalLink className="h-3 w-3" />
               </Button>
             )}
