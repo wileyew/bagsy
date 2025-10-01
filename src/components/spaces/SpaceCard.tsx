@@ -12,7 +12,9 @@ import {
   Eye,
   Edit,
   Trash2,
-  RotateCcw
+  RotateCcw,
+  Flag,
+  AlertTriangle
 } from 'lucide-react';
 
 interface SpacePhoto {
@@ -49,6 +51,7 @@ interface SpaceCardProps {
   onEdit?: (space: SpaceListing) => void;
   onDelete?: (space: SpaceListing) => void;
   onRelist?: (space: SpaceListing) => void;
+  onReport?: (space: SpaceListing) => void;
   showAvailability?: boolean;
   showTimezone?: boolean;
   showSpecialInstructions?: boolean;
@@ -62,6 +65,7 @@ export const SpaceCard: React.FC<SpaceCardProps> = ({
   onEdit,
   onDelete,
   onRelist,
+  onReport,
   showAvailability = true,
   showTimezone = true,
   showSpecialInstructions = true,
@@ -255,16 +259,29 @@ export const SpaceCard: React.FC<SpaceCardProps> = ({
               )}
             </div>
           ) : (
-            // Non-owner - show book now button
-            onBookNow && (
-              <Button 
-                className="flex-1 apple-button-primary"
-                onClick={() => onBookNow(space)}
-                disabled={isExpired}
-              >
-                {isExpired ? 'Expired' : 'Book Now'}
-              </Button>
-            )
+            // Non-owner - show book now button and report option
+            <div className="flex gap-2 flex-1">
+              {onBookNow && (
+                <Button 
+                  className="flex-1 apple-button-primary"
+                  onClick={() => onBookNow(space)}
+                  disabled={isExpired}
+                >
+                  {isExpired ? 'Expired' : 'Book Now'}
+                </Button>
+              )}
+              {onReport && !isExpired && (
+                <Button 
+                  variant="ghost" 
+                  size="sm"
+                  className="text-muted-foreground hover:text-destructive"
+                  onClick={() => onReport(space)}
+                  title="Report this listing"
+                >
+                  <Flag className="h-4 w-4" />
+                </Button>
+              )}
+            </div>
           )}
         </div>
       </CardContent>
