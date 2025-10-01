@@ -32,6 +32,7 @@ import { useNavigate } from 'react-router-dom';
 import { EditSpaceModal } from '@/components/spaces/edit-space-modal';
 import { SpaceCard } from '@/components/spaces/SpaceCard';
 import { DeleteConfirmationModal } from '@/components/spaces/delete-confirmation-modal';
+import { RelistModal } from '@/components/spaces/relist-modal';
 
 interface SpaceListing {
   id: string;
@@ -96,6 +97,8 @@ const MyListings: React.FC = () => {
   const [deletingListing, setDeletingListing] = useState<SpaceListing | null>(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [relistingSpace, setRelistingSpace] = useState<SpaceListing | null>(null);
+  const [showRelistModal, setShowRelistModal] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -111,6 +114,7 @@ const MyListings: React.FC = () => {
       setError(null);
 
       console.log('🔍 Fetching listings for user:', user.id);
+      console.log('📊 Current listings count before fetch:', listings.length);
 
       // First, let's check if there are any spaces
       const { data: spacesData, error: spacesError } = await supabase
@@ -237,8 +241,21 @@ const MyListings: React.FC = () => {
 
       console.log('📋 Final listings data:', finalListings);
       setListings(finalListings);
+      
+      console.log('✅ Listings fetched successfully!', {
+        totalListings: finalListings.length,
+        activeListings: finalListings.filter(l => l.is_active).length,
+        inactiveListings: finalListings.filter(l => !l.is_active).length,
+        listingDetails: finalListings.map(l => ({
+          id: l.id,
+          title: l.title,
+          isActive: l.is_active,
+          availableFrom: l.available_from,
+          availableUntil: l.available_until
+        }))
+      });
     } catch (error) {
-      console.error('Error fetching listings:', error);
+      console.error('❌ Error fetching listings:', error);
       setError(error instanceof Error ? error.message : 'Failed to fetch listings');
       toast({
         title: "Error",
@@ -767,12 +784,13 @@ Thank you!`);
                   onEdit={handleEditListing}
                   onDelete={handleDeleteListing}
                   onRelist={(space) => {
-                    toast({
-                      title: "Relist Space",
-                      description: `Opening relist form for ${space.title}`,
+                    console.log('📝 Opening relist modal for:', {
+                      spaceId: space.id,
+                      title: space.title,
+                      currentStatus: space.is_active ? 'Active' : 'Inactive'
                     });
-                    // Implement relist functionality here
-                    // You can open a modal to set new availability dates
+                    setRelistingSpace(space);
+                    setShowRelistModal(true);
                   }}
                   showAvailability={true}
                   showTimezone={true}
@@ -1057,6 +1075,24 @@ Thank you!`);
           spaceTitle={deletingListing.title}
           onConfirm={handleDeleteConfirm}
           loading={deleting}
+        />
+      )}
+
+      {/* Relist Modal */}
+      {relistingSpace && (
+        <RelistModal
+          open={showRelistModal}
+          onOpenChange={(open) => {
+            setShowRelistModal(open);
+            if (!open) {
+              setRelistingSpace(null);
+            }
+          }}
+          space={relistingSpace}
+          onSuccess={() => {
+            console.log('✅ Relist successful! Refreshing listings...');
+            fetchListings(); // Refresh the listings to show updated status
+          }}
         />
       )}
     </div>

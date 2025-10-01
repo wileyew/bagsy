@@ -42,6 +42,12 @@ export function RelistModal({ open, onOpenChange, space, onSuccess }: RelistModa
     e.preventDefault();
     if (!space) return;
 
+    console.log('🔄 Starting relist process...', {
+      spaceId: space.id,
+      spaceTitle: space.title,
+      formData
+    });
+
     setLoading(true);
     try {
       // Convert local datetime strings to UTC timestamps
@@ -51,23 +57,57 @@ export function RelistModal({ open, onOpenChange, space, onSuccess }: RelistModa
         return date.toISOString();
       };
 
-      // Update space with new availability dates
-      const { error } = await supabase
-        .from('spaces')
-        .update({
-          available_from: convertToUTC(formData.availableFrom),
-          available_until: convertToUTC(formData.availableUntil),
-          timezone: formData.timezone,
-          is_active: true, // Reactivate the space
-        })
-        .eq('id', space.id);
+      const utcFrom = convertToUTC(formData.availableFrom);
+      const utcUntil = convertToUTC(formData.availableUntil);
 
-      if (error) throw error;
+      console.log('📅 Converted dates:', {
+        localFrom: formData.availableFrom,
+        utcFrom,
+        localUntil: formData.availableUntil,
+        utcUntil
+      });
+
+      const updateData = {
+        available_from: utcFrom,
+        available_until: utcUntil,
+        timezone: formData.timezone,
+        is_active: true, // Reactivate the space
+        updated_at: new Date().toISOString()
+      };
+
+      console.log('📤 Updating Supabase...', { spaceId: space.id, updateData });
+
+      // Update space with new availability dates
+      const { data: updatedSpace, error } = await supabase
+        .from('spaces')
+        .update(updateData)
+        .eq('id', space.id)
+        .select()
+        .single();
+
+      if (error) {
+        console.error('❌ Supabase update error:', error);
+        throw error;
+      }
+
+      console.log('✅ Supabase updated successfully!', {
+        spaceId: updatedSpace.id,
+        isActive: updatedSpace.is_active,
+        availableFrom: updatedSpace.available_from,
+        availableUntil: updatedSpace.available_until,
+        timezone: updatedSpace.timezone
+      });
+
+      const fromDate = new Date(formData.availableFrom);
+      const untilDate = new Date(formData.availableUntil);
 
       toast({
         title: "✅ Space Relisted Successfully!",
-        description: `Your driveway is now available from ${new Date(formData.availableFrom).toLocaleDateString()} to ${new Date(formData.availableUntil).toLocaleDateString()}`,
+        description: `Your driveway is now available from ${fromDate.toLocaleDateString()} to ${untilDate.toLocaleDateString()}`,
+        duration: 5000,
       });
+
+      console.log('🎉 Relist complete! Calling onSuccess callback...');
 
       // Reset form and close modal
       setFormData({
@@ -76,7 +116,14 @@ export function RelistModal({ open, onOpenChange, space, onSuccess }: RelistModa
         timezone: space?.timezone || "America/Los_Angeles",
       });
       onOpenChange(false);
-      onSuccess?.();
+      
+      // Call success callback to refresh the listings
+      if (onSuccess) {
+        console.log('Executing onSuccess callback');
+        onSuccess();
+      } else {
+        console.warn('No onSuccess callback provided');
+      }
     } catch (error: unknown) {
       toast({
         title: "Failed to relist space",

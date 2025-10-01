@@ -76,26 +76,55 @@ export function DriverLicenseUpload({ onVerificationComplete, showSkip = false, 
 
     setUploading(true);
     try {
+      console.log('Starting driver license upload...', { 
+        userId: user.id, 
+        fileName: file.name,
+        fileSize: file.size,
+        fileType: file.type 
+      });
+
       // Create a unique filename
       const fileExt = file.name.split('.').pop()?.toLowerCase();
       const fileName = `${user.id}/driver-license-${Date.now()}.${fileExt}`;
 
+      console.log('Uploading to storage...', { fileName });
+
+      // Check if bucket exists first
+      const { data: buckets, error: bucketError } = await supabase.storage.listBuckets();
+      console.log('Available buckets:', buckets?.map(b => b.name));
+      
+      if (bucketError) {
+        console.error('Error listing buckets:', bucketError);
+      }
+
       // Upload to Supabase Storage
-      const { error: uploadError } = await supabase.storage
+      const { data: uploadData, error: uploadError } = await supabase.storage
         .from('driver-licenses')
         .upload(fileName, file, {
           cacheControl: '3600',
           upsert: true
         });
 
-      if (uploadError) throw uploadError;
+      console.log('Upload result:', { uploadData, uploadError });
+
+      if (uploadError) {
+        console.error('Upload error details:', {
+          message: uploadError.message,
+          statusCode: uploadError.statusCode,
+          error: uploadError
+        });
+        throw uploadError;
+      }
 
       // Get public URL
       const { data: { publicUrl } } = supabase.storage
         .from('driver-licenses')
         .getPublicUrl(fileName);
 
+      console.log('Got public URL:', publicUrl);
+
       // Update profile with driver's license URL
+      console.log('Updating profile...');
       const { error: updateError } = await supabase
         .from('profiles')
         .update({
@@ -105,28 +134,53 @@ export function DriverLicenseUpload({ onVerificationComplete, showSkip = false, 
         })
         .eq('user_id', user.id);
 
-      if (updateError) throw updateError;
+      if (updateError) {
+        console.error('Profile update error:', updateError);
+        throw updateError;
+      }
 
+      console.log('Profile updated successfully');
+
+      // Update UI state immediately
       setLicenseUrl(publicUrl);
       setHasExistingLicense(true);
+      setUploading(false); // Stop loading state immediately
+      
+      console.log('State updated:', { licenseUrl: publicUrl, hasExistingLicense: true });
       
       toast({
         title: "✅ Driver's License Uploaded",
         description: "Your license has been uploaded successfully. It will be verified shortly.",
       });
 
-      // Trigger callback after a brief delay
+      console.log('Calling onVerificationComplete callback');
+      
+      // Trigger callback after a brief delay to show the success UI
       setTimeout(() => {
-        onVerificationComplete?.();
+        if (onVerificationComplete) {
+          console.log('Executing onVerificationComplete');
+          onVerificationComplete();
+        } else {
+          console.warn('No onVerificationComplete callback provided');
+        }
       }, 1500);
     } catch (error: unknown) {
       console.error('Error uploading driver license:', error);
+      
+      // Show detailed error message
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      console.error('Full error details:', {
+        error,
+        message: errorMessage,
+        type: typeof error
+      });
+      
       toast({
         title: "Upload Failed",
-        description: error instanceof Error ? error.message : "Failed to upload driver's license. Please try again.",
+        description: errorMessage,
         variant: "destructive",
       });
-    } finally {
+      
       setUploading(false);
     }
   };
@@ -176,6 +230,15 @@ export function DriverLicenseUpload({ onVerificationComplete, showSkip = false, 
     }
   };
 
+  // Debug render state
+  console.log('DriverLicenseUpload render state:', {
+    hasExistingLicense,
+    licenseUrl: licenseUrl ? 'SET' : 'NULL',
+    isVerified,
+    uploading,
+    userId: user?.id
+  });
+
   return (
     <div className="space-y-6">
       <div className="text-center space-y-3">
@@ -188,7 +251,17 @@ export function DriverLicenseUpload({ onVerificationComplete, showSkip = false, 
         </p>
       </div>
 
-      {hasExistingLicense && licenseUrl ? (
+      {uploading && (
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 text-center">
+          <div className="flex items-center justify-center gap-3 mb-3">
+            <div className="h-6 w-6 border-3 border-primary border-t-transparent rounded-full animate-spin" />
+            <span className="text-lg font-semibold text-blue-900">Uploading...</span>
+          </div>
+          <p className="text-sm text-blue-700">Please wait while we securely upload your driver's license.</p>
+        </div>
+      )}
+
+      {!uploading && hasExistingLicense && licenseUrl ? (
         <Card className="border-2 border-green-200 bg-green-50/50">
           <CardContent className="p-6 space-y-4">
             <div className="flex items-start gap-4">
@@ -247,7 +320,7 @@ export function DriverLicenseUpload({ onVerificationComplete, showSkip = false, 
             </Button>
           </CardContent>
         </Card>
-      ) : (
+      ) : !uploading ? (
         <Card>
           <CardContent className="p-6 space-y-6">
             <input
@@ -256,23 +329,20 @@ export function DriverLicenseUpload({ onVerificationComplete, showSkip = false, 
               accept="image/jpeg,image/jpg,image/png,image/webp"
               onChange={handleFileChange}
               className="hidden"
+              disabled={uploading}
             />
 
             <div
-              onClick={() => fileInputRef.current?.click()}
-              className="border-2 border-dashed border-gray-300 rounded-xl p-12 text-center cursor-pointer hover:border-primary hover:bg-primary/5 transition-all"
+              onClick={() => !uploading && fileInputRef.current?.click()}
+              className={`border-2 border-dashed border-gray-300 rounded-xl p-12 text-center transition-all ${
+                uploading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:border-primary hover:bg-primary/5'
+              }`}
             >
               <Upload className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
               <p className="font-medium text-lg mb-2">Click to upload your driver's license</p>
               <p className="text-sm text-muted-foreground mb-4">
                 Supported formats: JPG, PNG, WebP (max 10MB)
               </p>
-              {uploading && (
-                <div className="flex items-center justify-center gap-2 text-primary">
-                  <div className="h-4 w-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-                  <span className="text-sm font-medium">Uploading...</span>
-                </div>
-              )}
             </div>
 
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 space-y-2">
@@ -301,7 +371,7 @@ export function DriverLicenseUpload({ onVerificationComplete, showSkip = false, 
             )}
           </CardContent>
         </Card>
-      )}
+      ) : null}
     </div>
   );
 }

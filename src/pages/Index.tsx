@@ -62,6 +62,7 @@ const Index = () => {
 
   const fetchSpaces = async (filters = searchFilters) => {
     try {
+      console.log('🔍 Fetching spaces (Index page)...', { filters });
       setLoadingSpaces(true);
       setSpacesError(null);
 
@@ -112,9 +113,19 @@ const Index = () => {
         throw spacesError;
       }
 
+      console.log('✅ Spaces fetched successfully (Index page)!', {
+        totalSpaces: spacesData?.length || 0,
+        spaces: spacesData?.map(s => ({
+          id: s.id,
+          title: s.title,
+          isActive: s.is_active,
+          owner: s.owner_id
+        }))
+      });
+
       setSpaces(spacesData || []);
     } catch (error) {
-      console.error('Error fetching spaces:', error);
+      console.error('❌ Error fetching spaces (Index page):', error);
       setSpacesError(error instanceof Error ? error.message : 'Failed to fetch spaces');
       // Fallback to mock data if real data fails
       setSpaces(mockListings.map(listing => ({
@@ -527,6 +538,11 @@ const Index = () => {
                 // You should add a confirmation dialog
               }}
               onRelist={(space) => {
+                console.log('📝 Opening relist modal (Index page):', {
+                  spaceId: space.id,
+                  title: space.title,
+                  currentStatus: space.is_active ? 'Active' : 'Inactive'
+                });
                 setSelectedSpaceForRelist(space);
                 setRelistModalOpen(true);
               }}
@@ -1029,9 +1045,15 @@ const Index = () => {
       {/* Relist Modal */}
       <RelistModal 
         open={relistModalOpen}
-        onOpenChange={setRelistModalOpen}
+        onOpenChange={(open) => {
+          setRelistModalOpen(open);
+          if (!open) {
+            setSelectedSpaceForRelist(null);
+          }
+        }}
         space={selectedSpaceForRelist}
         onSuccess={() => {
+          console.log('✅ Relist successful! Refreshing spaces on Index page...');
           fetchSpaces(); // Refresh the spaces list
         }}
       />
