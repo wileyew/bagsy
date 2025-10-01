@@ -111,6 +111,14 @@ export type Database = {
       profiles: {
         Row: {
           created_at: string
+          driver_license_expiration_date: string | null
+          driver_license_extracted_address: string | null
+          driver_license_extracted_name: string | null
+          driver_license_uploaded_at: string | null
+          driver_license_url: string | null
+          driver_license_verification_confidence: number | null
+          driver_license_verification_notes: string | null
+          driver_license_verified: boolean
           full_name: string | null
           id: string
           phone: string | null
@@ -119,6 +127,14 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          driver_license_expiration_date?: string | null
+          driver_license_extracted_address?: string | null
+          driver_license_extracted_name?: string | null
+          driver_license_uploaded_at?: string | null
+          driver_license_url?: string | null
+          driver_license_verification_confidence?: number | null
+          driver_license_verification_notes?: string | null
+          driver_license_verified?: boolean
           full_name?: string | null
           id?: string
           phone?: string | null
@@ -127,6 +143,14 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          driver_license_expiration_date?: string | null
+          driver_license_extracted_address?: string | null
+          driver_license_extracted_name?: string | null
+          driver_license_uploaded_at?: string | null
+          driver_license_url?: string | null
+          driver_license_verification_confidence?: number | null
+          driver_license_verification_notes?: string | null
+          driver_license_verified?: boolean
           full_name?: string | null
           id?: string
           phone?: string | null

@@ -23,6 +23,8 @@ import { createComponentDebugger } from "@/lib/debug-utils";
 import { runFullStorageTest } from "@/lib/storage-test";
 import { getPhotoUploadErrorMessage, getPhotoUploadSuccessMessage } from "@/lib/photo-upload-error-messages";
 import { timezoneService } from "@/lib/timezone-service";
+import { DriverLicenseUpload } from "@/components/auth/driver-license-upload";
+import { licenseVerificationService, type AddressVerificationResult } from "@/lib/license-verification-service";
 
 interface AISpaceListingModalProps {
   open: boolean;
@@ -153,16 +155,57 @@ export function AISpaceListingModal({ open, onOpenChange }: AISpaceListingModalP
   const [uploading, setUploading] = useState(false);
   const [analyzing, setAnalyzing] = useState(false);
   const [scraping, setScraping] = useState(false);
-  const [step, setStep] = useState<'upload' | 'analyze' | 'review' | 'manual' | 'confirm'>('upload');
+  const [step, setStep] = useState<'verify_license' | 'upload' | 'analyze' | 'review' | 'manual' | 'confirm'>('verify_license');
   const [currentLocation, setCurrentLocation] = useState<LocationData | null>(null);
   const [locationLoading, setLocationLoading] = useState(false);
   const [aiRecommendations, setAiRecommendations] = useState<AIRecommendation[]>([]);
   const [recommendationsLoading, setRecommendationsLoading] = useState(false);
   const [requestStatus, setRequestStatus] = useState({ count: 0, maxRequests: 2, isBlocked: false, remaining: 2 });
+  const [hasDriverLicense, setHasDriverLicense] = useState<boolean | null>(null);
+  const [checkingLicense, setCheckingLicense] = useState(true);
+  const [addressVerification, setAddressVerification] = useState<AddressVerificationResult | null>(null);
+  const [verifyingAddress, setVerifyingAddress] = useState(false);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
   const { listingsCount } = useUserListingsCount();
+
+  // Check for existing driver's license on mount
+  useEffect(() => {
+    const checkDriverLicense = async () => {
+      if (!user || !open) {
+        setCheckingLicense(false);
+        return;
+      }
+
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('driver_license_url')
+          .eq('user_id', user.id)
+          .single();
+
+        if (error) throw error;
+
+        const hasLicense = !!data?.driver_license_url;
+        setHasDriverLicense(hasLicense);
+        
+        // If user has license, skip to upload step
+        if (hasLicense) {
+          setStep('upload');
+        }
+      } catch (error) {
+        console.error('Error checking driver license:', error);
+        setHasDriverLicense(false);
+      } finally {
+        setCheckingLicense(false);
+      }
+    };
+
+    if (open) {
+      checkDriverLicense();
+    }
+  }, [user, open]);
 
   // Debug form data changes
   useEffect(() => {
@@ -211,6 +254,9 @@ export function AISpaceListingModal({ open, onOpenChange }: AISpaceListingModalP
         });
         
         debug.info('Timezone auto-detected', timezoneData);
+
+        // Verify address against driver's license if available
+        await verifyListingAddress(value, formData.zipCode);
       } catch (error) {
         debug.error('Timezone detection failed', error);
         setFormData(prev => ({ ...prev, [field]: value }));
@@ -228,6 +274,125 @@ export function AISpaceListingModal({ open, onOpenChange }: AISpaceListingModalP
         debug.stateChange(field, prev[field], value);
         return newData;
       });
+    }
+  };
+
+  // Verify listing address against driver's license
+  const verifyListingAddress = async (address: string, zipCode: string) => {
+    if (!user || !address) return;
+
+    try {
+      setVerifyingAddress(true);
+      debug.info('Verifying listing address against license', { address, zipCode });
+
+      // Get the driver's license URL from profile
+      const { data: profile, error } = await supabase
+        .from('profiles')
+        .select('driver_license_url, driver_license_extracted_address, driver_license_verification_confidence')
+        .eq('user_id', user.id)
+        .single();
+
+      if (error || !profile?.driver_license_url) {
+        debug.warn('No driver license found for verification');
+        return;
+      }
+
+      // If we already have extracted address, use it
+      if (profile.driver_license_extracted_address) {
+        // Quick verification using stored data
+        const normalizeAddr = (addr: string) => addr.toLowerCase().replace(/[^\w\s]/g, '').trim();
+        const licenseAddr = normalizeAddr(profile.driver_license_extracted_address);
+        const listingAddr = normalizeAddr(address);
+        
+        const isMatch = licenseAddr.includes(listingAddr.split(' ')[0]) || 
+                       listingAddr.includes(licenseAddr.split(' ')[0]);
+        
+        setAddressVerification({
+          isMatch,
+          confidence: profile.driver_license_verification_confidence || 0,
+          extractedAddress: profile.driver_license_extracted_address,
+          providedAddress: address,
+          matchDetails: {
+            streetMatch: isMatch,
+            cityMatch: false,
+            stateMatch: false,
+            zipMatch: false
+          },
+          warnings: isMatch ? [] : ['Address does not match your driver\'s license'],
+          suggestions: isMatch ? [] : ['Verify the listing address is correct']
+        });
+
+        if (!isMatch) {
+          toast({
+            title: "Address Mismatch",
+            description: "The listing address doesn't match your driver's license. You can still proceed, but verification may be required.",
+            variant: "destructive",
+            duration: 6000,
+          });
+        }
+      } else {
+        // First time - extract and verify
+        const result = await licenseVerificationService.verifyLicense(
+          profile.driver_license_url,
+          address,
+          zipCode
+        );
+
+        setAddressVerification(result.verification);
+
+        // Store the extracted info in the profile
+        await supabase
+          .from('profiles')
+          .update({
+            driver_license_extracted_address: result.extracted.fullAddress,
+            driver_license_extracted_name: result.extracted.name,
+            driver_license_expiration_date: result.extracted.expirationDate,
+            driver_license_verification_confidence: Math.round(result.verification.confidence),
+            driver_license_verification_notes: result.overallStatus === 'verified' 
+              ? 'Automatically verified via AI'
+              : `Status: ${result.overallStatus}. ${result.verification.warnings.join('. ')}`
+          })
+          .eq('user_id', user.id);
+
+        if (result.isExpired) {
+          toast({
+            title: "⚠️ Expired License",
+            description: "Your driver's license appears to be expired. Please update it to continue listing.",
+            variant: "destructive",
+            duration: 8000,
+          });
+        } else if (result.overallStatus === 'verified') {
+          toast({
+            title: "✅ Address Verified",
+            description: "Your listing address matches your driver's license!",
+            duration: 4000,
+          });
+        } else if (result.overallStatus === 'needs_review') {
+          toast({
+            title: "⚠️ Address Verification",
+            description: "The addresses partially match. Your listing may need additional review.",
+            variant: "destructive",
+            duration: 6000,
+          });
+        } else {
+          toast({
+            title: "❌ Address Mismatch",
+            description: "The listing address doesn't match your license. You can proceed but verification will be required.",
+            variant: "destructive",
+            duration: 8000,
+          });
+        }
+      }
+    } catch (error) {
+      debug.error('Address verification failed', error);
+      // Don't block the user if verification fails
+      toast({
+        title: "Verification Unavailable",
+        description: "Could not verify address automatically. Your listing may need manual review.",
+        duration: 4000,
+      });
+    } finally {
+      setVerifyingAddress(false);
     }
   };
 
@@ -1628,6 +1793,7 @@ Thank you!`);
             AI-Powered Driveway Listing
           </DialogTitle>
           <p className="text-muted-foreground">
+            {step === 'verify_license' && "Verify your identity to list your space"}
             {step === 'upload' && "Upload photos and enter location - AI will do the rest!"}
             {step === 'analyze' && "AI is analyzing your photos..."}
             {step === 'review' && "Review AI suggestions and make any adjustments"}
@@ -1661,6 +1827,26 @@ Thank you!`);
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Step 0: Driver's License Verification */}
+          {step === 'verify_license' && (
+            <div className="py-4">
+              {checkingLicense ? (
+                <div className="text-center py-12">
+                  <LoadingDots size="lg" className="text-primary mx-auto mb-4" />
+                  <p className="text-muted-foreground">Checking verification status...</p>
+                </div>
+              ) : (
+                <DriverLicenseUpload
+                  onVerificationComplete={() => {
+                    setHasDriverLicense(true);
+                    setStep('upload');
+                  }}
+                  showSkip={false}
+                />
+              )}
+            </div>
+          )}
+
           {/* Step 1: Upload Photos and Location */}
           {step === 'upload' && (
             <>
@@ -1783,7 +1969,50 @@ Thank you!`);
                         onChange={(e) => handleInputChange("address", e.target.value)}
                         className="apple-input pl-10 h-12"
                       />
+                      {verifyingAddress && (
+                        <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                          <LoadingDots size="sm" className="text-primary" />
+                        </div>
+                      )}
+                      {addressVerification && formData.address && (
+                        <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                          {addressVerification.isMatch ? (
+                            <CheckCircle className="h-5 w-5 text-green-600" />
+                          ) : (
+                            <X className="h-5 w-5 text-yellow-600" />
+                          )}
+                        </div>
+                      )}
                     </div>
+                    {addressVerification && formData.address && !addressVerification.isMatch && (
+                      <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mt-2">
+                        <div className="flex items-start gap-2">
+                          <X className="h-5 w-5 text-yellow-600 mt-0.5 flex-shrink-0" />
+                          <div className="space-y-1">
+                            <p className="text-sm font-semibold text-yellow-900">Address Verification Notice</p>
+                            <p className="text-xs text-yellow-800">
+                              License Address: {addressVerification.extractedAddress || 'Not available'}
+                            </p>
+                            <p className="text-xs text-yellow-700 mt-1">
+                              The address you're listing doesn't match your driver's license. You can still proceed, but your listing may require additional verification.
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                    {addressVerification && formData.address && addressVerification.isMatch && (
+                      <div className="bg-green-50 border border-green-200 rounded-lg p-3 mt-2">
+                        <div className="flex items-start gap-2">
+                          <CheckCircle className="h-5 w-5 text-green-600 mt-0.5 flex-shrink-0" />
+                          <div>
+                            <p className="text-sm font-semibold text-green-900">✅ Address Verified</p>
+                            <p className="text-xs text-green-700">
+                              This address matches your driver's license
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
                       <Button
                         type="button"
                         variant="outline"
