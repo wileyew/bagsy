@@ -14,7 +14,8 @@ export function useUserListingsCount() {
     } else {
       setListingsCount(0);
     }
-  }, [user]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id]); // Only depend on user.id to avoid infinite loops
 
   const fetchListingsCount = async () => {
     if (!user) return;

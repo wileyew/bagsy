@@ -98,7 +98,7 @@ export function useAuth() {
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: `https://bagsy.space/auth/callback`,
+        redirectTo: `${window.location.origin}/auth/callback`,
       },
     });
 
@@ -123,7 +123,7 @@ export function useAuth() {
 
   const resetPassword = async (email: string) => {
     const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `https://bagsy.space/auth/reset-password`,
+      redirectTo: `${window.location.origin}/auth/reset-password`,
     });
 
     // Don't update global loading state here - this is a one-time operation

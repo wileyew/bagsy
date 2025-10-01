@@ -36,12 +36,11 @@ class WebScrapingService {
   
   constructor() {
     this.apiKey = import.meta.env.VITE_SCRAPINGBEE_API_KEY || '';
-    this.debug.logApiKey('ScrapingBee', !!this.apiKey);
     this.debug.info('Service initialized', { 
       hasApiKey: !!this.apiKey,
       baseUrl: this.baseUrl,
       apiKeyLength: this.apiKey.length,
-      apiKeyPrefix: this.apiKey.substring(0, 8) + '...', // Show first 8 chars for debugging
+      apiKeyPrefix: this.apiKey ? this.apiKey.substring(0, 8) + '...' : 'none', // Show first 8 chars for debugging
       environment: import.meta.env.MODE
     });
     
