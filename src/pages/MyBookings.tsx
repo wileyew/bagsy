@@ -12,6 +12,7 @@ import { useNavigate } from 'react-router-dom';
 import { NegotiationPanel } from '@/components/bookings/negotiation-panel';
 import { PaymentForm } from '@/components/bookings/payment-form';
 import { AgreementSignature } from '@/components/bookings/agreement-signature';
+import { BookingConfirmation } from '@/components/spaces/booking-confirmation';
 
 const MyBookings = () => {
   const { user } = useAuthContext();
@@ -20,7 +21,7 @@ const MyBookings = () => {
   const [bookings, setBookings] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedBooking, setSelectedBooking] = useState<any>(null);
-  const [view, setView] = useState<'list' | 'detail'>('list');
+  const [view, setView] = useState<'list' | 'detail' | 'confirmation'>('list');
 
   useEffect(() => {
     if (user) {
@@ -103,6 +104,11 @@ const MyBookings = () => {
     setView('detail');
   };
 
+  const handleShowConfirmation = (booking: any) => {
+    setSelectedBooking(booking);
+    setView('confirmation');
+  };
+
   const getStatusBadge = (status: string) => {
     const statusConfig: Record<string, { label: string; variant: any }> = {
       pending: { label: 'Pending', variant: 'secondary' },
@@ -150,6 +156,35 @@ const MyBookings = () => {
               </Card>
             ))}
           </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (view === 'confirmation' && selectedBooking) {
+    return (
+      <div className="min-h-screen bg-gray-50 py-4 sm:py-6 md:py-8">
+        <div className="max-w-4xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8">
+          <div className="mb-6">
+            <Button
+              variant="ghost"
+              onClick={() => {
+                setView('list');
+                setSelectedBooking(null);
+              }}
+            >
+              ← Back to Bookings
+            </Button>
+          </div>
+          
+          <BookingConfirmation
+            booking={selectedBooking}
+            onClose={() => {
+              setView('list');
+              setSelectedBooking(null);
+            }}
+            onPaymentSetup={() => fetchBookings()}
+          />
         </div>
       </div>
     );
@@ -314,9 +349,14 @@ const MyBookings = () => {
                         </div>
                       )}
                     </div>
-                    <Button onClick={() => handleViewDetails(booking)}>
-                      View Details
-                    </Button>
+                    <div className="flex gap-2">
+                      <Button onClick={() => handleViewDetails(booking)} variant="outline">
+                        View Details
+                      </Button>
+                      <Button onClick={() => handleShowConfirmation(booking)}>
+                        View Confirmation
+                      </Button>
+                    </div>
                   </div>
                 </CardContent>
               </Card>

@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { 
   MapPin, 
   DollarSign, 
@@ -14,8 +15,14 @@ import {
   Trash2,
   RotateCcw,
   Flag,
-  AlertTriangle
+  AlertTriangle,
+  Shield,
+  CreditCard,
+  User,
+  Lock
 } from 'lucide-react';
+import { useAuthContext } from '@/contexts/auth-context';
+import { tieredVerificationService, type VerificationTier, type UserVerificationStatus } from '@/lib/tiered-verification-service';
 
 interface SpacePhoto {
   id: string;
@@ -71,6 +78,53 @@ export const SpaceCard: React.FC<SpaceCardProps> = ({
   showSpecialInstructions = true,
   currentUserId
 }) => {
+  const { user } = useAuthContext();
+  const [verificationStatus, setVerificationStatus] = useState<UserVerificationStatus | null>(null);
+  const [loadingVerification, setLoadingVerification] = useState(false);
+
+  // Load user verification status
+  useEffect(() => {
+    if (user && !isOwner) {
+      loadUserVerificationStatus();
+    }
+  }, [user, currentUserId]);
+
+  const loadUserVerificationStatus = async () => {
+    if (!user) return;
+
+    setLoadingVerification(true);
+    try {
+      const status = await tieredVerificationService.getUserVerificationStatus(user.id);
+      setVerificationStatus(status);
+    } catch (error) {
+      console.error('Failed to load verification status:', error);
+    } finally {
+      setLoadingVerification(false);
+    }
+  };
+
+  const canBook = () => {
+    if (isExpired) return false;
+    if (!user) return false;
+    if (isOwner) return false;
+    return verificationStatus?.paymentMethodSetup || false;
+  };
+
+  const getBookingButtonText = () => {
+    if (isExpired) return 'Expired';
+    if (!user) return 'Login to Book';
+    if (isOwner) return 'Your Space';
+    if (!verificationStatus?.paymentMethodSetup) return 'Verify to Book';
+    return 'Book Now';
+  };
+
+  const getBookingButtonIcon = () => {
+    if (isExpired) return <AlertTriangle className="h-4 w-4" />;
+    if (!user) return <User className="h-4 w-4" />;
+    if (isOwner) return <Edit className="h-4 w-4" />;
+    if (!verificationStatus?.paymentMethodSetup) return <Lock className="h-4 w-4" />;
+    return <Calendar className="h-4 w-4" />;
+  };
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
@@ -265,9 +319,10 @@ export const SpaceCard: React.FC<SpaceCardProps> = ({
                 <Button 
                   className="flex-1 apple-button-primary"
                   onClick={() => onBookNow(space)}
-                  disabled={isExpired}
+                  disabled={!canBook()}
                 >
-                  {isExpired ? 'Expired' : 'Book Now'}
+                  {getBookingButtonIcon()}
+                  <span className="ml-1">{getBookingButtonText()}</span>
                 </Button>
               )}
               {onReport && !isExpired && (
@@ -284,6 +339,28 @@ export const SpaceCard: React.FC<SpaceCardProps> = ({
             </div>
           )}
         </div>
+
+        {/* Verification Status Alert */}
+        {!isOwner && user && verificationStatus && !verificationStatus.paymentMethodSetup && (
+          <Alert className="mt-4">
+            <CreditCard className="h-4 w-4" />
+            <AlertDescription>
+              <div className="flex items-center justify-between">
+                <span className="text-sm">
+                  Set up payment method to book this space
+                </span>
+                <Button 
+                  size="sm" 
+                  variant="outline"
+                  onClick={() => onBookNow?.(space)}
+                  className="ml-2"
+                >
+                  Setup
+                </Button>
+              </div>
+            </AlertDescription>
+          </Alert>
+        )}
       </CardContent>
     </Card>
   );

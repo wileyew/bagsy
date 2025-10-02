@@ -11,7 +11,7 @@ import { UserMenu } from "@/components/auth/user-menu";
 import { AISpaceListingModal } from "@/components/spaces/ai-space-listing-modal";
 import { SpaceCard } from "@/components/spaces/SpaceCard";
 import { RelistModal } from "@/components/spaces/relist-modal";
-import { BookingModal } from "@/components/spaces/booking-modal";
+import { TieredBookingModal } from "@/components/spaces/tiered-booking-modal";
 import { BagsyLogo } from "@/components/ui/bagsy-logo";
 import { useAuthContext } from "@/contexts/auth-context";
 import { useToast } from "@/hooks/use-toast";
@@ -1059,7 +1059,7 @@ const Index = () => {
       />
 
       {/* Booking Modal */}
-      <BookingModal
+      <TieredBookingModal
         open={bookingModalOpen}
         onOpenChange={setBookingModalOpen}
         space={selectedSpaceForBooking}
