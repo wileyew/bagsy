@@ -95,11 +95,31 @@ export function useAuth() {
   };
 
   const signInWithGoogle = async () => {
+    const redirectUrl = `${window.location.origin}/auth/callback`;
+    
+    console.log('🔑 Calling Supabase OAuth with Google...', {
+      provider: 'google',
+      redirectTo: redirectUrl,
+      currentUrl: window.location.href
+    });
+
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
+        redirectTo: redirectUrl,
+        queryParams: {
+          access_type: 'offline',
+          prompt: 'consent',
+        }
       },
+    });
+
+    console.log('Supabase OAuth response:', {
+      hasData: !!data,
+      hasError: !!error,
+      provider: data?.provider,
+      url: data?.url ? 'URL generated' : 'No URL',
+      error: error
     });
 
     // Don't update global loading state here - let the auth state change listener handle it

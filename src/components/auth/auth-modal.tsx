@@ -71,19 +71,40 @@ export function AuthModal({ open, onOpenChange }: AuthModalProps) {
   };
 
   const handleGoogleSignIn = async () => {
+    console.log('🔐 Initiating Google sign-in...');
+    console.log('Current origin:', window.location.origin);
+    console.log('Expected redirect:', `${window.location.origin}/auth/callback`);
+    
     setIsLoading(true);
     try {
-      const { error } = await signInWithGoogle();
-      if (error) throw error;
+      const { data, error } = await signInWithGoogle();
+      
+      console.log('Google sign-in response:', {
+        hasData: !!data,
+        hasError: !!error,
+        data,
+        error
+      });
+      
+      if (error) {
+        console.error('❌ Google sign-in error:', error);
+        throw error;
+      }
+      
+      console.log('✅ Google sign-in initiated successfully');
+      console.log('Redirecting to Google OAuth...');
+      
+      // Note: User will be redirected to Google, then back to /auth/callback
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : "Failed to sign in with Google.";
+      console.error('❌ Google sign-in exception:', err);
+      
       toast({
         title: "Google sign-in error",
         description: errorMessage,
         variant: "destructive",
       });
-    } finally {
-      setIsLoading(false);
+      setIsLoading(false); // Only set to false on error, redirect will happen on success
     }
   };
 

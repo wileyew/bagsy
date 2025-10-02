@@ -9,22 +9,50 @@ export default function AuthCallback() {
 
   useEffect(() => {
     const handleAuthCallback = async () => {
+      console.log('🔄 Auth callback page loaded');
+      console.log('Current URL:', window.location.href);
+      console.log('URL params:', window.location.search);
+      
       try {
-        const { data, error } = await supabase.auth.getSession();
+        // Check for error in URL params first
+        const urlParams = new URLSearchParams(window.location.search);
+        const errorParam = urlParams.get('error');
+        const errorDescription = urlParams.get('error_description');
         
-        if (error) {
-          setError(error.message);
+        if (errorParam) {
+          console.error('❌ OAuth error in URL:', { errorParam, errorDescription });
+          setError(errorDescription || errorParam);
+          return;
+        }
+
+        console.log('Getting session from Supabase...');
+        const { data, error: sessionError } = await supabase.auth.getSession();
+        
+        console.log('Session response:', {
+          hasSession: !!data.session,
+          hasError: !!sessionError,
+          userId: data.session?.user?.id,
+          email: data.session?.user?.email,
+          error: sessionError
+        });
+        
+        if (sessionError) {
+          console.error('❌ Session error:', sessionError);
+          setError(sessionError.message);
           return;
         }
 
         if (data.session) {
+          console.log('✅ Session found! Redirecting to home...');
           // Successfully authenticated, redirect to home
           navigate("/", { replace: true });
         } else {
+          console.warn('⚠️ No session found after OAuth. Redirecting home...');
           // No session found, redirect to home
           navigate("/", { replace: true });
         }
       } catch (err: any) {
+        console.error('❌ Auth callback exception:', err);
         setError(err.message || "Authentication failed");
       }
     };
