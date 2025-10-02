@@ -44,38 +44,81 @@ VALUES ('driver-licenses', 'driver-licenses', false)
 ON CONFLICT (id) DO NOTHING;
 
 -- Storage policies for driver licenses bucket
+-- Note: These policies will be created automatically by Supabase when the bucket is created
+-- The storage.objects table already has RLS enabled by default in Supabase
+
 -- Allow authenticated users to upload their own driver license
-CREATE POLICY "Users can upload their own driver license"
-ON storage.objects FOR INSERT
-TO authenticated
-WITH CHECK (
-  bucket_id = 'driver-licenses' 
-  AND (storage.foldername(name))[1] = auth.uid()::text
-);
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies 
+    WHERE tablename = 'objects' 
+    AND schemaname = 'storage'
+    AND policyname = 'Users can upload their own driver license'
+  ) THEN
+    CREATE POLICY "Users can upload their own driver license"
+    ON storage.objects FOR INSERT
+    TO authenticated
+    WITH CHECK (
+      bucket_id = 'driver-licenses' 
+      AND (storage.foldername(name))[1] = auth.uid()::text
+    );
+  END IF;
+END $$;
 
 -- Allow users to read their own driver license
-CREATE POLICY "Users can read their own driver license"
-ON storage.objects FOR SELECT
-TO authenticated
-USING (
-  bucket_id = 'driver-licenses' 
-  AND (storage.foldername(name))[1] = auth.uid()::text
-);
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies 
+    WHERE tablename = 'objects' 
+    AND schemaname = 'storage'
+    AND policyname = 'Users can read their own driver license'
+  ) THEN
+    CREATE POLICY "Users can read their own driver license"
+    ON storage.objects FOR SELECT
+    TO authenticated
+    USING (
+      bucket_id = 'driver-licenses' 
+      AND (storage.foldername(name))[1] = auth.uid()::text
+    );
+  END IF;
+END $$;
 
 -- Allow users to update their own driver license
-CREATE POLICY "Users can update their own driver license"
-ON storage.objects FOR UPDATE
-TO authenticated
-USING (
-  bucket_id = 'driver-licenses' 
-  AND (storage.foldername(name))[1] = auth.uid()::text
-);
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies 
+    WHERE tablename = 'objects' 
+    AND schemaname = 'storage'
+    AND policyname = 'Users can update their own driver license'
+  ) THEN
+    CREATE POLICY "Users can update their own driver license"
+    ON storage.objects FOR UPDATE
+    TO authenticated
+    USING (
+      bucket_id = 'driver-licenses' 
+      AND (storage.foldername(name))[1] = auth.uid()::text
+    );
+  END IF;
+END $$;
 
 -- Allow users to delete their own driver license
-CREATE POLICY "Users can delete their own driver license"
-ON storage.objects FOR DELETE
-TO authenticated
-USING (
-  bucket_id = 'driver-licenses' 
-  AND (storage.foldername(name))[1] = auth.uid()::text
-);
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies 
+    WHERE tablename = 'objects' 
+    AND schemaname = 'storage'
+    AND policyname = 'Users can delete their own driver license'
+  ) THEN
+    CREATE POLICY "Users can delete their own driver license"
+    ON storage.objects FOR DELETE
+    TO authenticated
+    USING (
+      bucket_id = 'driver-licenses' 
+      AND (storage.foldername(name))[1] = auth.uid()::text
+    );
+  END IF;
+END $$;

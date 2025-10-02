@@ -86,62 +86,192 @@ DROP POLICY IF EXISTS "Users can view bookings for their spaces as owner" ON pub
 DROP POLICY IF EXISTS "Renters can update their bookings" ON public.bookings;
 DROP POLICY IF EXISTS "Owners can update bookings for their spaces" ON public.bookings;
 
-CREATE POLICY "Users can view their own bookings as renter" 
-ON public.bookings FOR SELECT 
-USING (auth.uid() = renter_id);
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies 
+    WHERE tablename = 'bookings' 
+    AND schemaname = 'public'
+    AND policyname = 'Users can view their own bookings as renter'
+  ) THEN
+    CREATE POLICY "Users can view their own bookings as renter" 
+    ON public.bookings FOR SELECT 
+    USING (auth.uid() = renter_id);
+  END IF;
+END $$;
 
-CREATE POLICY "Users can view bookings for their spaces as owner" 
-ON public.bookings FOR SELECT 
-USING (auth.uid() = owner_id);
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies 
+    WHERE tablename = 'bookings' 
+    AND schemaname = 'public'
+    AND policyname = 'Users can view bookings for their spaces as owner'
+  ) THEN
+    CREATE POLICY "Users can view bookings for their spaces as owner" 
+    ON public.bookings FOR SELECT 
+    USING (auth.uid() = owner_id);
+  END IF;
+END $$;
 
-CREATE POLICY "Renters can update their bookings" 
-ON public.bookings FOR UPDATE 
-USING (auth.uid() = renter_id);
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies 
+    WHERE tablename = 'bookings' 
+    AND schemaname = 'public'
+    AND policyname = 'Renters can update their bookings'
+  ) THEN
+    CREATE POLICY "Renters can update their bookings" 
+    ON public.bookings FOR UPDATE 
+    USING (auth.uid() = renter_id);
+  END IF;
+END $$;
 
-CREATE POLICY "Owners can update bookings for their spaces" 
-ON public.bookings FOR UPDATE 
-USING (auth.uid() = owner_id);
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies 
+    WHERE tablename = 'bookings' 
+    AND schemaname = 'public'
+    AND policyname = 'Owners can update bookings for their spaces'
+  ) THEN
+    CREATE POLICY "Owners can update bookings for their spaces" 
+    ON public.bookings FOR UPDATE 
+    USING (auth.uid() = owner_id);
+  END IF;
+END $$;
 
 -- RLS Policies for existing negotiations table (enhanced)
 DROP POLICY IF EXISTS "Users can update negotiations sent to them" ON public.negotiations;
 
-CREATE POLICY "Users can update negotiations sent to them" 
-ON public.negotiations FOR UPDATE 
-USING (auth.uid() = to_user_id);
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies 
+    WHERE tablename = 'negotiations' 
+    AND schemaname = 'public'
+    AND policyname = 'Users can update negotiations sent to them'
+  ) THEN
+    CREATE POLICY "Users can update negotiations sent to them" 
+    ON public.negotiations FOR UPDATE 
+    USING (auth.uid() = to_user_id);
+  END IF;
+END $$;
 
 -- Agreements RLS Policies
-CREATE POLICY "Renters can view their agreements" 
-ON public.agreements FOR SELECT 
-USING (auth.uid() = renter_id);
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies 
+    WHERE tablename = 'agreements' 
+    AND schemaname = 'public'
+    AND policyname = 'Renters can view their agreements'
+  ) THEN
+    CREATE POLICY "Renters can view their agreements" 
+    ON public.agreements FOR SELECT 
+    USING (auth.uid() = renter_id);
+  END IF;
+END $$;
 
-CREATE POLICY "Owners can view agreements for their spaces" 
-ON public.agreements FOR SELECT 
-USING (auth.uid() = owner_id);
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies 
+    WHERE tablename = 'agreements' 
+    AND schemaname = 'public'
+    AND policyname = 'Owners can view agreements for their spaces'
+  ) THEN
+    CREATE POLICY "Owners can view agreements for their spaces" 
+    ON public.agreements FOR SELECT 
+    USING (auth.uid() = owner_id);
+  END IF;
+END $$;
 
-CREATE POLICY "System can create agreements" 
-ON public.agreements FOR INSERT 
-WITH CHECK (auth.uid() = renter_id OR auth.uid() = owner_id);
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies 
+    WHERE tablename = 'agreements' 
+    AND schemaname = 'public'
+    AND policyname = 'System can create agreements'
+  ) THEN
+    CREATE POLICY "System can create agreements" 
+    ON public.agreements FOR INSERT 
+    WITH CHECK (auth.uid() = renter_id OR auth.uid() = owner_id);
+  END IF;
+END $$;
 
-CREATE POLICY "Renters can sign their agreements" 
-ON public.agreements FOR UPDATE 
-USING (auth.uid() = renter_id);
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies 
+    WHERE tablename = 'agreements' 
+    AND schemaname = 'public'
+    AND policyname = 'Renters can sign their agreements'
+  ) THEN
+    CREATE POLICY "Renters can sign their agreements" 
+    ON public.agreements FOR UPDATE 
+    USING (auth.uid() = renter_id);
+  END IF;
+END $$;
 
-CREATE POLICY "Owners can sign their agreements" 
-ON public.agreements FOR UPDATE 
-USING (auth.uid() = owner_id);
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies 
+    WHERE tablename = 'agreements' 
+    AND schemaname = 'public'
+    AND policyname = 'Owners can sign their agreements'
+  ) THEN
+    CREATE POLICY "Owners can sign their agreements" 
+    ON public.agreements FOR UPDATE 
+    USING (auth.uid() = owner_id);
+  END IF;
+END $$;
 
 -- Notifications RLS Policies
-CREATE POLICY "Users can view their own notifications" 
-ON public.notifications FOR SELECT 
-USING (auth.uid() = user_id);
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies 
+    WHERE tablename = 'notifications' 
+    AND schemaname = 'public'
+    AND policyname = 'Users can view their own notifications'
+  ) THEN
+    CREATE POLICY "Users can view their own notifications" 
+    ON public.notifications FOR SELECT 
+    USING (auth.uid() = user_id);
+  END IF;
+END $$;
 
-CREATE POLICY "Users can update their own notifications" 
-ON public.notifications FOR UPDATE 
-USING (auth.uid() = user_id);
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies 
+    WHERE tablename = 'notifications' 
+    AND schemaname = 'public'
+    AND policyname = 'Users can update their own notifications'
+  ) THEN
+    CREATE POLICY "Users can update their own notifications" 
+    ON public.notifications FOR UPDATE 
+    USING (auth.uid() = user_id);
+  END IF;
+END $$;
 
-CREATE POLICY "System can create notifications" 
-ON public.notifications FOR INSERT 
-WITH CHECK (true);
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies 
+    WHERE tablename = 'notifications' 
+    AND schemaname = 'public'
+    AND policyname = 'System can create notifications'
+  ) THEN
+    CREATE POLICY "System can create notifications" 
+    ON public.notifications FOR INSERT 
+    WITH CHECK (true);
+  END IF;
+END $$;
 
 -- Indexes for performance
 CREATE INDEX IF NOT EXISTS idx_bookings_space_id ON public.bookings(space_id);
