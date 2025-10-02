@@ -6,7 +6,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Card, CardContent } from "@/components/ui/card";
-import { Upload, X, MapPin, Sparkles, CheckCircle, Edit3, HelpCircle, ExternalLink, ArrowRight, Calendar, Plus } from "lucide-react";
+import { Upload, X, MapPin, Sparkles, CheckCircle, Edit3, HelpCircle, ExternalLink, ArrowRight, Calendar, Plus, ShieldCheck, Scale, AlertTriangle } from "lucide-react";
 import { useAuthContext } from "@/contexts/auth-context";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -25,6 +25,9 @@ import { getPhotoUploadErrorMessage, getPhotoUploadSuccessMessage } from "@/lib/
 import { timezoneService } from "@/lib/timezone-service";
 import { DriverLicenseUpload } from "@/components/auth/driver-license-upload";
 import { licenseVerificationService, type AddressVerificationResult } from "@/lib/license-verification-service";
+import { LicenseReviewCard } from "@/components/spaces/license-review-card";
+import { legalComplianceChecker, type LegalComplianceResult } from "@/lib/legal-compliance-checker";
+import { LegalComplianceWarning } from "@/components/spaces/legal-compliance-warning";
 
 interface AISpaceListingModalProps {
   open: boolean;
@@ -165,6 +168,12 @@ export function AISpaceListingModal({ open, onOpenChange }: AISpaceListingModalP
   const [checkingLicense, setCheckingLicense] = useState(true);
   const [addressVerification, setAddressVerification] = useState<AddressVerificationResult | null>(null);
   const [verifyingAddress, setVerifyingAddress] = useState(false);
+  const [licenseUrl, setLicenseUrl] = useState<string | null>(null);
+  const [licenseVerified, setLicenseVerified] = useState(false);
+  const [extractedAddress, setExtractedAddress] = useState<string | null>(null);
+  const [verificationConfidence, setVerificationConfidence] = useState<number | null>(null);
+  const [legalCompliance, setLegalCompliance] = useState<LegalComplianceResult | null>(null);
+  const [checkingLegalCompliance, setCheckingLegalCompliance] = useState(false);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
@@ -179,24 +188,55 @@ export function AISpaceListingModal({ open, onOpenChange }: AISpaceListingModalP
       }
 
       try {
+        console.log('AISpaceListingModal: Checking for driver license...', { userId: user.id });
+        
         const { data, error } = await supabase
           .from('profiles')
-          .select('driver_license_url')
+          .select('driver_license_url, driver_license_verified, driver_license_extracted_address, driver_license_verification_confidence')
           .eq('user_id', user.id)
-          .single();
+          .maybeSingle(); // Handle missing records gracefully
 
-        if (error) throw error;
+        console.log('Driver license check result:', { data, error });
+
+        if (error) {
+          // If column doesn't exist (400 error), skip verification step
+          if (error.code === 'PGRST116' || error.message.includes('column') || error.message.includes('does not exist')) {
+            console.warn('⚠️ Driver license columns not found - skipping verification step');
+            console.warn('Migration needs to be run. User can proceed without license check.');
+            setHasDriverLicense(false);
+            setStep('upload'); // Skip license verification if DB not ready
+            setCheckingLicense(false);
+            return;
+          }
+          throw error;
+        }
 
         const hasLicense = !!data?.driver_license_url;
         setHasDriverLicense(hasLicense);
+        
+        // Store license info for review page (with type safety)
+        if (data) {
+          setLicenseUrl((data as any).driver_license_url || null);
+          setLicenseVerified((data as any).driver_license_verified || false);
+          setExtractedAddress((data as any).driver_license_extracted_address || null);
+          setVerificationConfidence((data as any).driver_license_verification_confidence || null);
+        }
+        
+        console.log('Driver license status:', { 
+          hasLicense,
+          licenseUrl: data?.driver_license_url ? 'SET' : 'NULL',
+          extractedAddress: (data as any)?.driver_license_extracted_address
+        });
         
         // If user has license, skip to upload step
         if (hasLicense) {
           setStep('upload');
         }
       } catch (error) {
-        console.error('Error checking driver license:', error);
+        console.error('❌ Error checking driver license:', error);
         setHasDriverLicense(false);
+        // Skip to upload step even on error - don't block user
+        setStep('upload');
       } finally {
         setCheckingLicense(false);
       }
@@ -257,6 +297,9 @@ export function AISpaceListingModal({ open, onOpenChange }: AISpaceListingModalP
 
         // Verify address against driver's license if available
         await verifyListingAddress(value, formData.zipCode);
+        
+        // Check legal compliance for the location
+        await checkLegalCompliance(value, formData.zipCode);
       } catch (error) {
         debug.error('Timezone detection failed', error);
         setFormData(prev => ({ ...prev, [field]: value }));
@@ -393,6 +436,59 @@ export function AISpaceListingModal({ open, onOpenChange }: AISpaceListingModalP
       });
     } finally {
       setVerifyingAddress(false);
+    }
+  };
+
+  // Check legal compliance for the location
+  const checkLegalCompliance = async (address: string, zipCode: string) => {
+    if (!address) return;
+
+    try {
+      setCheckingLegalCompliance(true);
+      debug.info('Checking legal compliance for address', { address, zipCode });
+
+      const result = await legalComplianceChecker.checkCompliance(address, zipCode);
+      
+      setLegalCompliance(result);
+      
+      debug.info('Legal compliance check complete', {
+        isAllowed: result.isAllowed,
+        certainty: result.certainty,
+        city: result.city,
+        state: result.state
+      });
+
+      // Show toast based on result
+      if (!result.isAllowed) {
+        toast({
+          title: "⚠️ Legal Restriction Warning",
+          description: `Driveway rentals may not be allowed in ${result.city}, ${result.state}. Please verify local laws.`,
+          variant: "destructive",
+          duration: 8000,
+        });
+      } else if (result.warnings.length > 0) {
+        toast({
+          title: "📋 Local Regulations Apply",
+          description: `Check local requirements for ${result.city}, ${result.state}`,
+          duration: 6000,
+        });
+      } else {
+        toast({
+          title: "✅ Legal to List",
+          description: `Driveway rentals are allowed in ${result.city}, ${result.state}`,
+          duration: 4000,
+        });
+      }
+    } catch (error) {
+      debug.error('Legal compliance check failed', error);
+      // Don't block user if check fails
+      toast({
+        title: "Unable to Verify Laws",
+        description: "Could not check local regulations. Please verify compliance yourself.",
+        duration: 4000,
+      });
+    } finally {
+      setCheckingLegalCompliance(false);
     }
   };
 
@@ -1803,26 +1899,40 @@ Thank you!`);
         </DialogHeader>
 
         {/* Step Indicator */}
-        <div className="flex items-center justify-center space-x-4 mb-6">
-          <div className={`flex items-center space-x-2 ${step === 'upload' ? 'text-primary' : 'text-muted-foreground'}`}>
-            <div className={`w-8 h-8 rounded-full flex items-center justify-center ${step === 'upload' ? 'bg-primary text-primary-foreground' : 'bg-muted'}`}>
-              1
+        <div className="flex items-center justify-center space-x-2 sm:space-x-4 mb-6 overflow-x-auto pb-2">
+          {/* Step 1: Verify License */}
+          <div className={`flex items-center space-x-2 ${step === 'verify_license' ? 'text-primary' : step === 'upload' || step === 'analyze' || step === 'review' || step === 'confirm' ? 'text-green-600' : 'text-muted-foreground'}`}>
+            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs sm:text-sm ${step === 'verify_license' ? 'bg-primary text-primary-foreground' : hasDriverLicense ? 'bg-green-600 text-white' : 'bg-muted'}`}>
+              {hasDriverLicense ? '✓' : '1'}
             </div>
-            <span className="text-sm font-medium">Upload</span>
+            <span className="text-xs sm:text-sm font-medium whitespace-nowrap">Verify ID</span>
           </div>
-          <div className={`w-8 h-0.5 ${step === 'analyze' || step === 'review' || step === 'confirm' ? 'bg-primary' : 'bg-muted'}`} />
-          <div className={`flex items-center space-x-2 ${step === 'analyze' ? 'text-primary' : 'text-muted-foreground'}`}>
-            <div className={`w-8 h-8 rounded-full flex items-center justify-center ${step === 'analyze' ? 'bg-primary text-primary-foreground' : 'bg-muted'}`}>
+          <div className={`w-4 sm:w-8 h-0.5 ${step === 'upload' || step === 'analyze' || step === 'review' || step === 'confirm' ? 'bg-primary' : 'bg-muted'}`} />
+          
+          {/* Step 2: Upload Photos */}
+          <div className={`flex items-center space-x-2 ${step === 'upload' ? 'text-primary' : 'text-muted-foreground'}`}>
+            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs sm:text-sm ${step === 'upload' ? 'bg-primary text-primary-foreground' : 'bg-muted'}`}>
               2
             </div>
-            <span className="text-sm font-medium">Analyze</span>
+            <span className="text-xs sm:text-sm font-medium whitespace-nowrap">Upload</span>
           </div>
-          <div className={`w-8 h-0.5 ${step === 'review' || step === 'manual' || step === 'confirm' ? 'bg-primary' : 'bg-muted'}`} />
-          <div className={`flex items-center space-x-2 ${step === 'review' || step === 'manual' || step === 'confirm' ? 'text-primary' : 'text-muted-foreground'}`}>
-            <div className={`w-8 h-8 rounded-full flex items-center justify-center ${step === 'review' || step === 'manual' || step === 'confirm' ? 'bg-primary text-primary-foreground' : 'bg-muted'}`}>
+          <div className={`w-4 sm:w-8 h-0.5 ${step === 'analyze' || step === 'review' || step === 'confirm' ? 'bg-primary' : 'bg-muted'}`} />
+          
+          {/* Step 3: AI Analysis */}
+          <div className={`flex items-center space-x-2 ${step === 'analyze' ? 'text-primary' : 'text-muted-foreground'}`}>
+            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs sm:text-sm ${step === 'analyze' ? 'bg-primary text-primary-foreground' : 'bg-muted'}`}>
               3
             </div>
-            <span className="text-sm font-medium">Review/Manual</span>
+            <span className="text-xs sm:text-sm font-medium whitespace-nowrap">Analyze</span>
+          </div>
+          <div className={`w-4 sm:w-8 h-0.5 ${step === 'review' || step === 'manual' || step === 'confirm' ? 'bg-primary' : 'bg-muted'}`} />
+          
+          {/* Step 4: Review */}
+          <div className={`flex items-center space-x-2 ${step === 'review' || step === 'manual' || step === 'confirm' ? 'text-primary' : 'text-muted-foreground'}`}>
+            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs sm:text-sm ${step === 'review' || step === 'manual' || step === 'confirm' ? 'bg-primary text-primary-foreground' : 'bg-muted'}`}>
+              4
+            </div>
+            <span className="text-xs sm:text-sm font-medium whitespace-nowrap">Review</span>
           </div>
         </div>
 
@@ -1837,11 +1947,36 @@ Thank you!`);
                 </div>
               ) : (
                 <DriverLicenseUpload
-                  onVerificationComplete={() => {
+                  onVerificationComplete={async () => {
+                    console.log('✅ License uploaded! Reloading license data...');
                     setHasDriverLicense(true);
+                    
+                    // Reload license info from database
+                    try {
+                      const { data } = await supabase
+                        .from('profiles')
+                        .select('driver_license_url, driver_license_verified, driver_license_extracted_address, driver_license_verification_confidence')
+                        .eq('user_id', user.id)
+                        .maybeSingle();
+                      
+                      if (data) {
+                        setLicenseUrl(data.driver_license_url);
+                        setLicenseVerified(data.driver_license_verified || false);
+                        setExtractedAddress(data.driver_license_extracted_address);
+                        setVerificationConfidence(data.driver_license_verification_confidence);
+                        console.log('License data reloaded:', { 
+                          hasUrl: !!data.driver_license_url,
+                          extractedAddress: data.driver_license_extracted_address
+                        });
+                      }
+                    } catch (err) {
+                      console.error('Error reloading license:', err);
+                    }
+                    
                     setStep('upload');
                   }}
                   showSkip={false}
+                  allowUpdate={false}
                 />
               )}
             </div>
@@ -3445,27 +3580,95 @@ Thank you!`);
                 </div>
               </div>
 
-              <div className="flex space-x-4">
+              {/* Driver's License Review & Address Verification */}
+              {licenseUrl && formData.address && (
+                <div className="space-y-4 mt-6">
+                  <h3 className="text-lg font-semibold flex items-center gap-2">
+                    <ShieldCheck className="h-5 w-5 text-primary" />
+                    Identity & Address Verification
+                  </h3>
+                  
+                  <LicenseReviewCard
+                    licenseUrl={licenseUrl}
+                    isVerified={licenseVerified}
+                    extractedAddress={extractedAddress}
+                    listingAddress={formData.address}
+                    addressMatch={addressVerification?.isMatch || false}
+                    verificationConfidence={verificationConfidence}
+                    onUpdateLicense={() => {
+                      console.log('User wants to update license - going back to step 1');
+                      setStep('verify_license');
+                    }}
+                  />
+                </div>
+              )}
+
+              {/* Legal Compliance Check */}
+              {formData.address && (
+                <div className="space-y-4 mt-6">
+                  <h3 className="text-lg font-semibold flex items-center gap-2">
+                    <Scale className="h-5 w-5 text-primary" />
+                    Legal Compliance Check
+                  </h3>
+                  
+                  <LegalComplianceWarning
+                    complianceResult={legalCompliance}
+                    loading={checkingLegalCompliance}
+                  />
+                </div>
+              )}
+
+              <div className="flex gap-3 mt-6">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    console.log('Going back to license verification step');
+                    setStep('verify_license');
+                  }}
+                  className="px-6"
+                  disabled={loading}
+                >
+                  ← License
+                </Button>
                 <Button
                   type="button"
                   variant="outline"
                   onClick={() => setStep('review')}
-                  className="flex-1 apple-button-secondary h-12"
+                  className="flex-1"
+                  disabled={loading}
                 >
-                  Back to Edit
+                  ← Edit
                 </Button>
                 <Button
                   type="submit"
-                  disabled={loading}
-                  className="flex-1 apple-button-primary h-12"
+                  disabled={
+                    loading || 
+                    (formData.address && addressVerification && !addressVerification.isMatch) ||
+                    (legalCompliance && !legalCompliance.isAllowed && legalCompliance.certainty === 'high')
+                  }
+                  className="flex-1 apple-button-primary h-12 font-semibold"
+                  title={
+                    (formData.address && addressVerification && !addressVerification.isMatch) 
+                      ? 'Address must match driver\'s license to post listing' 
+                      : (legalCompliance && !legalCompliance.isAllowed && legalCompliance.certainty === 'high')
+                      ? 'Listings not allowed in this area due to local laws'
+                      : ''
+                  }
                 >
                   {loading ? (
                     <div className="flex items-center gap-2">
                       <LoadingDots />
                       Submitting...
                     </div>
+                  ) : (formData.address && addressVerification && !addressVerification.isMatch) ? (
+                    "❌ Address Mismatch - Cannot Post"
+                  ) : (legalCompliance && !legalCompliance.isAllowed && legalCompliance.certainty === 'high') ? (
+                    "❌ Not Allowed by Local Laws"
+                  ) : legalCompliance && legalCompliance.warnings.length > 0 ? (
+                    "⚠️ List with Restrictions"
                   ) : (
-                    "List My Space"
+                    "✅ List My Space"
                   )}
                 </Button>
               </div>

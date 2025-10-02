@@ -11,9 +11,19 @@ interface DriverLicenseUploadProps {
   onVerificationComplete?: () => void;
   showSkip?: boolean;
   onSkip?: () => void;
+  allowUpdate?: boolean; // Allow updating existing license
+  showBackButton?: boolean;
+  onBack?: () => void;
 }
 
-export function DriverLicenseUpload({ onVerificationComplete, showSkip = false, onSkip }: DriverLicenseUploadProps) {
+export function DriverLicenseUpload({ 
+  onVerificationComplete, 
+  showSkip = false, 
+  onSkip,
+  allowUpdate = false,
+  showBackButton = false,
+  onBack
+}: DriverLicenseUploadProps) {
   const { user } = useAuthContext();
   const [uploading, setUploading] = useState(false);
   const [licenseUrl, setLicenseUrl] = useState<string | null>(null);
@@ -28,21 +38,37 @@ export function DriverLicenseUpload({ onVerificationComplete, showSkip = false, 
       if (!user) return;
 
       try {
+        console.log('Checking for existing driver license...', { userId: user.id });
+        
         const { data, error } = await supabase
           .from('profiles')
           .select('driver_license_url, driver_license_verified')
           .eq('user_id', user.id)
-          .single();
+          .maybeSingle(); // Use maybeSingle() instead of single() to handle missing records
 
-        if (error) throw error;
+        console.log('Existing license check result:', { data, error });
+
+        if (error) {
+          // If column doesn't exist (400 error), skip gracefully
+          if (error.code === 'PGRST116' || error.message.includes('column') || error.message.includes('does not exist')) {
+            console.warn('⚠️ Driver license columns not yet created. Migration needs to be run.');
+            console.warn('Skipping license check - user can proceed without verification.');
+            return;
+          }
+          throw error;
+        }
 
         if (data?.driver_license_url) {
           setLicenseUrl(data.driver_license_url);
           setIsVerified(data.driver_license_verified || false);
           setHasExistingLicense(true);
+          console.log('✅ Existing license found');
+        } else {
+          console.log('No existing license found');
         }
       } catch (error) {
-        console.error('Error checking existing license:', error);
+        console.error('❌ Error checking existing license:', error);
+        // Don't block the user - they can still upload
       }
     };
 
@@ -124,22 +150,47 @@ export function DriverLicenseUpload({ onVerificationComplete, showSkip = false, 
       console.log('Got public URL:', publicUrl);
 
       // Update profile with driver's license URL
-      console.log('Updating profile...');
-      const { error: updateError } = await supabase
-        .from('profiles')
-        .update({
-          driver_license_url: publicUrl,
-          driver_license_uploaded_at: new Date().toISOString(),
-          driver_license_verified: false // Will be verified by admin/AI later
-        })
-        .eq('user_id', user.id);
+      console.log('Updating profile with driver license...');
+      
+      try {
+        const { error: updateError } = await supabase
+          .from('profiles')
+          .update({
+            driver_license_url: publicUrl,
+            driver_license_uploaded_at: new Date().toISOString(),
+            driver_license_verified: false // Will be verified by admin/AI later
+          })
+          .eq('user_id', user.id);
 
-      if (updateError) {
-        console.error('Profile update error:', updateError);
-        throw updateError;
+        if (updateError) {
+          console.error('❌ Profile update error:', updateError);
+          
+          // If columns don't exist, warn but don't fail
+          if (updateError.message.includes('column') || updateError.message.includes('does not exist')) {
+            console.warn('⚠️ Driver license columns not found in database!');
+            console.warn('Migration needs to be run. See: supabase/migrations/20250201000001_add_driver_license_verification.sql');
+            
+            toast({
+              title: "⚠️ Database Migration Required",
+              description: "Driver license fields not found. Please run the migration first. Your license was uploaded to storage but not saved to profile.",
+              variant: "destructive",
+              duration: 10000,
+            });
+            
+            // Still allow user to continue with the uploaded URL
+            setLicenseUrl(publicUrl);
+            setHasExistingLicense(true);
+            return;
+          }
+          
+          throw updateError;
+        }
+
+        console.log('✅ Profile updated successfully');
+      } catch (err) {
+        console.error('Exception during profile update:', err);
+        throw err;
       }
-
-      console.log('Profile updated successfully');
 
       // Update UI state immediately
       setLicenseUrl(publicUrl);
@@ -311,13 +362,35 @@ export function DriverLicenseUpload({ onVerificationComplete, showSkip = false, 
               </p>
             )}
 
-            <Button
-              onClick={() => onVerificationComplete?.()}
-              className="w-full apple-button-primary h-12 font-semibold"
-            >
-              <FileCheck className="h-4 w-4 mr-2" />
-              Continue to List Your Space
-            </Button>
+            <div className="space-y-3">
+              <Button
+                onClick={() => onVerificationComplete?.()}
+                className="w-full apple-button-primary h-12 font-semibold"
+              >
+                <FileCheck className="h-4 w-4 mr-2" />
+                Continue to List Your Space
+              </Button>
+              
+              {allowUpdate && (
+                <Button
+                  onClick={handleRemove}
+                  variant="outline"
+                  className="w-full h-10"
+                >
+                  Update Driver's License
+                </Button>
+              )}
+              
+              {showBackButton && onBack && (
+                <Button
+                  onClick={onBack}
+                  variant="ghost"
+                  className="w-full h-10"
+                >
+                  ← Back
+                </Button>
+              )}
+            </div>
           </CardContent>
         </Card>
       ) : !uploading ? (
