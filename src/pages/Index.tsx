@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { MapPin, Clock, DollarSign, Users, Star, ArrowRight, Search, Car, Warehouse, Home, Sparkles, Zap, Bot, Shield, TrendingUp, CheckCircle, X } from "lucide-react";
+import { MapPin, Clock, DollarSign, Users, Star, ArrowRight, Search, Car, Warehouse, Home, Sparkles, Zap, Bot, Shield, TrendingUp, CheckCircle, X, Calendar } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { LoadingDots } from "@/components/ui/loading-dots";
@@ -368,16 +368,47 @@ const Index = () => {
           </CardHeader>
           <CardContent className="space-y-8 pb-8">
             {question.content}
-            <Button 
-              onClick={handleStepSubmit} 
-              disabled={!canProceed}
-              className={`w-full h-14 text-lg font-semibold ${
-                canProceed ? "apple-button-primary" : "opacity-50"
-              }`}
-            >
-              {currentStep === questions.length - 1 ? "Find My Driveway" : "Continue"}
-              <ArrowRight className="ml-2 h-5 w-5" />
-            </Button>
+            
+            {/* Action Buttons */}
+            <div className="space-y-3">
+              <Button 
+                onClick={handleStepSubmit} 
+                disabled={!canProceed}
+                className={`w-full h-14 text-lg font-semibold ${
+                  canProceed ? "apple-button-primary" : "opacity-50"
+                }`}
+              >
+                {currentStep === questions.length - 1 ? "Find My Driveway" : "Continue"}
+                <ArrowRight className="ml-2 h-5 w-5" />
+              </Button>
+              
+              {/* Reserve a Driveway Button - shown on all steps */}
+              <Button 
+                variant="outline"
+                onClick={() => {
+                  if (user) {
+                    // User is logged in, open booking flow with available spaces
+                    if (spaces.length > 0) {
+                      setSelectedSpaceForBooking(spaces[0]); // Default to first available space
+                      setBookingModalOpen(true);
+                    } else {
+                      toast({
+                        title: "No Spaces Available",
+                        description: "There are currently no spaces available for booking. Try searching for a specific location.",
+                        variant: "destructive",
+                      });
+                    }
+                  } else {
+                    // User not logged in, open auth modal
+                    setAuthModalOpen(true);
+                  }
+                }}
+                className="w-full h-12 text-base font-medium apple-button-secondary"
+              >
+                <Calendar className="mr-2 h-4 w-4" />
+                Reserve a Driveway Now
+              </Button>
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -601,6 +632,35 @@ const Index = () => {
                   Sign In
                 </Button>
               )}
+              
+              {/* Reserve a Driveway button - always visible, checks auth */}
+              <Button 
+                variant="outline"
+                size="sm"
+                className="text-sm sm:text-base h-9 sm:h-10 px-3 sm:px-4"
+                onClick={() => {
+                  if (user) {
+                    // User is logged in, open booking flow with available spaces
+                    if (spaces.length > 0) {
+                      setSelectedSpaceForBooking(spaces[0]); // Default to first available space
+                      setBookingModalOpen(true);
+                    } else {
+                      toast({
+                        title: "No Spaces Available",
+                        description: "There are currently no spaces available for booking. Try searching for a specific location.",
+                        variant: "destructive",
+                      });
+                    }
+                  } else {
+                    // User not logged in, open auth modal
+                    setAuthModalOpen(true);
+                  }
+                }}
+              >
+                <Calendar className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1.5 sm:mr-2" />
+                <span className="hidden xs:inline">Reserve</span>
+                <span className="xs:hidden">Reserve</span>
+              </Button>
               
               {/* List Your Space button - always visible, checks auth */}
               <Button 
@@ -978,7 +1038,7 @@ const Index = () => {
                     Join thousands of users who are already using AI-powered driveway booking. 
                     List your driveway in seconds, get fair prices, and let our AI agents handle the rest.
                   </p>
-                  <div className="flex items-center justify-center gap-4">
+                  <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
                     <Button 
                       size="lg" 
                       className="apple-button-primary h-14 px-8 text-lg"
@@ -986,6 +1046,32 @@ const Index = () => {
                     >
                       <Search className="h-5 w-5 mr-2" />
                       Find Your Driveway
+                    </Button>
+                    <Button 
+                      size="lg" 
+                      variant="outline"
+                      className="apple-button-secondary h-14 px-8 text-lg"
+                      onClick={() => {
+                        if (user) {
+                          // User is logged in, open booking flow with available spaces
+                          if (spaces.length > 0) {
+                            setSelectedSpaceForBooking(spaces[0]); // Default to first available space
+                            setBookingModalOpen(true);
+                          } else {
+                            toast({
+                              title: "No Spaces Available",
+                              description: "There are currently no spaces available for booking. Try searching for a specific location.",
+                              variant: "destructive",
+                            });
+                          }
+                        } else {
+                          // User not logged in, open auth modal
+                          setAuthModalOpen(true);
+                        }
+                      }}
+                    >
+                      <Calendar className="h-5 w-5 mr-2" />
+                      Reserve a Driveway
                     </Button>
                     {authLoading ? (
                       <Button 
