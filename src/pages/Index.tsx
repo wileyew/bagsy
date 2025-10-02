@@ -37,6 +37,7 @@ const Index = () => {
     description: ""
   });
   const { user, loading: authLoading } = useAuthContext();
+  const [authTimeout, setAuthTimeout] = useState(false);
   const { toast } = useToast();
 
   // Real space data state
@@ -59,6 +60,24 @@ const Index = () => {
   useEffect(() => {
     fetchSpaces();
   }, []);
+
+  // Handle authentication loading timeout
+  useEffect(() => {
+    console.log('Auth state changed:', { authLoading, user: !!user, authTimeout });
+    
+    if (authLoading) {
+      // Set a timeout to prevent infinite loading
+      const timeout = setTimeout(() => {
+        console.warn('Authentication loading timeout - showing sign in button');
+        setAuthTimeout(true);
+      }, 3000); // 3 second timeout
+
+      return () => clearTimeout(timeout);
+    } else {
+      // Reset timeout when loading completes
+      setAuthTimeout(false);
+    }
+  }, [authLoading, user]);
 
   const fetchSpaces = async (filters = searchFilters) => {
     try {
@@ -615,14 +634,14 @@ const Index = () => {
             </div>
             <div className="flex items-center gap-1.5 sm:gap-2 md:gap-4">
               {/* Loading state */}
-              {authLoading && (
+              {authLoading && !authTimeout && authLoading !== undefined && (
                 <div className="h-9 sm:h-10 flex items-center px-3 sm:px-4">
                   <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
                 </div>
               )}
               
-              {/* Sign In button - visible for unauthenticated users */}
-              {!authLoading && !user && (
+              {/* Sign In button - visible for unauthenticated users or after timeout */}
+              {(!authLoading || authTimeout || authLoading === undefined) && !user && (
                 <Button 
                   variant="ghost" 
                   size="sm"
@@ -1073,7 +1092,7 @@ const Index = () => {
                       <Calendar className="h-5 w-5 mr-2" />
                       Reserve a Driveway
                     </Button>
-                    {authLoading ? (
+                    {authLoading && !authTimeout ? (
                       <Button 
                         size="lg" 
                         variant="outline"
