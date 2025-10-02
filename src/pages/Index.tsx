@@ -8,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { LoadingDots } from "@/components/ui/loading-dots";
 import { AuthModal } from "@/components/auth/auth-modal";
 import { UserMenu } from "@/components/auth/user-menu";
-import { AISpaceListingModal } from "@/components/spaces/ai-space-listing-modal";
+import { TieredSpaceCreationFlow } from "@/components/spaces/tiered-space-creation-flow";
 import { SpaceCard } from "@/components/spaces/SpaceCard";
 import { RelistModal } from "@/components/spaces/relist-modal";
 import { TieredBookingModal } from "@/components/spaces/tiered-booking-modal";
@@ -22,7 +22,7 @@ import { supabase } from "@/integrations/supabase/client";
 const Index = () => {
   const [currentStep, setCurrentStep] = useState(0);
   const [authModalOpen, setAuthModalOpen] = useState(false);
-  const [aiSpaceListingModalOpen, setAiSpaceListingModalOpen] = useState(false);
+  const [tieredSpaceCreationOpen, setTieredSpaceCreationOpen] = useState(false);
   const [relistModalOpen, setRelistModalOpen] = useState(false);
   const [selectedSpaceForRelist, setSelectedSpaceForRelist] = useState<any>(null);
   const [bookingModalOpen, setBookingModalOpen] = useState(false);
@@ -608,7 +608,7 @@ const Index = () => {
                 className="apple-button-primary text-sm sm:text-base h-9 sm:h-10 px-3 sm:px-4"
                 onClick={() => {
                   if (user) {
-                    setAiSpaceListingModalOpen(true);
+                    setTieredSpaceCreationOpen(true);
                   } else {
                     setAuthModalOpen(true);
                   }
@@ -1002,7 +1002,7 @@ const Index = () => {
                         size="lg" 
                         variant="outline"
                         className="apple-button-secondary h-14 px-8 text-lg"
-                        onClick={() => setAiSpaceListingModalOpen(true)}
+                        onClick={() => setTieredSpaceCreationOpen(true)}
                       >
                         <Sparkles className="h-5 w-5 mr-2" />
                         List Your Driveway
@@ -1053,11 +1053,24 @@ const Index = () => {
         onOpenChange={setAuthModalOpen} 
       />
 
-      {/* List Space Modal */}
-      <AISpaceListingModal 
-        open={aiSpaceListingModalOpen}
-        onOpenChange={setAiSpaceListingModalOpen}
-      />
+      {/* Tiered Space Creation Flow */}
+      {tieredSpaceCreationOpen && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+          <div className="w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+            <TieredSpaceCreationFlow
+              onListingCreated={(listingData) => {
+                setTieredSpaceCreationOpen(false);
+                toast({
+                  title: "Space Listed Successfully!",
+                  description: "Your space has been listed and is now available for booking.",
+                });
+                fetchSpaces(); // Refresh the spaces list
+              }}
+              onCancel={() => setTieredSpaceCreationOpen(false)}
+            />
+          </div>
+        </div>
+      )}
 
       {/* Relist Modal */}
       <RelistModal 

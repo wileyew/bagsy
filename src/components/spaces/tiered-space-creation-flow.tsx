@@ -31,11 +31,13 @@ export function TieredSpaceCreationFlow({
 }: TieredSpaceCreationFlowProps) {
   const { toast } = useToast();
   const { user } = useAuth();
-  const [step, setStep] = useState<'form' | 'verification' | 'processing'>('form');
+  const [step, setStep] = useState<'payment_setup' | 'form' | 'verification' | 'processing'>('payment_setup');
   const [verificationResult, setVerificationResult] = useState<ListingVerificationResult | null>(null);
   const [showIDModal, setShowIDModal] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [verificationStatus, setVerificationStatus] = useState<any>(null);
+  const [loadingVerification, setLoadingVerification] = useState(true);
 
   const [formData, setFormData] = useState({
     title: '',
@@ -49,6 +51,50 @@ export function TieredSpaceCreationFlow({
     zip_code: '',
     dimensions: '',
   });
+
+  // Check verification status on mount
+  useEffect(() => {
+    const checkVerificationStatus = async () => {
+      if (!user) return;
+
+      setLoadingVerification(true);
+      try {
+        const status = await tieredVerificationService.getUserVerificationStatus(user.id);
+        setVerificationStatus(status);
+        
+        // If user already has payment method setup, skip to form
+        if (status.paymentMethodSetup) {
+          setStep('form');
+        }
+      } catch (error) {
+        console.error('Failed to load verification status:', error);
+      } finally {
+        setLoadingVerification(false);
+      }
+    };
+
+    checkVerificationStatus();
+  }, [user]);
+
+  const handlePaymentSetupComplete = async () => {
+    setShowPaymentModal(false);
+    
+    // Refresh verification status
+    try {
+      const status = await tieredVerificationService.getUserVerificationStatus(user.id);
+      setVerificationStatus(status);
+      
+      if (status.paymentMethodSetup) {
+        setStep('form');
+        toast({
+          title: "Payment Method Added!",
+          description: "Your address has been verified. You can now proceed with listing your space.",
+        });
+      }
+    } catch (error) {
+      console.error('Failed to refresh verification status:', error);
+    }
+  };
 
   const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -267,6 +313,75 @@ export function TieredSpaceCreationFlow({
     );
   }
 
+  // Payment setup step
+  if (step === 'payment_setup') {
+    return (
+      <div className="space-y-6">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <CreditCard className="h-5 w-5" />
+              Payment Setup Required
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="text-center space-y-4">
+              <div className="mx-auto w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center">
+                <CreditCard className="h-8 w-8 text-blue-600" />
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold">Set Up Payment Method</h3>
+                <p className="text-muted-foreground">
+                  To list your space, we need to verify your identity and address through a payment method. 
+                  This helps ensure trust and safety for all users.
+                </p>
+              </div>
+            </div>
+
+            <Alert>
+              <ShieldCheck className="h-4 w-4" />
+              <AlertDescription>
+                <strong>Why we need this:</strong> Your payment information helps us verify your identity 
+                and address, creating a safer marketplace for everyone. You won't be charged until 
+                someone books your space.
+              </AlertDescription>
+            </Alert>
+
+            <div className="flex gap-3">
+              <Button 
+                onClick={() => setShowPaymentModal(true)}
+                className="flex-1"
+              >
+                <CreditCard className="h-4 w-4 mr-2" />
+                Set Up Payment Method
+              </Button>
+              <Button 
+                variant="outline"
+                onClick={onCancel}
+              >
+                Cancel
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // Loading verification status
+  if (loadingVerification) {
+    return (
+      <div className="space-y-6">
+        <Card>
+          <CardContent className="py-8 text-center">
+            <div className="mx-auto w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin mb-4"></div>
+            <p>Checking verification status...</p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <>
       <form onSubmit={handleFormSubmit} className="space-y-6">
@@ -466,14 +581,7 @@ export function TieredSpaceCreationFlow({
       <PaymentSetupModal
         open={showPaymentModal}
         onOpenChange={setShowPaymentModal}
-        onSetupComplete={() => {
-          setShowPaymentModal(false);
-          // Re-run verification
-          handleFormSubmit({ preventDefault: () => {} } as React.FormEvent);
-        }}
-        isRequired={true}
-        title="Payment Setup Required"
-        description="Set up your payment method to verify your address and create listings."
+        onComplete={handlePaymentSetupComplete}
       />
     </>
   );
