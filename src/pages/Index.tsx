@@ -36,7 +36,7 @@ const Index = () => {
     timeframe: "",
     description: ""
   });
-  const { user } = useAuthContext();
+  const { user, loading: authLoading } = useAuthContext();
   const { toast } = useToast();
 
   // Real space data state
@@ -583,8 +583,15 @@ const Index = () => {
               </div>
             </div>
             <div className="flex items-center gap-1.5 sm:gap-2 md:gap-4">
-              {/* Sign In button - always visible for unauthenticated users */}
-              {!user && (
+              {/* Loading state */}
+              {authLoading && (
+                <div className="h-9 sm:h-10 flex items-center px-3 sm:px-4">
+                  <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+                </div>
+              )}
+              
+              {/* Sign In button - visible for unauthenticated users */}
+              {!authLoading && !user && (
                 <Button 
                   variant="ghost" 
                   size="sm"
@@ -980,7 +987,17 @@ const Index = () => {
                       <Search className="h-5 w-5 mr-2" />
                       Find Your Driveway
                     </Button>
-                    {user ? (
+                    {authLoading ? (
+                      <Button 
+                        size="lg" 
+                        variant="outline"
+                        className="apple-button-secondary h-14 px-8 text-lg"
+                        disabled
+                      >
+                        <Sparkles className="h-5 w-5 mr-2" />
+                        Loading...
+                      </Button>
+                    ) : user ? (
                       <Button 
                         size="lg" 
                         variant="outline"
@@ -998,7 +1015,7 @@ const Index = () => {
                         onClick={() => setAuthModalOpen(true)}
                       >
                         <Sparkles className="h-5 w-5 mr-2" />
-                        List Your Driveway
+                        Sign In to List
                       </Button>
                     )}
                   </div>
