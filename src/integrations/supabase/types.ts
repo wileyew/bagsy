@@ -124,6 +124,13 @@ export type Database = {
           phone: string | null
           updated_at: string
           user_id: string
+          stripe_customer_id: string | null
+          stripe_payment_method_id: string | null
+          payment_method_setup: boolean | null
+          payment_method_setup_at: string | null
+          stripe_connect_account_id: string | null
+          stripe_connect_onboarding_completed: boolean | null
+          stripe_connect_onboarding_completed_at: string | null
         }
         Insert: {
           created_at?: string
@@ -140,6 +147,13 @@ export type Database = {
           phone?: string | null
           updated_at?: string
           user_id: string
+          stripe_customer_id?: string | null
+          stripe_payment_method_id?: string | null
+          payment_method_setup?: boolean | null
+          payment_method_setup_at?: string | null
+          stripe_connect_account_id?: string | null
+          stripe_connect_onboarding_completed?: boolean | null
+          stripe_connect_onboarding_completed_at?: string | null
         }
         Update: {
           created_at?: string
@@ -156,6 +170,13 @@ export type Database = {
           phone?: string | null
           updated_at?: string
           user_id?: string
+          stripe_customer_id?: string | null
+          stripe_payment_method_id?: string | null
+          payment_method_setup?: boolean | null
+          payment_method_setup_at?: string | null
+          stripe_connect_account_id?: string | null
+          stripe_connect_onboarding_completed?: boolean | null
+          stripe_connect_onboarding_completed_at?: string | null
         }
         Relationships: []
       }

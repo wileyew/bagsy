@@ -14,6 +14,7 @@ interface PaymentSetupModalProps {
   isRequired?: boolean;
   title?: string;
   description?: string;
+  listingAddress?: string; // For address verification
 }
 
 export function PaymentSetupModal({
@@ -23,6 +24,7 @@ export function PaymentSetupModal({
   isRequired = true,
   title,
   description,
+  listingAddress,
 }: PaymentSetupModalProps) {
   const handleSetupComplete = () => {
     onSetupComplete();
@@ -54,6 +56,7 @@ export function PaymentSetupModal({
           onSetupComplete={handleSetupComplete}
           onSkip={!isRequired ? handleSkip : undefined}
           isRequired={isRequired}
+          listingAddress={listingAddress}
         />
       </DialogContent>
     </Dialog>

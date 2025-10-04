@@ -309,17 +309,128 @@ class StripePaymentService {
   }
 
   /**
+   * Create Stripe Connect account for user
+   */
+  async createConnectAccount(userId: string, accountData: {
+    email: string;
+    name?: string;
+    address?: {
+      line1: string;
+      city: string;
+      state: string;
+      postal_code: string;
+      country: string;
+    };
+  }): Promise<{ id: string }> {
+    try {
+      debug.info('Creating Stripe Connect account', { userId, email: accountData.email });
+
+      const response = await fetch(`${this.baseUrl}/create-connect-account`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          userId, 
+          ...accountData,
+          type: 'express', // Express accounts for easier onboarding
+          capabilities: ['card_payments', 'transfers'],
+          business_type: 'individual'
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to create Connect account');
+      }
+
+      const result = await response.json();
+      
+      // Store Connect account ID in our database
+      await supabase
+        .from('profiles')
+        .update({ stripe_connect_account_id: result.id })
+        .eq('user_id', userId);
+
+      debug.info('Connect account created', { accountId: result.id });
+      return result;
+    } catch (error) {
+      debug.error('Failed to create Connect account', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Create onboarding link for Stripe Connect account
+   */
+  async createOnboardingLink(accountId: string, userId: string): Promise<string> {
+    try {
+      debug.info('Creating onboarding link', { accountId, userId });
+
+      const response = await fetch(`${this.baseUrl}/create-onboarding-link`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          accountId, 
+          userId,
+          refresh_url: `${window.location.origin}/payment-setup?refresh=true`,
+          return_url: `${window.location.origin}/payment-setup?success=true`
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to create onboarding link');
+      }
+
+      const result = await response.json();
+      
+      debug.info('Onboarding link created', { url: result.url });
+      return result.url;
+    } catch (error) {
+      debug.error('Failed to create onboarding link', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Check Connect account status
+   */
+  async checkConnectAccountStatus(accountId: string): Promise<{
+    charges_enabled: boolean;
+    details_submitted: boolean;
+    payouts_enabled: boolean;
+  }> {
+    try {
+      debug.info('Checking Connect account status', { accountId });
+
+      const response = await fetch(`${this.baseUrl}/check-connect-status/${accountId}`, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' },
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to check account status');
+      }
+
+      const result = await response.json();
+      
+      debug.info('Account status retrieved', result);
+      return result;
+    } catch (error) {
+      debug.error('Failed to check account status', error);
+      throw error;
+    }
+  }
+
+  /**
    * Check if user has completed payment setup
    */
   async hasPaymentSetup(userId: string): Promise<boolean> {
     try {
       const { data: profile } = await supabase
         .from('profiles')
-        .select('payment_method_setup, stripe_customer_id')
+        .select('payment_method_setup, stripe_connect_account_id')
         .eq('user_id', userId)
         .single();
 
-      return profile?.payment_method_setup === true && !!profile?.stripe_customer_id;
+      return profile?.payment_method_setup === true && !!profile?.stripe_connect_account_id;
     } catch (error) {
       debug.error('Failed to check payment setup status', error);
       return false;
@@ -341,6 +452,11 @@ export const stripePaymentService = new StripePaymentService();
  * 5. POST /api/stripe-payments/create-payment-intent
  * 6. POST /api/stripe-payments/confirm-payment
  * 7. GET /api/stripe-payments/get-payment-methods/:customerId
+ * 
+ * STRIPE CONNECT ENDPOINTS:
+ * 8. POST /api/stripe-payments/create-connect-account
+ * 9. POST /api/stripe-payments/create-onboarding-link
+ * 10. GET /api/stripe-payments/check-connect-status/:accountId
  * 
  * See the implementation guide in the documentation for detailed examples.
  */

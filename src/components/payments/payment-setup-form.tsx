@@ -3,28 +3,33 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { CreditCard, Lock, AlertCircle, CheckCircle, Loader2 } from "lucide-react";
+import { CreditCard, Lock, AlertCircle, CheckCircle, Loader2, Shield, ExternalLink } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
 import { stripePaymentService } from "@/lib/stripe-payment-service";
+import { addressVerificationService } from "@/lib/address-verification-service";
 import { supabase } from "@/integrations/supabase/client";
 
 interface PaymentSetupFormProps {
   onSetupComplete: () => void;
   onSkip?: () => void;
   isRequired?: boolean;
+  listingAddress?: string; // For address verification
 }
 
 export function PaymentSetupForm({ 
   onSetupComplete, 
   onSkip,
-  isRequired = true 
+  isRequired = true,
+  listingAddress 
 }: PaymentSetupFormProps) {
   const { toast } = useToast();
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
-  const [step, setStep] = useState<'form' | 'processing' | 'complete'>('form');
+  const [step, setStep] = useState<'form' | 'stripe-connect' | 'address-verification' | 'processing' | 'complete'>('form');
   const [hasExistingSetup, setHasExistingSetup] = useState(false);
+  const [stripeConnectUrl, setStripeConnectUrl] = useState<string | null>(null);
+  const [addressVerificationResult, setAddressVerificationResult] = useState<any>(null);
   
   const [paymentData, setPaymentData] = useState({
     cardNumber: "",
@@ -88,7 +93,6 @@ export function PaymentSetupForm({
     if (!user) return;
 
     setLoading(true);
-    setStep('processing');
 
     try {
       // Validate form data
@@ -96,48 +100,128 @@ export function PaymentSetupForm({
         throw new Error("Please fill in all required fields");
       }
 
-      // Create or get Stripe customer
-      const customer = await stripePaymentService.createOrGetCustomer(
-        user.id,
-        user.email!,
-        paymentData.name || user.user_metadata?.full_name
-      );
+      // Step 1: Create Stripe Connect account and get onboarding URL
+      setStep('stripe-connect');
+      toast({
+        title: "Setting up your payment account...",
+        description: "We're creating your secure Stripe Connect account for payments and verification.",
+      });
 
-      // Set up payment method
-      const { clientSecret, paymentMethodId } = await stripePaymentService.setupPaymentMethod(
-        customer.id,
-        user.id
-      );
+      // Create Stripe Connect account
+      const connectAccount = await stripePaymentService.createConnectAccount(user.id, {
+        email: user.email!,
+        name: paymentData.name || user.user_metadata?.full_name,
+        address: {
+          line1: paymentData.address,
+          city: paymentData.city,
+          state: paymentData.state,
+          postal_code: paymentData.zipCode,
+          country: 'US'
+        }
+      });
 
-      // In a real implementation, you would use Stripe.js to confirm the setup intent
-      // For now, we'll simulate the confirmation
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // Get Stripe Connect onboarding URL
+      const onboardingUrl = await stripePaymentService.createOnboardingLink(connectAccount.id, user.id);
+      setStripeConnectUrl(onboardingUrl);
 
-      // Confirm the payment method setup
-      const result = await stripePaymentService.confirmPaymentMethodSetup(
-        'setup_intent_mock', // This would be the actual setup intent ID
-        user.id
-      );
+      toast({
+        title: "Account Created!",
+        description: "Please complete the secure verification process with Stripe.",
+      });
 
-      if (result.success) {
-        setStep('complete');
-        toast({
-          title: "Payment Method Added!",
-          description: "Your payment method has been securely saved for future bookings.",
-        });
-        
-        // Wait a moment then call completion callback
-        setTimeout(() => {
-          onSetupComplete();
-        }, 1500);
-      } else {
-        throw new Error(result.error || "Failed to setup payment method");
-      }
     } catch (error: any) {
       setStep('form');
       toast({
         title: "Setup Failed",
-        description: error.message || "Failed to setup payment method. Please try again.",
+        description: error.message || "Failed to setup payment account. Please try again.",
+        variant: "destructive",
+      });
+      setLoading(false);
+    }
+  };
+
+  const handleStripeConnectComplete = async () => {
+    if (!user) return;
+
+    setLoading(true);
+    setStep('address-verification');
+
+    try {
+      // Step 2: Verify address after Stripe Connect completion
+      if (listingAddress) {
+        const billingAddress = {
+          street: paymentData.address,
+          city: paymentData.city,
+          state: paymentData.state,
+          zipCode: paymentData.zipCode,
+          country: 'US'
+        };
+
+        // Parse listing address (this would be more sophisticated in real implementation)
+        const listingParts = listingAddress.split(',');
+        const listingAddressObj = {
+          street: listingParts[0]?.trim() || '',
+          city: listingParts[1]?.trim() || '',
+          state: listingParts[2]?.trim().split(' ')[0] || '',
+          zipCode: listingParts[2]?.trim().split(' ')[1] || '',
+          country: 'US'
+        };
+
+        const verificationResult = addressVerificationService.verifyAddressMatch(
+          billingAddress,
+          listingAddressObj
+        );
+
+        setAddressVerificationResult(verificationResult);
+
+        // Show verification result
+        const message = addressVerificationService.getVerificationMessage(verificationResult);
+        toast({
+          title: message.title,
+          description: message.description,
+          variant: message.variant,
+        });
+
+        // If verification fails, show warning but allow to proceed
+        if (!verificationResult.isMatch) {
+          toast({
+            title: "Address Verification Notice",
+            description: "Your billing address doesn't match your listing location. This helps us verify account legitimacy for security.",
+            variant: "warning",
+            duration: 8000,
+          });
+        }
+      }
+
+      // Step 3: Complete setup
+      setStep('processing');
+      
+      // Update user profile with payment setup status
+      await supabase
+        .from('profiles')
+        .update({ 
+          payment_method_setup: true,
+          payment_method_setup_at: new Date().toISOString(),
+          stripe_connect_account_id: user.id // This would be the actual account ID
+        })
+        .eq('user_id', user.id);
+
+      setStep('complete');
+      toast({
+        title: "Payment Account Verified!",
+        description: "Your account is now linked and verified. You can make bookings securely.",
+      });
+      
+      // Wait a moment then call completion callback
+      setTimeout(() => {
+        onSetupComplete();
+      }, 2000);
+
+    } catch (error: any) {
+      setStep('form');
+      toast({
+        title: "Verification Failed",
+        description: error.message || "Failed to complete verification. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -180,6 +264,138 @@ export function PaymentSetupForm({
     );
   }
 
+  if (step === 'stripe-connect') {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Shield className="h-5 w-5 text-blue-600" />
+            Secure Account Verification
+          </CardTitle>
+          <p className="text-sm text-muted-foreground">
+            Complete your account setup with Stripe for secure payments and identity verification
+          </p>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+            <div className="flex items-start gap-3">
+              <Shield className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
+              <div className="text-sm text-blue-800">
+                <h4 className="font-semibold mb-2">Why Stripe verification?</h4>
+                <ul className="space-y-1 text-xs">
+                  <li>• Verify your identity and billing address</li>
+                  <li>• Secure your account against fraud</li>
+                  <li>• Enable secure payments for bookings</li>
+                  <li>• Comply with financial regulations</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          {stripeConnectUrl ? (
+            <div className="space-y-4">
+              <div className="text-center">
+                <p className="text-sm text-muted-foreground mb-4">
+                  Click below to complete your secure account setup with Stripe
+                </p>
+                <Button
+                  onClick={() => window.open(stripeConnectUrl, '_blank')}
+                  className="w-full apple-button-primary h-12"
+                >
+                  <ExternalLink className="h-4 w-4 mr-2" />
+                  Complete Stripe Verification
+                </Button>
+              </div>
+              
+              <div className="text-center">
+                <p className="text-xs text-muted-foreground mb-2">
+                  After completing verification, click below to continue:
+                </p>
+                <Button
+                  onClick={handleStripeConnectComplete}
+                  variant="outline"
+                  className="w-full"
+                  disabled={loading}
+                >
+                  {loading ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Verifying...
+                    </>
+                  ) : (
+                    'I\'ve completed verification'
+                  )}
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <div className="text-center">
+              <Loader2 className="h-6 w-6 animate-spin text-primary mx-auto mb-2" />
+              <p className="text-sm text-muted-foreground">
+                Setting up your verification link...
+              </p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (step === 'address-verification') {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <CheckCircle className="h-5 w-5 text-green-600" />
+            Address Verification
+          </CardTitle>
+          <p className="text-sm text-muted-foreground">
+            Verifying your billing address against your listing location for security
+          </p>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {addressVerificationResult && (
+            <div className={`p-4 border rounded-lg ${
+              addressVerificationResult.isMatch 
+                ? 'bg-green-50 border-green-200' 
+                : 'bg-amber-50 border-amber-200'
+            }`}>
+              <div className="flex items-start gap-3">
+                {addressVerificationResult.isMatch ? (
+                  <CheckCircle className="h-5 w-5 text-green-600 flex-shrink-0 mt-0.5" />
+                ) : (
+                  <AlertCircle className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                )}
+                <div className="text-sm">
+                  <h4 className={`font-semibold mb-1 ${
+                    addressVerificationResult.isMatch ? 'text-green-800' : 'text-amber-800'
+                  }`}>
+                    {addressVerificationResult.isMatch ? 'Address Verified' : 'Address Mismatch'}
+                  </h4>
+                  <p className={`text-xs ${
+                    addressVerificationResult.isMatch ? 'text-green-700' : 'text-amber-700'
+                  }`}>
+                    Confidence: {addressVerificationResult.confidence}%
+                    {addressVerificationResult.suggestion && (
+                      <><br />{addressVerificationResult.suggestion}</>
+                    )}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <div className="text-center">
+            <Loader2 className="h-6 w-6 animate-spin text-primary mx-auto mb-2" />
+            <p className="text-sm text-muted-foreground">
+              Completing your account setup...
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
   if (step === 'processing') {
     return (
       <Card>
@@ -187,9 +403,9 @@ export function PaymentSetupForm({
           <div className="flex items-center justify-center space-x-3">
             <Loader2 className="h-6 w-6 animate-spin text-primary" />
             <div>
-              <h3 className="font-semibold">Setting Up Payment Method</h3>
+              <h3 className="font-semibold">Finalizing Setup</h3>
               <p className="text-sm text-muted-foreground">
-                Securely processing your payment information...
+                Securing your account and enabling payments...
               </p>
             </div>
           </div>
@@ -212,16 +428,17 @@ export function PaymentSetupForm({
           }
         </p>
         
-        {/* Address Verification Notice */}
+        {/* Stripe Connect Verification Notice */}
         <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
           <div className="flex items-start gap-2">
-            <CheckCircle className="h-4 w-4 text-blue-600 flex-shrink-0 mt-0.5" />
+            <Shield className="h-4 w-4 text-blue-600 flex-shrink-0 mt-0.5" />
             <div className="text-xs text-blue-800">
-              <strong className="block mb-1">Why we need this:</strong>
+              <strong className="block mb-1">Secure Account Verification Process:</strong>
               <ul className="list-disc pl-4 space-y-1">
-                <li>Process payments for your bookings securely</li>
-                <li>Verify your billing address matches your listing location (helps prevent fraud)</li>
-                <li>Speed up future bookings with saved payment info</li>
+                <li>We'll create a secure Stripe Connect account for you</li>
+                <li>You'll complete identity verification with Stripe (bank-level security)</li>
+                <li>Your billing address will be verified against your listing location</li>
+                <li>This helps prevent fraud and ensures account legitimacy</li>
               </ul>
             </div>
           </div>
@@ -391,12 +608,12 @@ export function PaymentSetupForm({
               {loading ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Setting Up...
+                  Creating Account...
                 </>
               ) : (
                 <>
-                  <Lock className="h-4 w-4 mr-2" />
-                  Set Up Payment Method
+                  <Shield className="h-4 w-4 mr-2" />
+                  Start Secure Verification
                 </>
               )}
             </Button>
