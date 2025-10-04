@@ -677,7 +677,7 @@ const Index = () => {
                 }}
               >
                 <Calendar className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1.5 sm:mr-2" />
-                <span className="hidden xs:inline">Reserve</span>
+                <span className="hidden xs:inline">Reserve a Driveway</span>
                 <span className="xs:hidden">Reserve</span>
               </Button>
               

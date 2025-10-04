@@ -33,6 +33,7 @@ import { EditSpaceModal } from '@/components/spaces/edit-space-modal';
 import { SpaceCard } from '@/components/spaces/SpaceCard';
 import { DeleteConfirmationModal } from '@/components/spaces/delete-confirmation-modal';
 import { RelistModal } from '@/components/spaces/relist-modal';
+import { TieredSpaceCreationFlow } from '@/components/spaces/tiered-space-creation-flow';
 
 interface SpaceListing {
   id: string;
@@ -99,6 +100,7 @@ const MyListings: React.FC = () => {
   const [deleting, setDeleting] = useState(false);
   const [relistingSpace, setRelistingSpace] = useState<SpaceListing | null>(null);
   const [showRelistModal, setShowRelistModal] = useState(false);
+  const [showTieredSpaceCreation, setShowTieredSpaceCreation] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -607,7 +609,7 @@ Thank you!`);
           <div className="flex gap-2 sm:gap-3">
             {listings.length < 5 ? (
               <Button
-                onClick={() => navigate('/')}
+                onClick={() => setShowTieredSpaceCreation(true)}
                 variant="outline"
                 className="flex items-center gap-1.5 sm:gap-2 h-9 sm:h-10 px-3 sm:px-4 text-sm sm:text-base whitespace-nowrap"
               >
@@ -1094,6 +1096,25 @@ Thank you!`);
             fetchListings(); // Refresh the listings to show updated status
           }}
         />
+      )}
+
+      {/* Tiered Space Creation Flow */}
+      {showTieredSpaceCreation && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+          <div className="w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+            <TieredSpaceCreationFlow
+              onListingCreated={(listingData) => {
+                setShowTieredSpaceCreation(false);
+                toast({
+                  title: "Space Listed Successfully!",
+                  description: "Your space has been listed and is now available for booking.",
+                });
+                fetchListings(); // Refresh the listings list
+              }}
+              onCancel={() => setShowTieredSpaceCreation(false)}
+            />
+          </div>
+        </div>
       )}
     </div>
   );
